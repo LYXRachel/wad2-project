@@ -13,6 +13,9 @@
         <button class="btn btn-sm" :class="activeTab === 'voting' ? 'btn-primary' : 'btn-outline-secondary'" @click="activeTab = 'voting'">Group Decisions</button>
       </li>
       <li class="nav-item me-2">
+        <button class="btn btn-sm" :class="activeTab === 'travelOptions' ? 'btn-primary' : 'btn-outline-secondary'" @click="activeTab = 'travelOptions'">Go Options</button>
+      </li>
+      <li class="nav-item me-2">
         <button class="btn btn-sm" :class="activeTab === 'packing' ? 'btn-primary' : 'btn-outline-secondary'" @click="activeTab = 'packing'">Packing List</button>
       </li>
       <li class="nav-item">
@@ -25,6 +28,9 @@
     </div>
     <div v-if="activeTab === 'voting'">
       <GroupVoting />
+    </div>
+    <div v-if="activeTab === 'travelOptions'">
+      <GroundLogistics />
     </div>
     <div v-if="activeTab === 'packing'">
       <PackingView />
@@ -40,9 +46,11 @@ import ItineraryView from '../components/ItineraryView.vue'
 import GroupVoting from '../components/GroupVoting.vue'
 import PackingView from '../components/PackingView.vue'
 import ExpensesView from '../components/ExpensesView.vue'
+import GroundLogistics from '../components/GroundLogistics.vue'
+
 
 export default {
-  components: { ItineraryView, GroupVoting, PackingView, ExpensesView },
+  components: { ItineraryView, GroupVoting, PackingView, ExpensesView, GroundLogistics },
   data() {
     return {
       activeTab: 'itinerary'
