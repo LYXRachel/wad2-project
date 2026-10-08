@@ -9,3 +9,6 @@ dist/
 
 # Mac system files
 .DS_Store
+
+# changes in server
+server/
