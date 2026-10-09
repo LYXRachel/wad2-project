@@ -19,9 +19,6 @@
         <button class="btn btn-sm" :class="activeTab === 'voting' ? 'btn-primary' : 'btn-outline-secondary'" @click="activeTab = 'voting'">Group Decisions</button>
       </li>
       <li class="nav-item me-2">
-        <button class="btn btn-sm" :class="activeTab === 'travelOptions' ? 'btn-primary' : 'btn-outline-secondary'" @click="activeTab = 'travelOptions'">Go Options</button>
-      </li>
-      <li class="nav-item me-2">
         <button class="btn btn-sm" :class="activeTab === 'packing' ? 'btn-primary' : 'btn-outline-secondary'" @click="activeTab = 'packing'">Packing List</button>
       </li>
       <li class="nav-item me-2">
@@ -42,8 +39,13 @@
     <div v-if="activeTab === 'voting'">
       <GroupVoting />
     </div>
+<<<<<<< HEAD
     <div v-show="activeTab === 'packing'">
       <PackingView :has-outdoor-activity="hasOutdoorActivity" />
+=======
+    <div v-if="activeTab === 'packing'">
+      <PackingView />
+>>>>>>> parent of eb85e30 (my changes)
     </div>
     <div v-if="activeTab === 'expenses'">
       <ExpensesView />
@@ -70,12 +72,18 @@ import GroupVoting from '../components/GroupVoting.vue'
 import PackingView from '../components/PackingView.vue'
 import PhotosView from '../components/PhotosView.vue'
 import ExpensesView from '../components/ExpensesView.vue'
+<<<<<<< HEAD
 import SafetyLayer from '../components/SafetyLayer.vue'
 import FlightDelayWidget from '../components/FlightDelayWidget.vue'
 import TransportOptions from '../components/TransportOptions.vue'
 
 export default {
   components: { ItineraryView, GroupVoting, PackingView, PhotosView, ExpensesView, SafetyLayer, FlightDelayWidget, TransportOptions},
+=======
+
+export default {
+  components: { ItineraryView, GroupVoting, PackingView, ExpensesView },
+>>>>>>> parent of eb85e30 (my changes)
   data() {
     return {
       activeTab: 'itinerary',
