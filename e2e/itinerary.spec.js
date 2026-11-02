@@ -12,10 +12,10 @@ test('user can open a trip and switch to Day 2', async ({ page }) => {
   // 3. Successful login should bring the user to My Trips
   await expect(page).toHaveURL(/\/home/)
 
-  // 4. Find the "kyoto testing" trip card
+  // 4. Find the "Kyoto" trip card
   const tripCard = page.locator('.trip-card').filter({
-    hasText: 'kyoto testing'
-  })
+    hasText: 'Kyoto'
+  }).last()
 
   // 5. Open that trip
   await tripCard.getByTestId('open-trip').click()
@@ -48,10 +48,10 @@ test('user can lock and unlock an itinerary stop', async ({ page }) => {
 
   await expect(page).toHaveURL(/\/home/)
 
-  // 3. Find the Kyoto testing trip
+  // 3. Find the Kyoto trip
   const tripCard = page.locator('.trip-card').filter({
-    hasText: 'kyoto testing'
-  })
+    hasText: 'Kyoto'
+  }).last()
 
   // 4. Open the trip
   await tripCard.getByTestId('open-trip').click()
@@ -104,10 +104,10 @@ test('simulated rainy weather generates an itinerary replan', async ({ page }) =
 
   await expect(page).toHaveURL(/\/home/)
 
-  // 2. Open the Kyoto testing trip
+  // 2. Open the Kyoto trip
   const tripCard = page.locator('.trip-card').filter({
-    hasText: 'kyoto testing'
-  })
+    hasText: 'Kyoto'
+  }).last()
 
   await tripCard.getByTestId('open-trip').click()
 
