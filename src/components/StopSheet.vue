@@ -46,7 +46,9 @@
                   </div>
                   <p class="ss-note">Moving it keeps your other stops where they are. You can undo it.</p>
                 </template>
-                <p v-else-if="crowd.value != null" class="ss-good">✓ This is already one of the quietest times that fits your day.</p>
+                  <p v-else-if="crowd.value != null" class="ss-good">
+                    ✓ No significantly quieter time fits your current schedule without affecting other activities.
+                  </p>              
               </section>
 
               <!-- ===== Weather ===== -->
