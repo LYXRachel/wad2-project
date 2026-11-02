@@ -84,21 +84,16 @@
                   <span class="picture-cloud cloud-two"></span>
                 </div>
 
-                <div class="cute-mountain mountain-far"></div>
+                <!-- Mountains -->
+                <div class="mountain mountain-back"></div>
 
-                <div class="cute-mountain mountain-main">
-                  <div class="mountain-snow"></div>
+                <div class="mountain mountain-front">
+                  <div class="snow-cap"></div>
                 </div>
 
-                <div class="picture-hill hill-left"></div>
-                <div class="picture-hill hill-right"></div>
-
-                <div class="picture-trees">
-                  <span>▲</span>
-                  <span>▲</span>
-                  <span>▲</span>
-                  <span>▲</span>
-                </div>
+                <!-- Foreground hills -->
+                <div class="foreground-hill hill-one"></div>
+                <div class="foreground-hill hill-two"></div>
 
                 <span class="picture-plane">✈</span>
             </div>
@@ -4418,6 +4413,167 @@ body.lp-body {
 
 .lp-join-link:hover {
   color: #c88931;
+}
+
+/* Cute postcard mountains */
+
+.picture-mountain {
+  position: absolute;
+  bottom: 0;
+
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.mountain-back {
+  width: 360px;
+  height: 175px;
+
+  right: -70px;
+  bottom: 0;
+
+  background: #8fa79d;
+
+  z-index: 1;
+}
+
+.mountain-front {
+  width: 440px;
+  height: 225px;
+
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  background: #587b72;
+
+  z-index: 2;
+}
+
+
+/* ==============================
+   POSTCARD LANDSCAPE
+   ============================== */
+
+.postcard-picture {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---------- mountains ---------- */
+
+.mountain {
+  position: absolute;
+  bottom: 0;
+  pointer-events: none;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 100%,
+    0% 100%
+  );
+}
+
+/* mountain behind */
+.mountain-back {
+  z-index: 2;
+
+  width: 330px;
+  height: 155px;
+
+  right: -55px;
+  bottom: 0;
+
+  background: #91a99c;
+}
+
+/* main mountain */
+.mountain-front {
+  z-index: 3;
+
+  width: 470px;
+  height: 230px;
+
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  background: #5f8175;
+}
+
+/* ---------- snow ---------- */
+
+.snow-cap {
+  position: absolute;
+
+  width: 190px;
+  height: 95px;
+
+  left: 50%;
+  top: 0;
+
+  transform: translateX(-50%);
+
+  background: #fffaf0;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 100%,
+    76% 72%,
+    64% 88%,
+    51% 68%,
+    37% 88%,
+    23% 72%,
+    0% 100%
+  );
+}
+
+/* ---------- foreground hills ---------- */
+
+.foreground-hill {
+  position: absolute;
+  z-index: 4;
+
+  bottom: -65px;
+
+  border-radius: 50% 50% 0 0;
+
+  pointer-events: none;
+}
+
+.hill-one {
+  width: 430px;
+  height: 135px;
+
+  left: -100px;
+
+  background: #789888;
+}
+
+.hill-two {
+  width: 450px;
+  height: 125px;
+
+  right: -120px;
+
+  background: #698879;
+}
+
+/* ---------- plane ---------- */
+
+.picture-plane {
+  position: absolute;
+  z-index: 8;
+
+  top: 28%;
+  left: 24%;
+
+  color: #17304d;
+
+  font-size: 27px;
+
+  transform: rotate(-12deg);
 }
 
 </style>
