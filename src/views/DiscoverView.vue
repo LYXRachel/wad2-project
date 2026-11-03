@@ -131,9 +131,10 @@
                  grade, souvenir stickers, a luggage-tag price and a bookmark to pack it -->
             <article v-for="(c, ci) in g.cities" :key="c.id" :ref="(el) => { if (el) cardEls[c.id] = el }" role="listitem"
               class="dx-city deal" :class="['r-' + c.rarity.key, { lit: hoverId === c.id, flash: flashId === c.id, packed: liked(c.id) }]"
-              :style="{ '--i': ci, '--tilt': ci % 2 ? '1.5deg' : '-1.5deg' }" tabindex="0" :aria-label="'Show ' + c.cityName + ' on the map'"
+              :style="{ '--i': ci, '--tilt': ci % 2 ? '1.5deg' : '-1.5deg' }" tabindex="0"
+              :aria-label="tappedId === c.id && focusCountry !== g.country ? 'Open ' + g.country : 'Show ' + c.cityName + ' on the map'"
               @mouseenter="hoverId = c.id" @mouseleave="hoverId = null" @focus="hoverId = c.id" @blur="hoverId = null"
-              @click="showOnMap(c)" @keydown.enter.self="showOnMap(c)">
+              @click="tapCity(c, g.country)" @keydown.enter.self="tapCity(c, g.country)">
               <!-- the photo -->
               <div class="dx-photo" :style="postcardPhoto(c)">
                 <span v-if="c.rarity.label" class="dx-rarity" :class="'r-' + c.rarity.key">{{ c.rarity.label }}</span>
@@ -530,7 +531,6 @@ function pickContinent(key) {
   continent.value = key
   explore(key)
 }
-
 
 // ---------- budget coins: the picked coin flips ----------
 const coinFlip = ref(0)
@@ -1443,6 +1443,17 @@ function dropTip() {
   }, 250)
 }
 // Tapping a city card: fly the map to it, light its pillar and show its tooltip
+// Tapping a city card: the first tap shows it on the map, a second tap on the same card opens its country
+const tappedId = ref(null)
+function tapCity(c, country) {
+  if (tappedId.value === c.id && focusCountry.value !== country) {
+    tappedId.value = null
+    focus(country)
+    return
+  }
+  tappedId.value = c.id
+  showOnMap(c)
+}
 function showOnMap(c) {
   if (!map) return
   hoverId.value = c.id
@@ -2225,8 +2236,6 @@ onBeforeUnmount(() => {
   margin-top: 14px;
 }
 .dx-tagline.big {
-  font-size: 15px;
-  color: #dde6ec;
   margin: 0;
 }
 .dx-allbtn:focus-visible,
@@ -2330,9 +2339,20 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 .dx-tagline {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--muted);
+  margin: 4px 0 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0.005em;
+  color: #3d5266; /* darker than the muted grey so it reads easily on the cream */
+}
+.dx-tagline.big {
+  font-size: 16px;
+}
+/* on the cream country cards the big tagline was a pale grey: make it the same readable ink */
+.dx-country .dx-tagline.big {
+  color: #3d5266;
 }
 .dx-country-meta {
   display: flex;
@@ -3097,9 +3117,6 @@ button.dx-sticker:hover {
 .dx-grade.g-B {
   background: #b9ebc8;
 }
-@keyframes dx-xp-fill {
-  from { transform: scaleX(0); }
-}
 /* ---------- rarity ---------- */
 .dx-rarity {
   position: absolute;
@@ -3828,7 +3845,7 @@ button.dx-sticker:hover {
 }
 @media (prefers-reduced-motion: reduce) {
   .dx-city, .dx-heart, .dx-cta, .dx-vibe { transition: none; }
-  .dx-city.flash, .dx-heart.on, .dx-fav.pop, .dx-chip, .dx-city.deal, .dx-xp-bar span, .dx-case.bump, .dx-case-sock, .dx-case-stickers, .dx-tray:hover .dx-case.load-stuffed, .dx-quiz, .dx-reveal, .dx-reveal-card, .dx-quiz-opt, .dx-spinning { animation: none; }
+  .dx-city.flash, .dx-heart.on, .dx-fav.pop, .dx-chip, .dx-city.deal, .dx-case.bump, .dx-case-sock, .dx-case-stickers, .dx-tray:hover .dx-case.load-stuffed, .dx-quiz, .dx-reveal, .dx-reveal-card, .dx-quiz-opt, .dx-spinning { animation: none; }
   .dx-foil { display: none; }
   .dx-scout-pip, .dx-scout-pip.hop, .dx-coin.flip, .dx-cont.on { animation: none; }
   .dx-shuffle-move { transition: none; }

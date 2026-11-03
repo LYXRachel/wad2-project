@@ -106,8 +106,6 @@ const levelText = computed(() => {
   return P.next ? P.next.min - P.xp + ' XP to ' + P.next.name : 'All gear unlocked'
 })
 
-
-
 async function toggle() {
   open.value = !open.value
   if (!open.value) return
@@ -116,7 +114,6 @@ async function toggle() {
   await nextTick()
   focusItem(0)
 }
-
 
 function openFriends() {
   open.value = false
@@ -488,11 +485,6 @@ a.upm-item:hover .upm-chev {
   color: #1a1408;
   box-shadow: 0 2px 0 var(--upm-accent-dark);
 }
-.upm-badge.muted {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--upm-text);
-  box-shadow: none;
-}
 .upm-online {
   display: inline-flex;
   align-items: center;
@@ -590,5 +582,197 @@ button.upm-item.danger:hover .upm-ico,
   .upm-bar span {
     transition: none;
   }
+}
+/* =====================================================================
+   Night scrapbook (same as Settings and Friends): the app's ink navy, dots,
+   a stitched edge, chunky outlines and amber. These rules come last, so they win.
+   ===================================================================== */
+.upm {
+  --upm-card: var(--sb-ink, #12324a);
+  --upm-slip: #183f5c;
+  --upm-edge: #0b2233;
+  --upm-text: #fffaf0;
+  --upm-muted: #b9cad6;
+  --upm-accent: var(--sb-amber, #ffbf3c);
+}
+.upm-avatar {
+  border: 2.5px solid var(--upm-edge);
+  box-shadow: 0 3px 0 var(--upm-edge);
+}
+.upm-avatar:hover {
+  border-color: var(--upm-edge);
+  box-shadow: 0 0 0 3px var(--upm-accent), 0 3px 0 var(--upm-edge);
+}
+.upm-avatar-dot {
+  border: 2px solid var(--upm-edge);
+  background: var(--sb-coral, #ff7a5c);
+}
+.upm-menu {
+  padding: 12px;
+  border: 3px solid var(--upm-edge);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle, rgba(255, 250, 240, 0.07) 1.2px, transparent 1.5px) 0 0 / 20px 20px,
+    var(--upm-card);
+  box-shadow: 0 6px 0 var(--upm-edge), 0 24px 44px rgba(18, 50, 74, 0.35);
+}
+.upm-menu::before { /* stitching */
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px dashed rgba(255, 250, 240, 0.14);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.upm-motif {
+  color: rgba(255, 250, 240, 0.07);
+}
+/* Explorer pass header: a card on the navy */
+.upm-head {
+  border: 2.5px solid var(--upm-edge);
+  border-radius: 14px;
+  background: var(--upm-slip);
+  box-shadow: 0 4px 0 var(--upm-edge);
+}
+.upm-avatar.big {
+  border: 2.5px solid var(--upm-edge);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--upm-accent), 0 4px 0 3px var(--upm-edge);
+}
+.upm-kicker {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border: 2px solid var(--upm-edge);
+  border-radius: 6px;
+  background: var(--upm-accent);
+  color: var(--sb-ink, #12324a);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  transform: rotate(-2deg);
+}
+.upm-name {
+  font-family: var(--sb-display);
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #fffaf0;
+}
+.upm-handle {
+  color: var(--upm-muted);
+  font-weight: 600;
+}
+.upm-status.online {
+  border: 2px solid #7ee2a8;
+  background: rgba(126, 226, 168, 0.12);
+  color: #7ee2a8;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+/* Level: a striped amber bar */
+.upm-tier,
+.upm-xp {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.upm-tier { color: #fffaf0; }
+.upm-xp { color: var(--upm-accent); }
+.upm-bar {
+  height: 12px;
+  border: 2px solid var(--upm-edge);
+  border-radius: 999px;
+  background: #fffaf0;
+}
+.upm-bar span {
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0 5px, transparent 5px 10px),
+    var(--upm-accent);
+}
+.upm-next {
+  color: var(--upm-muted);
+  font-weight: 600;
+}
+.upm-label {
+  color: var(--upm-accent);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+.upm-label::after {
+  border-color: rgba(255, 250, 240, 0.16);
+  border-style: dashed;
+}
+/* Menu rows: cream icon tiles that turn amber on hover */
+.upm-item {
+  border-radius: 12px;
+  font-family: var(--sb-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.upm-hint {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.upm-ico {
+  border: 2px solid var(--upm-edge);
+  border-radius: 10px;
+  background: #fffaf0;
+  color: var(--sb-ink, #12324a);
+  box-shadow: 0 3px 0 var(--upm-edge);
+}
+a.upm-item:hover,
+button.upm-item:hover,
+.upm-item:focus-visible {
+  border-color: var(--upm-edge);
+  background: var(--upm-slip);
+}
+a.upm-item:hover .upm-ico,
+button.upm-item:hover .upm-ico,
+.upm-item:focus-visible .upm-ico {
+  border-color: var(--upm-edge);
+  background: var(--upm-accent);
+  color: var(--sb-ink, #12324a);
+  box-shadow: 0 4px 0 var(--upm-edge);
+}
+.upm-item:active .upm-ico {
+  box-shadow: 0 1px 0 var(--upm-edge);
+}
+.upm-item:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--upm-accent);
+}
+.upm-chev {
+  color: var(--upm-muted);
+}
+.upm-badge {
+  border: 2px solid var(--upm-edge);
+  background: var(--sb-coral, #ff7a5c);
+  color: var(--sb-ink, #12324a);
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.upm-online {
+  color: #7ee2a8;
+}
+.upm-foot {
+  border-top: 2px dashed rgba(255, 250, 240, 0.16);
+}
+.upm-item.danger {
+  color: #ff9a8a;
+}
+.upm-item.danger .upm-ico {
+  border-color: var(--upm-edge);
+  background: #fde0dc;
+  color: var(--sb-red, #d1495b);
+}
+.upm-item.danger:hover .upm-ico,
+.upm-item.danger:focus-visible .upm-ico {
+  border-color: var(--upm-edge);
+  background: var(--sb-red, #d1495b);
+  color: #fffaf0;
 }
 </style>

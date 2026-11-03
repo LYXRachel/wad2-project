@@ -5,7 +5,8 @@
       :aria-label="ariaLabel || null" :data-testid="testid || null"
       @click="toggle" @keydown="onTriggerKey">
       <slot name="selected" :option="selected">
-        <span v-if="selected && selected.icon" class="dd-icon" aria-hidden="true">{{ selected.icon }}</span>
+        <span v-if="selected && selected.appIcon" class="dd-icon" aria-hidden="true"><AppIcon :name="selected.appIcon" :size="16" /></span>
+        <span v-else-if="selected && selected.icon" class="dd-icon" aria-hidden="true">{{ selected.icon }}</span>
         <span class="dd-value" :class="{ placeholder: !selected }">{{ selected ? (selected.short || selected.label) : placeholder }}</span>
       </slot>
       <svg class="dd-chevron" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -30,7 +31,8 @@
               :class="{ active: i === active, selected: isSelected(o), off: o.disabled }"
               @mousedown.prevent @click="choose(o)" @mousemove="active = i">
               <slot name="option" :option="o" :selected="isSelected(o)">
-                <span v-if="o.icon" class="dd-icon" aria-hidden="true">{{ o.icon }}</span>
+                <span v-if="o.appIcon" class="dd-icon" aria-hidden="true"><AppIcon :name="o.appIcon" :size="16" /></span>
+                <span v-else-if="o.icon" class="dd-icon" aria-hidden="true">{{ o.icon }}</span>
                 <span class="dd-text">
                   <span class="dd-label">{{ o.label }}</span>
                   <span v-if="o.description" class="dd-desc">{{ o.description }}</span>
@@ -52,7 +54,9 @@
 // One dropdown for the whole app (replaces native <select>).
 // <CustomDropdown v-model="currency" :options="['SGD', 'JPY']" />
 // Options can be plain values, or { value, label, icon, description, short, disabled }.
+// icon is an emoji; appIcon is the name of one of our line icons (AppIcon.vue) and is used instead when given.
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import AppIcon from './AppIcon.vue'
 
 const props = defineProps({
   modelValue: { default: null }, // any value: string, number, null...

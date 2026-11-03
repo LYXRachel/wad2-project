@@ -8,7 +8,8 @@
       <header class="journal-nav">
         <div class="journal-brand">
           <div class="journal-logo">
-            <span>✈</span>
+            <!-- same paper-plane doodle as the logo in the app's top bar -->
+            <DoodleIcon name="plane" :size="40" tint="cream" anim="float" />
           </div>
 
           <span class="journal-brand-name">Chui-se Your Trip</span>
@@ -38,8 +39,8 @@
           </h1>
 
           <p>
-            Discover places, decide as a group, build your itinerary
-            and adapt when plans change — all without juggling ten tabs.
+            Stop juggling ten tabs. Save places, vote as a crew, and let us do the
+            work for you. Vibes Only!
           </p>
 
           <div class="journal-actions">
@@ -47,236 +48,103 @@
               Explore Trips
               <span>→</span>
             </router-link>
-
-            <button
-              type="button"
-              class="journal-secondary"
-              @click="goToStep(0)"
-            >
-              See how it works
-            </button>
           </div>
         </div>
 
-        <div class="journal-art" aria-hidden="true">
-          <div class="journal-postcard postcard-back">
-            <div class="postcard-stamp">✈</div>
-
-            <div class="postcard-message">
-              Wish you<br />
-              were here!
-            </div>
-
-            <div class="postcard-lines">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
+        <div class="journal-art">
+          <!-- Behind the postcard: a passport -->
+          <div class="journal-passport" aria-hidden="true">
+            <span class="passport-title">Passport</span>
+            <!-- Gold foil crest: a globe with a plane on an orbit ring -->
+            <svg class="passport-crest" viewBox="0 0 100 100">
+              <g fill="none" stroke="currentColor" stroke-linecap="round">
+                <circle cx="50" cy="52" r="30" stroke-width="3" />
+                <path d="M50 22c-11 9-11 51 0 60M50 22c11 9 11 51 0 60" stroke-width="2.4" />
+                <path d="M21 52h58M25 38h50M25 66h50" stroke-width="2.4" />
+                <ellipse cx="50" cy="52" rx="45" ry="15" stroke-width="2" stroke-dasharray="1 5" transform="rotate(-18 50 52)" />
+              </g>
+              <path d="M84 29l9-4-1.3-2-4.6 1.4-4.2-3.6h-2l2.3 4.2-3.3 1-1.1-1.4h-1.5l.8 3.3z" fill="currentColor" />
+            </svg>
           </div>
 
           <div class="journal-postcard postcard-front">
-            <div class="postcard-tape"></div>
+            <span class="postcard-washi left" aria-hidden="true"></span>
+            <span class="postcard-washi right" aria-hidden="true"></span>
 
-            <div class="postcard-picture">
-              <div class="picture-sky">
-                  <span class="picture-sun"></span>
-                  <span class="picture-cloud cloud-one"></span>
-                  <span class="picture-cloud cloud-two"></span>
-                </div>
-
-                <!-- Mountains -->
-                <div class="mountain mountain-back"></div>
-
-                <div class="mountain mountain-front">
-                  <div class="snow-cap"></div>
-                </div>
-
-                <!-- Foreground hills -->
-                <div class="foreground-hill hill-one"></div>
-                <div class="foreground-hill hill-two"></div>
-
-                <span class="picture-plane">✈</span>
-            </div>
+            <!-- The mountain photo, with Mount Fuji in the middle. Tap it and the volcano erupts
+                 (the same sparks, flash and smoke as before, drawn in the photo's own coordinates) -->
+            <button type="button" class="postcard-picture photo" :class="{ shaking }" aria-label="Mount Fuji at sunset. Tap to make it erupt" @click="erupt">
+              <!-- Zoomed out, still centred on the summit (x 1042). The photo stops at x 1376, so a thin strip of its
+                   right edge is stretched and blurred to fill the last bit of the frame -->
+              <svg class="picture-svg" viewBox="642 140 800 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+                <defs>
+                  <filter id="pc-edge-blur" x="-20%" y="-5%" width="140%" height="110%"><feGaussianBlur stdDeviation="8" /></filter>
+                  <!-- fades the photo's right edge into the blurred strip, so there's no seam -->
+                  <linearGradient id="pc-edge-fade" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0" stop-color="#fff" />
+                    <stop offset="1" stop-color="#000" />
+                  </linearGradient>
+                  <mask id="pc-edge-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1376" height="768">
+                    <rect x="0" y="0" width="1316" height="768" fill="#fff" />
+                    <rect x="1316" y="0" width="60" height="768" fill="url(#pc-edge-fade)" />
+                  </mask>
+                  <radialGradient id="pc-vignette" cx="50%" cy="45%" r="70%">
+                    <stop offset="60%" stop-color="#1a1208" stop-opacity="0" />
+                    <stop offset="100%" stop-color="#1a1208" stop-opacity="0.45" />
+                  </radialGradient>
+                </defs>
+                <g filter="url(#pc-edge-blur)">
+                  <svg x="1300" y="0" width="160" height="768" viewBox="1366 0 10 768" preserveAspectRatio="none">
+                    <image :href="mountainPhoto" x="0" y="0" width="1376" height="768" />
+                  </svg>
+                </g>
+                <image :href="mountainPhoto" x="0" y="0" width="1376" height="768" mask="url(#pc-edge-mask)" />
+                <circle v-for="e in embers" :key="'pe' + e.id" :cx="e.x" cy="262" :r="e.s" class="lp-ember"
+                  :style="{ animationDelay: e.d + 's', animationDuration: e.t + 's', '--drift': e.drift + 'px' }" />
+                <g v-for="e in eruptions" :key="'pc' + e.id" class="lp-erupt">
+                  <circle class="lp-erupt-glow" :cx="SUMMIT.x" :cy="SUMMIT.y" r="70" />
+                  <circle v-for="m in e.smoke" :key="'m' + m.id" class="lp-smoke" :cx="SUMMIT.x + m.x" :cy="SUMMIT.y" :r="m.r"
+                    :style="{ '--dx': m.dx + 'px', '--dy': m.dy + 'px', animationDelay: m.d + 's' }" />
+                  <circle v-for="pt in e.sparks" :key="'p' + pt.id" class="lp-spark" :cx="SUMMIT.x + pt.x" :cy="SUMMIT.y" :r="pt.r * 1.6"
+                    :style="{ '--dx': pt.dx + 'px', '--dy': pt.dy + 'px', '--fall': pt.fall + 'px', fill: pt.c, animationDuration: pt.t + 's', animationDelay: pt.d + 's' }" />
+                </g>
+                <rect x="642" y="140" width="800" height="400" fill="url(#pc-vignette)" pointer-events="none" />
+              </svg>
+            </button>
 
             <div class="postcard-caption">
               <strong>The world is calling</strong>
               <span>Where are we going next?</span>
             </div>
 
-            <div class="postcard-stamp-small">
-              CHUI<br />SE
-            </div>
+            <!-- A passport entry stamp, inked over the photo's corner -->
+            <svg class="postcard-entry" viewBox="0 0 120 84" aria-hidden="true">
+              <g fill="none" stroke="currentColor" stroke-width="3">
+                <rect x="4" y="4" width="112" height="76" rx="14" />
+                <rect x="11" y="11" width="98" height="62" rx="9" stroke-width="1.6" stroke-dasharray="3 3" />
+              </g>
+              <text x="60" y="34" text-anchor="middle" fill="currentColor" font-size="17" letter-spacing="2">ARRIVED</text>
+              <path d="M30 46h60" stroke="currentColor" stroke-width="1.6" />
+              <text x="60" y="64" text-anchor="middle" fill="currentColor" font-size="13" letter-spacing="1.5">FUJI · JP</text>
+              <path d="M95 38l10-3-1-1.5-3.5 1-3-3h-1.5l1.5 3.5-2 .5-.5-1H94l.5 2.5z" fill="currentColor" />
+            </svg>
           </div>
 
-          <div class="journal-pin">●</div>
         </div>
       </main>
 
       <div class="journal-scroll">
-        <button type="button" @click="goToStep(0)">
-          <span>Start the journey</span>
-          <span class="journal-arrow">↓</span>
+        <!-- A big, obvious way down to the walkthrough -->
+        <button type="button" class="journal-start" @click="goToStep(0)">
+          <span class="journal-start-text">
+            <strong>Start the journey</strong>
+          </span>
+          <span class="journal-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6" /></svg>
+          </span>
         </button>
       </div>
     </div>
-    <!-- ===== The scene: the photo, with the moving parts drawn on top in the same coordinates ===== -->
-    <!-- The stage keeps the photo's shape on every screen and keeps the mountain in view
-         (on a phone the right part of the photo is shown, not the empty middle) -->
-    <div class="lp-stage" :class="{ shaking: shaking }" aria-hidden="true">
-    <div class="lp-photo"></div>
-    <svg class="lp-scene" viewBox="0 0 1376 768" preserveAspectRatio="none">
-      <defs>
-        <filter id="lp-soft"><feGaussianBlur stdDeviation="1.4" /></filter>
-        <!-- The plane's body: lit warm from above by the sunset, darker underneath -->
-        <linearGradient id="lp-hull" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#f6ead6" />
-          <stop offset="0.55" stop-color="#b9b6b0" />
-          <stop offset="1" stop-color="#4b5560" />
-        </linearGradient>
-        <linearGradient id="lp-wing" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#d9d2c6" />
-          <stop offset="1" stop-color="#58626d" />
-        </linearGradient>
-      </defs>
-
-      <!-- Tap the mountain: it erupts (sparks, a flash and smoke) -->
-      <g class="lp-layer" style="--depth: 10px">
-        <path class="lp-volcano-hit" d="M985 255 L1100 255 L1376 470 L1376 660 L700 660 Z" @click="erupt" />
-        <g v-for="e in eruptions" :key="e.id" class="lp-erupt">
-          <circle class="lp-erupt-glow" :cx="SUMMIT.x" :cy="SUMMIT.y" r="70" />
-          <circle v-for="m in e.smoke" :key="'m' + m.id" class="lp-smoke" :cx="SUMMIT.x + m.x" :cy="SUMMIT.y" :r="m.r"
-            :style="{ '--dx': m.dx + 'px', '--dy': m.dy + 'px', animationDelay: m.d + 's' }" />
-          <circle v-for="p in e.sparks" :key="'p' + p.id" class="lp-spark" :cx="SUMMIT.x + p.x" :cy="SUMMIT.y" :r="p.r"
-            :style="{ '--dx': p.dx + 'px', '--dy': p.dy + 'px', '--fall': p.fall + 'px', fill: p.c, animationDuration: p.t + 's', animationDelay: p.d + 's' }" />
-        </g>
-      </g>
-
-      <!-- Trip routes over the land, with glowing stops -->
-      <g class="lp-layer" style="--depth: 14px">
-        <path d="M612 422 C 600 500, 680 565, 769 561 C 830 558, 880 540, 922 528 C 990 508, 1050 480, 1105 463 C 1200 440, 1310 420, 1327 335 C 1335 300, 1300 285, 1260 290" class="lp-route" />
-        <path d="M1105 463 C 1180 480, 1240 500, 1288 507 S 1360 525, 1400 540" class="lp-route" />
-        <circle v-for="n in nodes" :key="'n' + n.id" :cx="n.x" :cy="n.y" r="4.5" class="lp-node" :style="{ animationDelay: n.d + 's' }" />
-      </g>
-
-      <!-- Embers rising off the summit -->
-      <g class="lp-layer" style="--depth: 10px">
-        <circle v-for="e in embers" :key="'e' + e.id" :cx="e.x" cy="262" :r="e.s" class="lp-ember"
-          :style="{ animationDelay: e.d + 's', animationDuration: e.t + 's', '--drift': e.drift + 'px' }" />
-      </g>
-
-      <!-- The plane: takes off from a route stop, climbs away to the left, then comes back high
-           across the sky and glides down onto another stop. Moved by script (see flyPlane)
-           so its nose never tips more than a real climb or descent would. -->
-      <g class="lp-layer" style="--depth: 20px">
-        <path v-for="(leg, k) in LEGS" :key="'t' + k" :ref="(el) => { if (el) trailEls[k] = el }" :d="leg.d" fill="none"
-          stroke="#f7f2e8" stroke-opacity="0.32" stroke-width="1.3" stroke-linecap="round" filter="url(#lp-soft)" opacity="0" />
-        <g ref="planeEl" opacity="0">
-          <!-- A simple side-view jet, nose to the right, centred on 0,0 (flipped by script when flying left) -->
-          <!-- A slim airliner seen from the side, nose to the right, centred on 0,0 (flipped by script when flying left).
-               Shaded by the sunset and drawn small, with blinking navigation lights like a real plane at dusk. -->
-          <g ref="imgEl" class="lp-plane">
-            <!-- far wing and tailplane (behind the body, in shadow) -->
-            <path class="shade" d="M7 -2.8 L1.5 -6 L3.4 -6.2 L11 -3.1 Z" />
-            <path class="shade" d="M-30 -1.2 L-35.5 -4.6 L-33.6 -4.8 L-26 -1.6 Z" />
-            <!-- body -->
-            <path class="hull" d="M-37 -1.2 C-37 -2.8 -34.5 -3.4 -30 -3.4 L27 -3.4 C33.5 -3.4 38.5 -1.9 41 0 C38.5 1.7 33.5 2.4 27 2.4 L-27.5 2.4 C-33.5 2.4 -37 1.2 -37 -1.2 Z" />
-            <!-- tail fin, swept back -->
-            <path class="wing" d="M-35.5 -3 L-33.6 -14.6 L-30.6 -14.6 L-22.5 -3.4 Z" />
-            <!-- near tailplane -->
-            <path class="wing" d="M-30.5 0.6 L-36.6 5 L-34.4 5.2 L-25.5 1.2 Z" />
-            <!-- near wing, swept back and down towards us, with its engine -->
-            <path class="wing" d="M3.5 1 L-8.6 10.6 L-5.4 11 L11.5 1.6 Z" />
-            <!-- engine hanging just under the wing, on a short pylon -->
-            <path class="engine" d="M3.8 3 L5.6 3 L5.4 3.9 L3.6 3.9 Z" />
-            <path class="engine" d="M0.6 3.7 H8.2 C9.1 3.7 9.4 4.4 9.4 4.8 C9.4 5.3 9.1 5.9 8.2 5.9 H0.6 C0.1 5.9 -0.1 5.3 -0.1 4.8 C-0.1 4.4 0.1 3.7 0.6 3.7 Z" />
-            <!-- cockpit windows and a cabin window line -->
-            <path class="glass" d="M35.2 -2.4 C37 -2 38.4 -1.3 39.2 -0.8 L36 -0.9 Z" />
-            <path class="windows" d="M-24 -1.4 H30" />
-            <!-- lights: green on the near wingtip, red on the far one, white on the tail, red beacon on the belly -->
-            <circle class="nav green" cx="-8" cy="10.8" r="0.9" />
-            <circle class="nav red" cx="2" cy="-6.1" r="0.75" />
-            <circle class="strobe" cx="-36.4" cy="-1.4" r="1" />
-            <circle class="beacon" cx="-6" cy="2.9" r="0.85" />
-          </g>
-        </g>
-      </g>
-    </svg>
-    </div>
-
-    <!-- Drifting clouds and rising embers (plain HTML, lighter than SVG filters) -->
-    <div class="lp-clouds" aria-hidden="true">
-      <span class="lp-cloud c1"></span>
-      <span class="lp-cloud c2"></span>
-      <span class="lp-cloud c3"></span>
-    </div>
-    <div class="lp-shade" aria-hidden="true"></div>
-
-    <!-- Two origami paper planes drifting across the sky on glowing dotted trails -->
-    <div class="lp-origami" aria-hidden="true">
-      <span v-for="n in 2" :key="'o' + n" class="lp-paper" :class="'p' + n">
-        <svg viewBox="0 0 220 90">
-          <path class="lp-paper-trail" d="M4 70 C 50 84, 90 40, 140 52 S 180 50, 196 40" />
-          <g transform="translate(176 22)">
-            <path d="M0 18 L40 0 L18 26 Z" fill="#faf8f3" />
-            <path d="M18 26 L40 0 L22 36 Z" fill="#e8dcc4" />
-            <path d="M18 26 L22 36 L14 30 Z" fill="#cdbb98" />
-          </g>
-        </svg>
-      </span>
-    </div>
-
-    <!-- ===== Brand, title and the two ways in ===== -->
-    <!-- Brand: a rounded cream tab with a hand-drawn paper plane -->
-    <header class="lp-brand">
-      <span class="lp-brand-icon" aria-hidden="true"><DoodleIcon name="plane" :size="28" anim="" /></span>
-      <span class="lp-brand-text"><span>CHUI-SE</span> <span>YOUR TRIP</span></span>
-    </header>
-
-    <router-link to="/login" class="lp-signin lp-top-signin">Sign in / Join</router-link>
-
-    <main class="lp-content">
-      <h1 class="lp-title"><span>Travel</span><span class="lp-accent">without</span><span>limits</span></h1>
-      <p class="lp-tag">Plan together. Drift nowhere.</p>
-      <div class="lp-actions">
-        <!-- Explore straight away as a guest; sign in only when saving something -->
-        <router-link to="/discover" class="lp-explore">Explore trips <span class="lp-arrow" aria-hidden="true">→</span></router-link>
-      </div>
-    </main>
-
-    <!-- Invite to scroll down to the story -->
-    <button type="button" class="lp-cue" @click="goToStep(0)">
-      <span>See how it works</span>
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-    </button>
-    </section>
-
-    <!-- ===== The Campfire Briefing: Pip welcomes you and shows what you'll pack when you join ===== -->
-    <section class="lp-brief" aria-labelledby="lp-brief-title">
-      <div class="lp-brief-card">
-        <span class="lp-brief-tape tl" aria-hidden="true"></span>
-        <span class="lp-brief-tape tr" aria-hidden="true"></span>
-        <div class="lp-brief-guide">
-          <button type="button" class="lp-brief-pip" aria-label="Pip, your guide. Tap to say hi" @click="pipHi">
-            <PlaneGuide :size="124" :mood="pipMood" />
-          </button>
-          <div class="lp-brief-bubble">
-            <p class="lp-brief-kicker">The Campfire Briefing</p>
-            <h2 id="lp-brief-title" class="lp-brief-title">Ahoy, explorer! Before we hit the trail, let’s pack your field essentials.</h2>
-          </div>
-        </div>
-        <div class="lp-brief-body">
-          <p class="lp-brief-sub">Tell us once and every trip your crew plans fits you: what you eat, how to reach you, the money you think in and how fast you like to go.</p>
-          <ul class="lp-bags">
-            <li v-for="t in BRIEF_TAGS" :key="t.label" class="lp-bag" :style="{ '--r': t.r + 'deg' }">
-              <span class="lp-bag-stamp" aria-hidden="true"><DoodleIcon :name="t.icon" :size="20" anim="" /></span>{{ t.label }}
-            </li>
-          </ul>
-          <div class="lp-brief-btns">
-            <router-link to="/signup" class="lp-explore small">Pack my essentials <span class="lp-arrow" aria-hidden="true">→</span></router-link>
-            <small class="lp-brief-hint">Free account · change them anytime in Settings</small>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- ===== Scroll story: the window stays pinned while you scroll; each quarter is one step ===== -->
@@ -285,7 +153,7 @@
         <!-- The words: one step at a time -->
         <div class="lp-copy">
           <article v-for="(st, k) in STEPS" :key="st.key" class="lp-step" :class="{ on: step === k, past: step > k }" :aria-hidden="step !== k">
-            <span class="lp-step-num">Chapter {{ String(k + 1).padStart(2, '0') }} · {{ st.label }}</span>
+            <span class="lp-step-num">{{ String(k + 1).padStart(2, '0') }} · {{ st.label }}</span>
             <h2 class="lp-step-title">{{ st.title }}</h2>
             <p class="lp-step-text">{{ st.text }}</p>
             <ul class="lp-step-points">
@@ -510,7 +378,6 @@
                 <div class="z3 a-pill lock">🔒 Locked on Day 2</div>
               </template>
             </div>
-            <span class="lp-card-log">Field log {{ String(k + 1).padStart(2, '0') }}</span>
             <h3>{{ f.title }}</h3>
             <p>{{ f.text }}</p>
           </div>
@@ -635,48 +502,6 @@
       </div>
     </section>
 
-    <!-- ===== Footer: one last call to adventure, quick links and the expedition's status ===== -->
-    <footer class="lp-foot" aria-labelledby="lp-foot-title">
-      <svg class="lp-foot-ridge" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 110 L0 72 L110 44 L200 66 L330 20 L430 58 L560 34 L690 74 L820 28 L930 62 L1060 16 L1180 56 L1300 36 L1440 66 L1440 110 Z" />
-      </svg>
-      <div class="lp-foot-in">
-        <div class="lp-foot-cta">
-          <h2 id="lp-foot-title" class="lp-foot-title">Where to next?</h2>
-          <p class="lp-foot-text">Pick a place, rally your crew and let the route draw itself.</p>
-          <router-link to="/discover" class="lp-explore">Launch your next journey <span class="lp-arrow" aria-hidden="true">→</span></router-link>
-        </div>
-
-        <div class="lp-foot-grid">
-          <div class="lp-foot-brand">
-            <span class="lp-brand static"><span class="lp-brand-icon" aria-hidden="true"><DoodleIcon name="plane" :size="24" anim="" /></span><span class="lp-brand-text">CHUI-SE YOUR TRIP</span></span>
-            <p>Plan together. Drift nowhere.</p>
-          </div>
-          <nav class="lp-foot-nav" aria-label="Quick links">
-            <p class="lp-foot-head">Trailheads</p>
-            <router-link to="/discover">Explore trips</router-link>
-            <button type="button" @click="goToStep(0)">How it works</button>
-            <button type="button" @click="scrollToFeat">Features</button>
-            <router-link to="/login">Sign in</router-link>
-            <router-link to="/signup">Create a free account</router-link>
-          </nav>
-          <div class="lp-foot-status">
-            <p class="lp-foot-head">Expedition status</p>
-            <ul>
-              <li><span class="lp-dot green" aria-hidden="true"></span>Discover is open to guests</li>
-              <li><span class="lp-dot amber" aria-hidden="true"></span>Crew planning with a free account</li>
-              <li><span class="lp-dot teal" aria-hidden="true"></span>Weather and crowd tips in every itinerary</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="lp-foot-base">
-          <small>© {{ year }} Chui-se Your Trip</small>
-          <button type="button" class="lp-foot-top" @click="toTop">Back to the summit <span aria-hidden="true">↑</span></button>
-        </div>
-      </div>
-    </footer>
-
     <AuthJoinModal :open="authOpen" :initial-tab="authTab" :initial-code="authCode" @close="authOpen = false" />
   </div>
 </template>
@@ -686,7 +511,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import AuthJoinModal from '../components/AuthJoinModal.vue'
 import DoodleIcon from '../components/DoodleIcon.vue'
-import PlaneGuide from '../components/PlaneGuide.vue'
+import mountainPhoto from '../assets/landing-bg.jpg'
 
 // Sign in / Join dialog. /welcome?auth=signin or ?code=XXXX opens it straight away (handy for links)
 const route = useRoute()
@@ -742,12 +567,6 @@ function erupt() {
   setTimeout(() => { eruptions.value = eruptions.value.filter((e) => e.id !== id) }, 4600) // once the sparks and smoke are gone
 }
 
-// The route stops, where they sit in the photo
-const nodes = [
-  { id: 1, x: 612, y: 422, d: 0 }, { id: 2, x: 769, y: 561, d: 0.6 }, { id: 3, x: 922, y: 528, d: 1.2 },
-  { id: 4, x: 1105, y: 463, d: 1.8 }, { id: 5, x: 1288, y: 507, d: 2.4 }, { id: 6, x: 1327, y: 335, d: 3 }
-]
-
 // Parallax: the mouse position, from -1 to 1 on each axis (each layer moves by its own depth)
 const mx = ref(0)
 const my = ref(0)
@@ -784,8 +603,8 @@ const VOTES = [
   { name: 'Kyoto Tower', yes: 1, faces: ['#66a182'] }
 ]
 // ---- what the 3D window shows ----
-const URLS = ['discover', 'trip/kyoto/places', 'trip/kyoto/itinerary', 'trip/kyoto/today']
-const NAV_TABS = ['Discover', 'Places', 'Itinerary', 'Today']
+const URLS = ['discover', 'trip/kyoto/places', 'trip/kyoto/itinerary', 'trip/kyoto/safety']
+const NAV_TABS = ['Discover', 'Places', 'Itinerary', 'Safety'] // tabs the app really has
 const DISCOVER_CITIES = [
   { name: 'Kyoto', score: 92, note: '✓ Great time to go', icon: '⛩️', bg: 'linear-gradient(160deg, #f6c7a0 0%, #d1495b 55%, #5b2a52 100%)' },
   { name: 'Kanazawa', score: 87, note: '~$85/day', icon: '🏯', gem: true, bg: 'linear-gradient(160deg, #cfe3f1 0%, #00798c 55%, #003d5b 100%)' }
@@ -997,94 +816,19 @@ function goToStep(k) {
   lpEl.value.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' })
 }
 
-// ---------- Campfire Briefing ----------
-const BRIEF_TAGS = [
-  { label: 'Food needs & allergies', icon: 'bowl', r: -2 },
-  { label: 'WhatsApp number', icon: 'chat', r: 1.5 },
-  { label: 'Base currency', icon: 'wallet', r: -1 },
-  { label: 'Trip pacing', icon: 'boot', r: 2 }
-]
-// Tap Pip: he does a loop-the-loop, then floats again
-const pipMood = ref('idle')
-function pipHi() {
-  if (pipMood.value === 'loop') return
-  pipMood.value = 'loop'
-  setTimeout(() => { pipMood.value = 'idle' }, 1200)
-}
-
-// ---------- footer ----------
-const year = new Date().getFullYear()
-function scrollToFeat() {
-  featEl.value.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' })
-}
-function toTop() {
-  lpEl.value.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
-}
-
-// ---------- the plane ----------
-// Two legs in photo coordinates: out (take off right, climb away left) and back (high and far, gliding down to land)
-const LEGS = [
-  { d: 'M1288 507 C 1200 470, 1120 400, 980 330 S 700 215, 480 165 S 120 95, -140 70', time: 16000, from: 0.35, to: 0.8 },
-  { d: 'M-140 40 C 200 25, 560 50, 860 120 S 1220 260, 1327 335', time: 18000, from: 0.4, to: 0.6 }
-]
-const REST_TIME = 1500   // ms off screen between legs
-const MAX_PITCH = 8      // degrees: airliners climb and descend gently
-const trailEls = []
-const planeEl = ref(null)
-const imgEl = ref(null)
-let frame = null
-let startedAt = 0
-
-function easeInOut(t) {
-  return 0.5 - Math.cos(Math.PI * t) / 2 // slow start, cruise, slow finish
-}
-function pathFor(k) {
-  return trailEls[k]
-}
-function flyPlane(now) {
-  if (!planeEl.value || !trailEls[0] || !trailEls[1]) return
-  if (!startedAt) startedAt = now
-  const cycle = LEGS[0].time + LEGS[1].time + 2 * REST_TIME
-  let elapsed = (now - startedAt) % cycle
-  // Which leg are we on, and how far through it?
-  let k = 0
-  if (elapsed >= LEGS[0].time + REST_TIME) {
-    k = 1
-    elapsed -= LEGS[0].time + REST_TIME
-  }
-  const leg = LEGS[k]
-  const path = pathFor(k)
-  const total = path.getTotalLength()
-  const flying = elapsed < leg.time
-  const t = Math.min(1, elapsed / leg.time)
-  const along = easeInOut(t) * total
-  const here = path.getPointAtLength(along)
-  const ahead = path.getPointAtLength(Math.min(total, along + 6))
-  const behind = path.getPointAtLength(Math.max(0, along - 6))
-  const goingLeft = k === 0
-  // Heading from the path, then turned into a gentle nose-up / nose-down angle
-  let angle = Math.atan2(ahead.y - behind.y, ahead.x - behind.x) * 180 / Math.PI
-  if (goingLeft) angle = angle > 0 ? angle - 180 : angle + 180
-  let pitch = goingLeft ? -angle : angle
-  pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch))
-  const rot = goingLeft ? -pitch : pitch
-  const bob = Math.sin(now / 900) * 1.2
-  const sway = Math.sin(now / 1300) * 1.2
-  const size = leg.from + (leg.to - leg.from) * t
-  const fade = flying ? Math.min(1, t / 0.06, (1 - t) / 0.08) : 0
-  imgEl.value.setAttribute('transform', goingLeft ? 'scale(-1,1)' : '')
-  planeEl.value.setAttribute('transform', 'translate(' + here.x.toFixed(1) + ' ' + (here.y + bob).toFixed(1) + ') rotate(' + (rot + sway).toFixed(2) + ') scale(' + size.toFixed(3) + ')')
-  planeEl.value.setAttribute('opacity', fade.toFixed(2))
-  // Vapour trail: the stretch just behind the plane on this leg; the other leg's trail is hidden
-  path.style.strokeDasharray = '110 ' + total
-  path.style.strokeDashoffset = (110 - along).toFixed(1)
-  path.setAttribute('opacity', (fade * Math.min(1, t * 5)).toFixed(2))
-  pathFor(1 - k).setAttribute('opacity', '0')
-  frame = requestAnimationFrame(flyPlane)
+// The app's fonts (Lilita One for titles and buttons, Plus Jakarta Sans for reading), in case this is the first page opened
+function loadFonts() {
+  if (document.getElementById('lp-fonts')) return
+  const link = document.createElement('link')
+  link.id = 'lp-fonts'
+  link.rel = 'stylesheet'
+  link.href = 'https://fonts.googleapis.com/css2?family=Lilita+One&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap'
+  document.head.appendChild(link)
 }
 
 onMounted(() => {
   reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  loadFonts()
   document.body.classList.add('lp-body')
   // Feature cards: play their entrance once, when a quarter of the section is on screen
   if (window.IntersectionObserver && featEl.value) {
@@ -1108,18 +852,8 @@ onMounted(() => {
   }
   onScroll() // in case the page opens part-way down
   window.addEventListener('resize', onScroll)
-  if (reduceMotion) {
-    // Still: just show the plane mid-flight
-    const p = trailEls[0].getPointAtLength(trailEls[0].getTotalLength() * 0.55)
-    imgEl.value.setAttribute('transform', 'scale(-1,1)')
-    planeEl.value.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ') rotate(8)')
-    planeEl.value.setAttribute('opacity', '1')
-  } else {
-    frame = requestAnimationFrame(flyPlane)
-  }
 })
 onBeforeUnmount(() => {
-  cancelAnimationFrame(frame)
   if (featWatcher) featWatcher.disconnect()
   if (phoneWatcher) phoneWatcher.disconnect()
   stopPhone()
@@ -1138,7 +872,8 @@ onBeforeUnmount(() => {
   overflow-y: auto; /* the page scrolls inside here: hero, then the story */
   background: #05080d;
   color: #fff;
-  font-family: var(--sans); /* everything you read; the big titles use --hand */
+  font-family: var(--font-body); /* body text in Plus Jakarta Sans; titles, labels and buttons in Lilita One (var(--sb-display)) */
+  font-synthesis: none; /* Lilita One has one weight: never fake a bold version of it */
 }
 /* The first screen: the night scene (everything in it is placed inside this box) */
 .lp-hero {
@@ -1146,43 +881,12 @@ onBeforeUnmount(() => {
   height: var(--vh);
   overflow: hidden;
 }
-/* The photo is 1376 x 768. The stage is that shape, big enough to cover the screen (plus a little
-   room for the mouse parallax), slid sideways so the focus point (--focus, 0-1 across the photo)
-   sits mid-screen without ever leaving a gap at the edges. */
 .lp {
   --vh: 100vh;
   --focus: 0.6;
 }
 @supports (height: 100dvh) {
   .lp { --vh: 100dvh; } /* phones: the visible height, not counting the address bar */
-}
-.lp-stage {
-  --sw: calc(max(100vw, var(--vh) * 1.7917) * 1.04);
-  --sh: calc(var(--sw) * 0.5581);
-  position: absolute;
-  width: var(--sw);
-  height: var(--sh);
-  left: clamp(calc(100vw - var(--sw)), calc(50vw - var(--sw) * var(--focus)), 0px);
-  top: calc((var(--vh) - var(--sh)) / 2);
-}
-.lp-photo {
-  position: absolute;
-  inset: 0;
-  background: #05080d url('../assets/landing-bg.jpg') center / 100% 100% no-repeat;
-  transform: translate(calc(var(--mx) * -8px), calc(var(--my) * -5px));
-  transition: transform 0.6s cubic-bezier(.2, .7, .2, 1);
-}
-.lp-scene {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-/* ----- Tap the mountain: eruption ----- */
-.lp-volcano-hit {
-  fill: transparent;
-  cursor: pointer;
-  pointer-events: all;
 }
 .lp-erupt-glow {
   fill: #ff8a3d;
@@ -1225,105 +929,12 @@ onBeforeUnmount(() => {
   20% { opacity: 0.45; }
   100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(3); }
 }
-/* A little rumble */
-.lp-stage.shaking {
-  animation: lp-shake 0.5s linear;
-}
 @keyframes lp-shake {
   0%, 100% { transform: translate(0, 0); }
   20% { transform: translate(-3px, 2px); }
   40% { transform: translate(3px, -2px); }
   60% { transform: translate(-2px, 1px); }
   80% { transform: translate(2px, -1px); }
-}
-
-/* Each layer drifts against the mouse by its depth: far layers barely, near layers more */
-.lp-layer {
-  transform: translate(calc(var(--mx) * var(--depth) * -1), calc(var(--my) * var(--depth) * -0.6));
-  transition: transform 0.6s cubic-bezier(.2, .7, .2, 1);
-}
-/* Vapour trail: a short bright stretch of the flight path that travels with the plane */
-/* The plane: sunset-lit body, shaded wings, dark windows, and small lights that blink like a real one */
-.lp-plane {
-  opacity: 0.92;
-}
-.lp-plane .hull { fill: url(#lp-hull); }
-.lp-plane .wing { fill: url(#lp-wing); }
-.lp-plane .shade { fill: #4b5560; }
-.lp-plane .engine { fill: #6b737c; }
-.lp-plane .glass { fill: #1d2b36; }
-.lp-plane .windows {
-  stroke: #2b3a46;
-  stroke-width: 0.9;
-  stroke-dasharray: 0.9 1.6;
-  opacity: 0.55;
-}
-.lp-plane .nav.green { fill: #6dff9e; filter: drop-shadow(0 0 1.5px #6dff9e); }
-.lp-plane .nav.red { fill: #ff5a5a; filter: drop-shadow(0 0 1.5px #ff5a5a); }
-.lp-plane .strobe {
-  fill: #ffffff;
-  opacity: 0;
-  animation: lp-strobe 1.4s linear infinite;
-}
-.lp-plane .beacon {
-  fill: #ff4d4d;
-  animation: lp-beacon 1.1s ease-in-out infinite;
-}
-@keyframes lp-strobe {
-  0%, 6% { opacity: 1; }
-  10%, 100% { opacity: 0; }
-}
-@keyframes lp-beacon {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 1; }
-}
-.lp-route {
-  fill: none;
-  stroke: #edae49;
-  stroke-width: 2;
-  stroke-dasharray: 6 9;
-  opacity: 0.75;
-  animation: lp-dash 3s linear infinite;
-}
-@keyframes lp-dash {
-  to { stroke-dashoffset: -60; }
-}
-.lp-node {
-  fill: #edae49;
-  filter: drop-shadow(0 0 6px #edae49);
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: lp-node 3.6s ease-in-out infinite;
-}
-@keyframes lp-node {
-  50% { transform: scale(1.6); opacity: 0.6; }
-}
-
-/* Clouds */
-.lp-clouds {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.lp-cloud {
-  position: absolute;
-  width: 220px;
-  height: 60px;
-  border-radius: 60px;
-  background:
-    radial-gradient(40px 34px at 30% 40%, rgba(255, 255, 255, 0.9), transparent 70%),
-    radial-gradient(52px 40px at 55% 35%, rgba(255, 255, 255, 0.85), transparent 70%),
-    radial-gradient(70px 30px at 50% 70%, rgba(220, 228, 236, 0.8), transparent 75%);
-  filter: blur(2px);
-  opacity: 0.7;
-  animation: lp-cloud linear infinite;
-}
-.lp-cloud.c1 { top: 28%; animation-duration: 70s; animation-delay: -20s; }
-.lp-cloud.c2 { top: 18%; transform: scale(0.7); opacity: 0.45; animation-duration: 95s; animation-delay: -60s; }
-.lp-cloud.c3 { top: 36%; transform: scale(0.5); opacity: 0.35; animation-duration: 120s; animation-delay: -90s; }
-@keyframes lp-cloud {
-  from { left: 105%; }
-  to { left: -30%; }
 }
 
 /* Embers rising from the summit (SVG circles, so they line up with the photo) */
@@ -1337,211 +948,6 @@ onBeforeUnmount(() => {
   0% { transform: translate(0, 0); opacity: 0; }
   15% { opacity: 1; }
   100% { transform: translate(var(--drift), -200px); opacity: 0; }
-}
-
-/* Darkens the left so the title reads on any screen */
-.lp-shade {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(90deg, rgba(5, 8, 13, 0.85) 0%, rgba(5, 8, 13, 0.45) 40%, transparent 65%);
-}
-
-/* Brand */
-.lp-brand {
-  position: absolute;
-  top: 28px;
-  left: 40px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--sans);
-  font-weight: 600;
-  font-size: 22px;
-  letter-spacing: 0.06em;
-  color: #edae49;
-  text-shadow: 0 0 18px rgba(237, 174, 73, 0.5);
-}
-.lp-compass {
-  width: 38px;
-  height: 38px;
-  filter: drop-shadow(0 0 8px rgba(237, 174, 73, 0.7));
-  animation: lp-spin 12s ease-in-out infinite;
-}
-@keyframes lp-spin {
-  0%, 100% { transform: rotate(-8deg); }
-  50% { transform: rotate(8deg); }
-}
-
-/* Title and actions */
-.lp-content {
-  position: absolute;
-  left: 40px;
-  bottom: 72px;
-  max-width: 640px;
-  transform: translate(calc(var(--mx) * 6px), calc(var(--my) * 4px));
-  transition: transform 0.6s cubic-bezier(.2, .7, .2, 1);
-}
-/* The headline (hand lettering is set in the night theme further down) */
-.lp-title {
-  margin: 0;
-  font-family: var(--sans);
-  font-weight: 500;
-  font-size: clamp(64px, 10vw, 150px);
-  line-height: 0.92;
-  letter-spacing: -0.03em;
-  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.55);
-}
-/* One word in italic, a soft champagne like the sunlit snow on the peak (calmer than the button gold) */
-.lp-title .lp-accent {
-  font-style: italic;
-  color: #e6c99a;
-  padding-left: 0.06em;
-}
-.lp-title span {
-  display: block;
-  width: fit-content;
-  color: #f7f2e8;
-  opacity: 0;
-  animation: lp-rise 0.9s cubic-bezier(.2, .8, .2, 1) forwards;
-}
-.lp-title span:nth-child(2) { animation-delay: 0.12s; }
-.lp-title span:nth-child(3) { animation-delay: 0.24s; }
-@keyframes lp-rise {
-  from { opacity: 0; transform: translateY(30px) rotate(-2deg); }
-  to { opacity: 1; transform: none; }
-}
-.lp-tag {
-  margin: 20px 0 40px;
-  font-family: var(--sans); /* same as Sign in / Explore trips / See how it works */
-  font-weight: 500;
-  font-size: clamp(18px, 1.9vw, 24px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.9);
-  opacity: 0;
-  animation: lp-rise 0.9s 0.45s cubic-bezier(.2, .8, .2, 1) forwards;
-}
-.lp-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 28px;
-  opacity: 0;
-  animation: lp-rise 0.9s 0.6s cubic-bezier(.2, .8, .2, 1) forwards;
-}
-.lp-btn {
-  font-family: var(--sans);
-  font-weight: 500;
-  font-size: 20px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: #e9edf2;
-  transition: color 0.2s, background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-}
-.lp-btn.primary {
-  padding: 10px 30px;
-  border: 1.5px solid rgba(255, 255, 255, 0.8);
-  border-radius: 999px;
-}
-.lp-btn.primary:hover {
-  border-color: #edae49;
-  color: #edae49;
-  box-shadow: 0 0 24px rgba(237, 174, 73, 0.35);
-  transform: translateY(-2px);
-}
-.lp-btn.ghost {
-  border: 0;
-  background: none;
-  padding: 0;
-}
-.lp-top-signin {
-  position: absolute;
-  top: 26px;
-  right: 40px;
-  z-index: 2;
-  font-size: 26px;
-  letter-spacing: 0.05em;
-}
-.lp-btn.ghost:hover {
-  color: #edae49;
-}
-.lp-btn:focus-visible {
-  outline: 3px solid rgba(237, 174, 73, 0.7);
-  outline-offset: 4px;
-  border-radius: 999px;
-}
-
-@media (max-width: 700px) {
-  .lp { --focus: 0.74; } /* centre on the peak */
-  .lp-brand { left: 20px; top: 20px; font-size: 18px; }
-  .lp-compass { width: 32px; height: 32px; }
-  .lp-top-signin { top: 20px; right: 20px; font-size: 20px; }
-  .lp-content { left: 20px; right: 20px; bottom: 48px; }
-  /* keep the mountain and routes clear; only darken behind the title */
-  .lp-shade { background: linear-gradient(180deg, rgba(5, 8, 13, 0.15) 0%, rgba(5, 8, 13, 0) 30%, rgba(5, 8, 13, 0.3) 52%, rgba(5, 8, 13, 0.88) 72%); }
-  .lp-clouds { opacity: 0.6; } /* softer clouds so the small sky doesn't look busy */
-  .lp-actions { gap: 18px; }
-  .lp-btn { font-size: 17px; }
-}
-/* Phones: the name goes on two short lines so it never runs into "Sign in / Join" */
-@media (max-width: 520px) {
-  .lp-brand { font-size: 15px; gap: 8px; }
-  .lp-brand-text { display: flex; flex-direction: column; line-height: 1.1; }
-  .lp-top-signin { font-size: 16px; }
-}
-/* Very narrow phones: logo and Sign in must share one line */
-@media (max-width: 360px) {
-  .lp-brand { font-size: 14px; gap: 6px; }
-  .lp-compass { width: 28px; height: 28px; }
-  .lp-top-signin { font-size: 15px; right: 16px; }
-  .lp-title { font-size: 54px; }
-}
-/* Phones turned sideways: not much height, so everything gets shorter */
-@media (max-height: 520px) and (orientation: landscape) {
-  .lp { --focus: 0.62; }
-  .lp-brand { top: 14px; }
-  .lp-top-signin { top: 12px; }
-  .lp-content { bottom: 18px; }
-  .lp-title { font-size: clamp(34px, 13vh, 72px); }
-  .lp-tag { margin: 6px 0 14px; font-size: 16px; }
-  .lp-btn { font-size: 16px; }
-  .lp-btn.primary { padding: 6px 22px; }
-}
-/* ===== "See how it works" ===== */
-.lp-cue {
-  position: absolute;
-  left: 50%;
-  bottom: 18px;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  transform: translateX(-50%);
-  border: 0;
-  background: none;
-  color: rgba(255, 255, 255, 0.85);
-  font-family: var(--sans);
-  font-size: 15px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.lp-cue svg {
-  animation: lp-bob 1.8s ease-in-out infinite;
-}
-.lp-cue:hover {
-  color: #edae49;
-}
-.lp-cue:focus-visible {
-  outline: 3px solid rgba(237, 174, 73, 0.7);
-  outline-offset: 4px;
-  border-radius: 8px;
-}
-@keyframes lp-bob {
-  50% { transform: translateY(6px); }
 }
 
 /* ===== The scroll story ===== */
@@ -1589,7 +995,7 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 }
 .lp-step-num {
-  font-family: var(--sans);
+  font-family: var(--sb-display);
   font-size: 15px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1597,7 +1003,8 @@ onBeforeUnmount(() => {
 }
 .lp-step-title {
   margin: 10px 0 14px;
-  font-family: var(--sans); /* same serif as the big hero title */
+  font-family: var(--sb-display); /* same serif as the big hero title */
+  font-variation-settings: 'opsz' 72;
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: clamp(36px, 4.4vw, 60px);
@@ -1971,7 +1378,7 @@ onBeforeUnmount(() => {
 }
 .d-city-text > b {
   display: block;
-  font-family: var(--sans);
+  font-family: var(--sb-display);
   font-size: 19px;
   font-weight: 500;
   line-height: 1.1;
@@ -2101,7 +1508,7 @@ onBeforeUnmount(() => {
   display: block;
 }
 .v-head b {
-  font-family: var(--sans);
+  font-family: var(--sb-display);
   font-size: 18px;
   font-weight: 500;
 }
@@ -2559,7 +1966,7 @@ onBeforeUnmount(() => {
   font-size: 10px;
 }
 .t-card.money b {
-  font-family: var(--sans);
+  font-family: var(--sb-display);
   font-size: 24px;
   font-weight: 500;
   color: #edae49;
@@ -3198,7 +2605,8 @@ onBeforeUnmount(() => {
 
 .lp-join-copy h2 {
   margin: 0 0 16px;
-  font-family: var(--sans); /* same serif as the big hero title */
+  font-family: var(--sb-display); /* same serif as the big hero title */
+  font-variation-settings: 'opsz' 72;
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: clamp(42px, 5vw, 68px);
@@ -3223,7 +2631,7 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   background: #edae49;
   color: #001d2c;
-  font-family: var(--sans);
+  font-family: var(--sb-display);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -3239,7 +2647,7 @@ onBeforeUnmount(() => {
 }
 .lp-join-link {
   color: #fff;
-  font-family: var(--sans);
+  font-family: var(--sb-display);
   font-size: 19px;
   font-weight: 500;
   letter-spacing: 0.05em;
@@ -3302,7 +2710,8 @@ onBeforeUnmount(() => {
 .lp-feat-title {
   margin: 0 0 10px;
   text-align: center;
-  font-family: var(--sans); /* same serif as the big hero title */
+  font-family: var(--sb-display); /* same serif as the big hero title */
+  font-variation-settings: 'opsz' 72;
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: clamp(38px, 5vw, 64px);
@@ -3387,7 +2796,8 @@ onBeforeUnmount(() => {
 }
 .lp-card h3 {
   margin: 20px 8px 8px;
-  font-family: var(--sans); /* same serif as the big hero title */
+  font-family: var(--sb-display); /* same serif as the big hero title */
+  font-variation-settings: 'opsz' 72;
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: 25px;
@@ -3659,8 +3069,7 @@ onBeforeUnmount(() => {
   .lp-feat-sub { margin-bottom: 36px; font-size: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lp-hero *, .lp-title span, .lp-tag, .lp-actions { animation: none !important; opacity: 1 !important; }
-  .lp-layer, .lp-content { transition: none; transform: none; }
+  .lp-hero * { animation: none !important; opacity: 1 !important; }
   .lp-step, .sc, .lp-chip, .sc-stop, .sc-bar span, .sc-pillar::before, .lp-device { transition: opacity 0.2s !important; }
   .lp-card, .lp-card-in, .lp-art > *, .a-progress span, .a-tick, .a-ring { transition: none !important; }
   .lp-card { opacity: 1; transform: none; }
@@ -3668,809 +3077,17 @@ onBeforeUnmount(() => {
   .lp-card.pop .lp-art { animation: none; }
   .ph-cursor, .ph-caret { animation: none; }
 }
-
-/* =====================================================================
-   Night expedition theme (the whole page, top to bottom)
-   Navy-slate night sky, warm campfire amber, cream sketch-paper.
-   Hand lettering (Caveat) only for the big titles and chapter markers;
-   everything you read or press uses Plus Jakarta Sans.
-   ===================================================================== */
-.lp {
-  --sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --hand: 'Caveat', 'Segoe Script', cursive;
-  --night: #0f172a;
-  --night-2: #0b131d;
-  --slip: #132238;
-  --edge: #1e293b;
-  --cream: #faf8f3;
-  --amber: #f59e0b;
-  --amber-hi: #fbbf24;
-  --amber-dark: #b45309;
-  --soft: #cbd5e1;
-  background: var(--night-2);
-  /* faint constellations and topographic contour lines, shared by the night sections */
-  --stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='420'%3E%3Cg fill='%23faf8f3'%3E%3Ccircle cx='40' cy='60' r='1.6'/%3E%3Ccircle cx='96' cy='34' r='1.1'/%3E%3Ccircle cx='150' cy='72' r='1.8'/%3E%3Ccircle cx='204' cy='50' r='1.2'/%3E%3Ccircle cx='330' cy='300' r='1.7'/%3E%3Ccircle cx='384' cy='262' r='1.2'/%3E%3Ccircle cx='440' cy='310' r='1.5'/%3E%3Ccircle cx='470' cy='360' r='1'/%3E%3Ccircle cx='260' cy='170' r='0.9'/%3E%3Ccircle cx='70' cy='300' r='0.9'/%3E%3Ccircle cx='480' cy='90' r='1'/%3E%3Ccircle cx='160' cy='380' r='0.8'/%3E%3C/g%3E%3Cg fill='none' stroke='%23faf8f3' stroke-width='0.8' stroke-dasharray='2 4'%3E%3Cpath d='M40 60 96 34 150 72 204 50'/%3E%3Cpath d='M330 300 384 262 440 310 470 360'/%3E%3C/g%3E%3C/svg%3E");
-  --contours: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Cg fill='none' stroke='%23faf8f3' stroke-width='1'%3E%3Cpath d='M-20 380 C 80 320 160 360 250 300 S 420 250 520 290 660 260 680 250'/%3E%3Cpath d='M-20 410 C 90 350 170 390 260 330 S 430 280 530 320 660 290 680 280'/%3E%3Cpath d='M-20 440 C 100 380 180 420 270 360 S 440 310 540 350 660 320 680 310'/%3E%3Cpath d='M-20 120 C 90 80 170 140 280 100 S 470 40 560 90 660 110 680 100'/%3E%3Cpath d='M-20 150 C 100 110 180 170 290 130 S 480 70 570 120 660 140 680 130'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-/* ----- A. Hero ----- */
-/* Brand: a rounded cream tab with a hand-drawn paper plane */
-.lp-brand {
-  gap: 10px;
-  padding: 7px 16px 7px 8px;
-  border: 2px solid #e2d9cc;
-  border-radius: 16px;
-  background: var(--cream);
-  color: var(--night);
-  font-family: var(--sans);
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-shadow: none;
-  box-shadow: 0 4px 0 #c9b893, 0 0 28px rgba(245, 158, 11, 0.25);
-}
-.lp-brand.static {
-  position: static;
-  display: inline-flex;
-  font-size: 13px;
-}
-.lp-brand-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  background: #fdf1d6;
-  border: 1.5px solid #e8d5a8;
-}
-.lp-brand-text span {
-  white-space: nowrap;
-}
-
-/* Sign in / Join: a dark tactile button with a cream edge */
-.lp-signin {
-  display: inline-flex;
-  align-items: center;
-  padding: 11px 20px;
-  border: 2px solid var(--cream);
-  border-radius: 14px;
-  background: rgba(15, 23, 42, 0.78);
-  color: var(--cream);
-  font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  text-decoration: none;
-  box-shadow: 0 4px 0 #c9b893, 0 12px 26px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
-  transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
-}
-.lp-signin:hover {
-  background: rgba(19, 34, 56, 0.92);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 0 #c9b893, 0 16px 30px rgba(0, 0, 0, 0.4);
-}
-.lp-signin:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 #c9b893;
-}
-.lp-signin:focus-visible {
-  outline: 3px solid rgba(245, 158, 11, 0.8);
-  outline-offset: 4px;
-}
-
-/* The headline in hand lettering, one word glowing like a campfire */
-.lp-title {
-  font-family: var(--hand);
-  font-weight: 700;
-  font-size: clamp(76px, 11vw, 168px);
-  line-height: 0.82;
-  letter-spacing: 0;
-  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
-}
-.lp-title .lp-accent {
-  font-style: normal;
-  color: var(--amber-hi);
-  padding-left: 0;
-  text-shadow: 0 0 28px rgba(245, 158, 11, 0.55), 0 4px 30px rgba(0, 0, 0, 0.5);
-}
-.lp-tag {
-  font-family: var(--sans);
-  font-weight: 700;
-  font-size: clamp(16px, 1.6vw, 20px);
-  letter-spacing: 0.14em;
-  color: var(--cream);
-}
-
-/* The big amber button: chunky, bevelled, presses down */
-.lp-explore {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 32px;
-  border: 2px solid var(--amber-dark);
-  border-radius: 16px;
-  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
-  color: #1a1408;
-  font-family: var(--sans);
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -3px 0 rgba(180, 83, 9, 0.35),
-    0 6px 0 #92400e,
-    0 18px 34px rgba(245, 158, 11, 0.32);
-  transition: transform 0.12s, box-shadow 0.12s, filter 0.15s;
-}
-.lp-explore:hover {
-  filter: brightness(1.06);
-  transform: translateY(-2px);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -3px 0 rgba(180, 83, 9, 0.35),
-    0 8px 0 #92400e,
-    0 22px 40px rgba(245, 158, 11, 0.4);
-}
-.lp-explore:active {
-  transform: translateY(6px);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 0 0 #92400e, 0 8px 16px rgba(245, 158, 11, 0.25);
-}
-.lp-explore:focus-visible {
-  outline: 3px solid var(--cream);
-  outline-offset: 4px;
-}
-.lp-explore.small {
-  padding: 13px 24px;
-  font-size: 15px;
-}
-.lp-arrow {
-  display: inline-block;
-  transition: transform 0.2s;
-}
-.lp-explore:hover .lp-arrow {
-  transform: translateX(4px);
-}
-.lp-cue {
-  font-family: var(--sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
-
-/* Origami paper planes drifting on glowing dotted trails */
-.lp-origami {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.lp-paper {
-  position: absolute;
-  display: block;
-  width: 200px;
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
-  animation: lp-paper-drift 9s ease-in-out infinite;
-}
-.lp-paper svg {
-  display: block;
-  width: 100%;
-}
-.lp-paper.p1 {
-  top: 15%;
-  left: 36%;
-}
-.lp-paper.p2 {
-  top: 7%;
-  left: 60%;
-  width: 130px;
-  opacity: 0.75;
-  animation-duration: 12s;
-  animation-delay: -4s;
-}
-.lp-paper-trail {
-  fill: none;
-  stroke: var(--amber-hi);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-dasharray: 1 9;
-  opacity: 0.8;
-  animation: lp-trail-run 1.6s linear infinite;
-}
-@keyframes lp-paper-drift {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  50% { transform: translate(26px, -12px) rotate(-3deg); }
-}
-@keyframes lp-trail-run {
-  to { stroke-dashoffset: -20; }
-}
-
-/* ----- B. The Campfire Briefing ----- */
-.lp-brief {
-  position: relative;
-  padding: 90px 40px 100px;
-  background:
-    radial-gradient(520px 200px at 50% 78%, rgba(245, 158, 11, 0.16), transparent 70%),
-    linear-gradient(180deg, #05080d 0%, var(--night) 60%, var(--night-2) 100%);
-}
-/* faint stars behind the card */
-.lp-brief::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--stars) 0 0 / 520px 420px;
-  opacity: 0.18;
-  pointer-events: none;
-}
-.lp-brief-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 24px 40px;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 34px 38px 32px;
-  border: 2px solid #e2d9cc;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle, rgba(18, 50, 74, 0.07) 1px, transparent 1.2px) 0 0 / 18px 18px,
-    var(--cream);
-  color: var(--night);
-  box-shadow: 0 6px 0 #c9b893, 0 30px 60px -20px rgba(0, 0, 0, 0.7), 0 0 80px rgba(245, 158, 11, 0.12);
-  transform: rotate(-0.4deg);
-}
-/* stitching round the inside edge */
-.lp-brief-card::before {
-  content: '';
-  position: absolute;
-  inset: 9px;
-  border: 2px dashed rgba(201, 184, 148, 0.7);
-  border-radius: 15px;
-  pointer-events: none;
-}
-.lp-brief-tape {
-  position: absolute;
-  top: -12px;
-  width: 92px;
-  height: 26px;
-  background: rgba(245, 158, 11, 0.55);
-  border-left: 2px dashed rgba(255, 255, 255, 0.5);
-  border-right: 2px dashed rgba(255, 255, 255, 0.5);
-}
-.lp-brief-tape.tl {
-  left: 34px;
-  transform: rotate(-6deg);
-}
-.lp-brief-tape.tr {
-  right: 34px;
-  transform: rotate(5deg);
-  background: rgba(47, 143, 148, 0.45);
-}
-.lp-brief-guide {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-.lp-brief-pip {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 150px;
-  height: 150px;
-  padding: 0;
-  border: 3px solid var(--night);
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 40%, #1f3a5c, var(--night));
-  box-shadow: 0 0 0 6px #f3e8cf, 0 0 0 8px #c9b893, 0 0 30px rgba(245, 158, 11, 0.35);
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-.lp-brief-pip:hover {
-  transform: rotate(-4deg) scale(1.03);
-}
-.lp-brief-pip:focus-visible {
-  outline: 3px solid var(--amber);
-  outline-offset: 10px;
-}
-.lp-brief-bubble {
-  position: relative;
-  padding: 16px 20px 18px;
-  border: 2px solid var(--night);
-  border-radius: 18px;
-  background: #fbf5ea;
-  box-shadow: 0 4px 0 var(--night);
-}
-/* the bubble's tail points at Pip */
-.lp-brief-bubble::before {
-  content: '';
-  position: absolute;
-  left: -12px;
-  top: 40%;
-  width: 20px;
-  height: 20px;
-  background: #fbf5ea;
-  border-left: 2px solid var(--night);
-  border-bottom: 2px solid var(--night);
-  transform: rotate(45deg);
-}
-.lp-brief-kicker {
-  margin: 0 0 2px;
-  font-family: var(--hand);
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1;
-  color: var(--amber-dark);
-}
-.lp-brief-title {
-  margin: 0;
-  font-family: var(--sans);
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.35;
-  color: var(--night);
-}
-.lp-brief-sub {
-  margin: 0 0 16px;
-  font-size: 15px;
-  line-height: 1.55;
-  color: #3a4a57;
-}
-/* luggage tags */
-.lp-bags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 14px;
-  margin: 0 0 22px;
-  padding: 0;
-  list-style: none;
-}
-.lp-bag {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px 7px 26px;
-  border: 2px solid var(--night);
-  border-radius: 6px 12px 12px 6px;
-  background: #fdf1d6;
-  font-size: 13.5px;
-  font-weight: 800;
-  color: var(--night);
-  box-shadow: 0 3px 0 var(--night);
-  transform: rotate(var(--r));
-  transition: transform 0.2s;
-}
-/* the tag's eyelet */
-.lp-bag::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  width: 9px;
-  height: 9px;
-  margin-top: -4.5px;
-  border: 2px solid var(--night);
-  border-radius: 50%;
-  background: var(--cream);
-}
-.lp-bag:hover {
-  transform: rotate(0deg) translateY(-2px);
-}
-.lp-bag-stamp {
-  display: grid;
-  place-items: center;
-}
-.lp-brief-btns {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 18px;
-}
-.lp-brief-hint {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #5b6b75;
-}
-
-/* ----- C. Story and features: the night trail ----- */
-.lp-story {
-  background:
-    radial-gradient(900px 600px at 75% 40%, rgba(245, 158, 11, 0.08), transparent 70%),
-    radial-gradient(700px 500px at 15% 80%, rgba(47, 143, 148, 0.12), transparent 70%),
-    linear-gradient(180deg, var(--night-2) 0%, var(--night) 30%, var(--night) 80%, var(--night-2) 100%);
-}
-.lp-story::before,
-.lp-feat::before,
-.lp-join::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--stars) 0 0 / 520px 420px, var(--contours) 0 0 / 640px 480px;
-  opacity: 0.12;
-  pointer-events: none;
-}
-.lp-step-num {
-  font-family: var(--hand);
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--amber-hi);
-}
-.lp-step-title {
-  font-family: var(--hand);
-  font-weight: 700;
-  letter-spacing: 0;
-  font-size: clamp(48px, 5.4vw, 78px);
-  line-height: 0.95;
-  color: var(--cream);
-}
-.lp-step-text {
-  color: var(--soft);
-}
-.lp-step-points li {
-  font-weight: 600;
-  color: #e2e8f0;
-}
-.lp-step-points li::before {
-  color: var(--amber);
-}
-
-.lp-feat {
-  position: relative;
-  background:
-    radial-gradient(800px 400px at 50% 0%, rgba(245, 158, 11, 0.08), transparent 70%),
-    linear-gradient(180deg, var(--night-2), var(--night) 40%, var(--night-2));
-}
-.lp-feat > * {
-  position: relative;
-}
-.lp-feat-title {
-  font-family: var(--hand);
-  font-weight: 700;
-  letter-spacing: 0;
-  font-size: clamp(54px, 6vw, 86px);
-  line-height: 1;
-  color: var(--cream);
-}
-.lp-feat-sub {
-  color: var(--soft);
-}
-/* Each feature: a navy dossier card with a cream sketch-paper picture */
-.lp-card-in {
-  padding: 12px 12px 22px;
-  border-radius: 16px;
-  background: var(--slip);
-  border: 1px solid var(--edge);
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 24px 40px -26px rgba(0, 0, 0, 0.8);
-}
-.lp-card-in.hover {
-  border-color: rgba(245, 158, 11, 0.55);
-  background: #16294a;
-}
-.lp-art {
-  border-radius: 10px;
-  border: 1px solid #e2d9cc;
-  background:
-    radial-gradient(circle, rgba(18, 50, 74, 0.07) 1px, transparent 1.2px) 0 0 / 16px 16px,
-    var(--cream);
-}
-.lp-card-log {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 18px 8px 0;
-  font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--amber);
-  transform: translateZ(20px);
-}
-.lp-card-log::after {
-  content: '';
-  flex: 1;
-  border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
-}
-.lp-card h3 {
-  margin: 8px 8px 8px;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: 0;
-  color: var(--cream);
-}
-.lp-card p {
-  font-size: 14.5px;
-  color: var(--soft);
-}
-
-/* Join */
-.lp-join {
-  position: relative;
-}
-.lp-join > * {
-  position: relative;
-}
-/* the stars and contours run the full width, not just the centred column */
-.lp-join::before {
-  left: 50%;
-  right: auto;
-  width: 100vw;
-  margin-left: -50vw;
-}
-.lp-join-art {
-  background:
-    radial-gradient(420px 300px at 50% 30%, rgba(245, 158, 11, 0.16), transparent 70%),
-    linear-gradient(180deg, var(--slip), var(--night));
-  border: 1px solid var(--edge);
-}
-.lp-join-copy h2 {
-  font-family: var(--hand);
-  font-weight: 700;
-  letter-spacing: 0;
-  font-size: clamp(56px, 6vw, 88px);
-  line-height: 0.95;
-  color: var(--cream);
-}
-.lp-join-copy p {
-  color: var(--soft);
-}
-.lp-join-btn {
-  border: 2px solid var(--amber-dark);
-  border-radius: 16px;
-  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
-  color: #1a1408;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 6px 0 #92400e, 0 18px 34px rgba(245, 158, 11, 0.3);
-  transition: transform 0.12s, box-shadow 0.12s, filter 0.15s;
-}
-.lp-join-btn:hover {
-  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
-  filter: brightness(1.06);
-  transform: translateY(-2px);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 8px 0 #92400e, 0 22px 40px rgba(245, 158, 11, 0.4);
-}
-.lp-join-btn:active {
-  transform: translateY(6px);
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 0 0 #92400e;
-}
-.lp-join-link {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  color: var(--cream);
-}
-
-/* ----- D. Footer ----- */
-.lp-foot {
-  position: relative;
-  padding: 120px 40px 28px;
-  background:
-    radial-gradient(1.2px 1.2px at 12% 30%, rgba(250, 248, 243, 0.8), transparent),
-    radial-gradient(1px 1px at 28% 12%, rgba(250, 248, 243, 0.6), transparent),
-    radial-gradient(1.4px 1.4px at 46% 22%, rgba(250, 248, 243, 0.7), transparent),
-    radial-gradient(1px 1px at 63% 8%, rgba(250, 248, 243, 0.5), transparent),
-    radial-gradient(1.3px 1.3px at 78% 26%, rgba(250, 248, 243, 0.75), transparent),
-    radial-gradient(1px 1px at 91% 14%, rgba(250, 248, 243, 0.55), transparent),
-    radial-gradient(600px 260px at 50% 100%, rgba(245, 158, 11, 0.14), transparent 70%),
-    linear-gradient(180deg, var(--night-2) 0 88px, var(--night) 88px, #060b12);
-  color: var(--soft);
-  overflow: hidden;
-}
-/* a faint mountain ridge along the top edge */
-.lp-foot-ridge {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  width: 100%;
-  height: 90px;
-  fill: var(--night); /* the same colour as the footer below it, so the peaks rise out of it */
-}
-.lp-foot-in {
-  position: relative;
-  max-width: 1180px;
-  margin: 0 auto;
-}
-.lp-foot-cta {
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  margin-bottom: 64px;
-  text-align: center;
-}
-.lp-foot-title {
-  margin: 0;
-  font-family: var(--hand);
-  font-size: clamp(56px, 6vw, 84px);
-  font-weight: 700;
-  line-height: 1;
-  color: var(--cream);
-  text-shadow: 0 0 30px rgba(245, 158, 11, 0.25);
-}
-.lp-foot-text {
-  margin: 0 0 14px;
-  font-size: 17px;
-  color: var(--soft);
-}
-.lp-foot-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 32px 40px;
-  padding: 28px;
-  border: 1px solid var(--edge);
-  border-radius: 16px;
-  background: rgba(19, 34, 56, 0.7);
-}
-.lp-foot-brand p {
-  margin: 14px 0 0;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--soft);
-}
-.lp-foot-head {
-  margin: 0 0 12px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--amber);
-}
-.lp-foot-nav {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-}
-.lp-foot-nav a,
-.lp-foot-nav button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: #e2e8f0;
-  font: inherit;
-  font-size: 14.5px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.15s, transform 0.15s;
-}
-.lp-foot-nav a:hover,
-.lp-foot-nav button:hover {
-  color: var(--amber-hi);
-  transform: translateX(3px);
-}
-.lp-foot-status ul {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.lp-foot-status li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-.lp-dot {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  animation: lp-dot-glow 2.4s ease-in-out infinite;
-}
-.lp-dot.green { background: #4ade80; color: #4ade80; }
-.lp-dot.amber { background: var(--amber); color: var(--amber); animation-delay: 0.6s; }
-.lp-dot.teal { background: #5fbfc4; color: #5fbfc4; animation-delay: 1.2s; }
-@keyframes lp-dot-glow {
-  0%, 100% { box-shadow: 0 0 0 0 currentColor; }
-  50% { box-shadow: 0 0 10px 1px currentColor; }
-}
-.lp-foot-base {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-top: 22px;
-  font-size: 12.5px;
-  color: #94a3b8;
-}
-.lp-foot-top {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: #94a3b8;
-  font: inherit;
-  font-weight: 700;
-}
-.lp-foot-top:hover {
-  color: var(--amber-hi);
-}
-.lp-foot-nav a:focus-visible,
-.lp-foot-nav button:focus-visible,
-.lp-foot-top:focus-visible {
-  outline: 2px solid var(--amber);
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
-/* ----- Smaller screens ----- */
-@media (max-width: 900px) {
-  .lp-step-num { font-size: 24px; }
-  .lp-step-title { font-size: 40px; margin: 4px 0 8px; }
-  .lp-brief-card { grid-template-columns: minmax(0, 1fr); padding: 30px 24px 26px; }
-  .lp-foot-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .lp-foot-brand { grid-column: 1 / -1; }
-}
-@media (max-width: 700px) {
-  .lp-brand { left: 16px; top: 16px; font-size: 12px; letter-spacing: 0.1em; padding: 5px 12px 5px 6px; }
-  .lp-brand.static { font-size: 12px; }
-  .lp-brand-icon { width: 28px; height: 28px; border-radius: 9px; }
-  .lp-signin { padding: 9px 14px; font-size: 12px; }
-  .lp-explore { padding: 14px 24px; font-size: 16px; }
-  .lp-content { bottom: 86px; } /* room for "See how it works" under the taller button */
-  .lp-paper.p1 { left: 8%; top: 18%; width: 150px; }
-  .lp-paper.p2 { display: none; }
-  .lp-brief { padding: 60px 16px 70px; }
-  .lp-brief-guide { flex-direction: column; align-items: flex-start; }
-  .lp-brief-pip { width: 116px; height: 116px; }
-  .lp-brief-bubble::before { left: 40px; top: -12px; transform: rotate(135deg); }
-  .lp-brief-title { font-size: 17px; }
-  .lp-foot { padding: 100px 20px 24px; }
-  .lp-foot-grid { grid-template-columns: minmax(0, 1fr); padding: 22px; }
-}
-@media (max-width: 520px) {
-  .lp-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
-  .lp-brand.static .lp-brand-text { display: inline; }
-  .lp-title { font-size: 72px; }
-}
-@media (max-height: 520px) and (orientation: landscape) {
-  .lp-title { font-size: clamp(44px, 15vh, 84px); }
-  .lp-explore { padding: 9px 20px; font-size: 14px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lp-paper, .lp-paper-trail, .lp-dot { animation: none !important; }
-  .lp-explore, .lp-signin, .lp-bag, .lp-brief-pip { transition: none; }
-}
 </style>
 
 <!-- The page fills the whole window, so the body behind it goes dark too -->
 <style>
 body.lp-body {
-  background: #0b131d;
+  background: #05080d;
   overflow: hidden;
 }
 </style>
 
 <style scoped>
-
-/* =========================================================
-   NEW TRAVEL JOURNAL HERO
-   ========================================================= */
-
-/*
-  Keep the original hero code in the file for now,
-  but hide its visual elements while we test the redesign.
-*/
-.lp-hero > .lp-stage,
-.lp-hero > .lp-clouds,
-.lp-hero > .lp-shade,
-.lp-hero > .lp-brand,
-.lp-hero > .lp-top-signin,
-.lp-hero > .lp-content,
-.lp-hero > .lp-cue {
-  display: none;
-}
 
 .lp {
   background: #f8f4e9;
@@ -4531,13 +3148,12 @@ body.lp-body {
   transform: rotate(-3deg);
 }
 
-.journal-logo span {
+.journal-logo :deep(.dz) {
   display: block;
-  transform: rotate(-20deg);
 }
 
 .journal-brand-name {
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-size: clamp(25px, 2.3vw, 38px);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -4554,7 +3170,7 @@ body.lp-body {
 
   box-shadow: 0 7px 0 #17304d;
 
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-size: 19px;
   font-weight: 600;
 
@@ -4605,7 +3221,7 @@ body.lp-body {
 
   background: #efbd4e;
 
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -4614,7 +3230,7 @@ body.lp-body {
 .journal-copy h1 {
   margin: 0;
 
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-size: clamp(60px, 6.6vw, 108px);
   line-height: 0.95;
   letter-spacing: -0.035em;
@@ -4643,8 +3259,7 @@ body.lp-body {
   gap: 22px;
 }
 
-.journal-primary,
-.journal-secondary {
+.journal-primary {
   min-height: 58px;
   padding: 0 27px;
 
@@ -4656,7 +3271,7 @@ body.lp-body {
   border: 3px solid #17304d;
   border-radius: 16px;
 
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-size: 18px;
   font-weight: 700;
 
@@ -4683,16 +3298,6 @@ body.lp-body {
   font-size: 25px;
 }
 
-.journal-secondary {
-  background: transparent;
-  color: #17304d;
-  border-style: dashed;
-}
-
-.journal-secondary:hover {
-  background: rgba(239, 189, 78, 0.13);
-}
-
 /* ---------- postcard artwork ---------- */
 
 .journal-art {
@@ -4712,66 +3317,6 @@ body.lp-body {
   box-shadow: 0 15px 30px rgba(23, 48, 77, 0.12);
 }
 
-.postcard-back {
-  width: min(430px, 65%);
-  height: 460px;
-
-  right: 1%;
-  top: 11%;
-
-  transform: rotate(5deg);
-}
-
-.postcard-message {
-  position: absolute;
-  right: 35px;
-  top: 180px;
-
-  font-family: 'Newsreader', Georgia, serif;
-  font-size: 38px;
-  font-style: italic;
-  font-weight: 700;
-  line-height: 1.05;
-
-  transform: rotate(-4deg);
-}
-
-.postcard-stamp {
-  position: absolute;
-  right: 26px;
-  top: 24px;
-
-  width: 86px;
-  height: 98px;
-
-  display: grid;
-  place-items: center;
-
-  border: 8px solid #f1ead8;
-
-  background: #88a6bd;
-  color: #fffaf0;
-
-  font-size: 35px;
-
-  transform: rotate(7deg);
-}
-
-.postcard-lines {
-  position: absolute;
-  right: 32px;
-  bottom: 62px;
-
-  width: 155px;
-
-  display: grid;
-  gap: 14px;
-}
-
-.postcard-lines span {
-  border-bottom: 2px dotted #c5b99e;
-}
-
 .postcard-front {
   width: min(590px, 83%);
   height: 410px;
@@ -4786,30 +3331,6 @@ body.lp-body {
   box-shadow:
     0 17px 35px rgba(23, 48, 77, 0.15),
     8px 10px 0 rgba(239, 189, 78, 0.16);
-}
-
-.postcard-tape {
-  position: absolute;
-  width: 55px;
-  height: 90px;
-
-  left: 51%;
-  top: -54px;
-
-  background: rgba(211, 75, 77, 0.9);
-
-  clip-path: polygon(
-    20% 0,
-    90% 6%,
-    78% 48%,
-    100% 100%,
-    10% 92%,
-    25% 50%
-  );
-
-  transform: rotate(7deg);
-
-  z-index: 5;
 }
 
 .postcard-picture {
@@ -4830,68 +3351,6 @@ body.lp-body {
     );
 }
 
-.picture-sky {
-  position: absolute;
-  inset: 0;
-}
-
-.picture-cloud {
-  position: absolute;
-
-  width: 90px;
-  height: 25px;
-
-  border-radius: 50%;
-  background: rgba(255,255,255,0.65);
-}
-
-.cloud-one {
-  left: 12%;
-  top: 20%;
-}
-
-.cloud-two {
-  right: 14%;
-  top: 12%;
-  transform: scale(0.7);
-}
-
-.picture-mountain {
-  position: absolute;
-  bottom: -5px;
-
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-
-.mountain-back {
-  width: 380px;
-  height: 210px;
-
-  right: -45px;
-
-  background: #7b8e83;
-}
-
-.mountain-front {
-  width: 430px;
-  height: 230px;
-
-  left: -50px;
-
-  background: #526c65;
-}
-
-.picture-plane {
-  position: absolute;
-  top: 55px;
-  left: 47%;
-
-  color: #17304d;
-  font-size: 27px;
-
-  transform: rotate(-12deg);
-}
-
 .postcard-caption {
   padding-top: 14px;
 
@@ -4900,7 +3359,7 @@ body.lp-body {
 }
 
 .postcard-caption strong {
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-size: 26px;
   line-height: 1.1;
 }
@@ -4908,41 +3367,6 @@ body.lp-body {
 .postcard-caption span {
   margin-top: 3px;
   color: #647284;
-}
-
-.postcard-stamp-small {
-  position: absolute;
-  right: 25px;
-  bottom: 25px;
-
-  width: 58px;
-  height: 58px;
-
-  display: grid;
-  place-items: center;
-
-  border: 2px dashed #17304d;
-  border-radius: 50%;
-
-  font-family: 'Oswald', sans-serif;
-  font-size: 12px;
-  line-height: 1;
-  text-align: center;
-
-  transform: rotate(10deg);
-}
-
-.journal-pin {
-  position: absolute;
-  right: 45%;
-  top: 4%;
-
-  color: #d34b4d;
-  font-size: 62px;
-
-  text-shadow: 0 5px 8px rgba(23,48,77,0.25);
-
-  transform: rotate(10deg);
 }
 
 /* ---------- decorative route ---------- */
@@ -4967,7 +3391,7 @@ body.lp-body {
 
 .route-plane {
   position: absolute;
-  left: 32%;
+  left: 60%; /* further along the path, clear of the Start button */
   bottom: -16px;
 
   width: 48px;
@@ -5006,7 +3430,7 @@ body.lp-body {
 
   color: #17304d;
 
-  font-family: 'Oswald', sans-serif;
+  font-family: var(--sb-display);
   font-weight: 600;
   letter-spacing: 0.04em;
 
@@ -5072,6 +3496,10 @@ body.lp-body {
     box-shadow: 0 5px 0 #17304d;
     font-size: 22px;
   }
+  .journal-logo :deep(.dz) {
+    width: 30px;
+    height: 30px;
+  }
 
   .journal-brand {
     gap: 10px;
@@ -5116,13 +3544,16 @@ body.lp-body {
     margin: auto;
   }
 
-  .journal-primary,
-  .journal-secondary {
+  .journal-primary {
     width: 100%;
   }
 
   .journal-scroll {
     bottom: 12px;
+  }
+  /* Phones: no room for the dotted flight path, it would cross the buttons */
+  .journal-route {
+    display: none;
   }
 }
 
@@ -5167,7 +3598,7 @@ body.lp-body {
 
 .lp-step-title {
   color: #17304d;
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-weight: 700;
   letter-spacing: -0.025em;
 }
@@ -5204,7 +3635,7 @@ body.lp-body {
 .lp-feat-title {
   color: #17304d;
 
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-weight: 700;
   letter-spacing: -0.025em;
 }
@@ -5233,7 +3664,7 @@ body.lp-body {
 .lp-card h3 {
   color: #17304d;
 
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-weight: 700;
 }
 
@@ -5263,7 +3694,7 @@ body.lp-body {
 .lp-join-copy h2 {
   color: #17304d;
 
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sb-display);
   font-weight: 700;
   letter-spacing: -0.025em;
 }
@@ -5281,42 +3712,6 @@ body.lp-body {
   color: #c88931;
 }
 
-/* Cute postcard mountains */
-
-.picture-mountain {
-  position: absolute;
-  bottom: 0;
-
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-
-.mountain-back {
-  width: 360px;
-  height: 175px;
-
-  right: -70px;
-  bottom: 0;
-
-  background: #8fa79d;
-
-  z-index: 1;
-}
-
-.mountain-front {
-  width: 440px;
-  height: 225px;
-
-  left: 50%;
-  bottom: 0;
-
-  transform: translateX(-50%);
-
-  background: #587b72;
-
-  z-index: 2;
-}
-
-
 /* ==============================
    POSTCARD LANDSCAPE
    ============================== */
@@ -5326,120 +3721,765 @@ body.lp-body {
   overflow: hidden;
 }
 
-/* ---------- mountains ---------- */
-
-.mountain {
+/* The front postcard: the mountain photo, framed on the peak. Tap the photo: the volcano erupts */
+.postcard-front {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+}
+.postcard-front:hover {
+  transform: rotate(-1deg) translateY(-6px);
+  box-shadow:
+    0 24px 40px rgba(23, 48, 77, 0.2),
+    8px 14px 0 rgba(239, 189, 78, 0.22);
+}
+.postcard-picture.photo {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: #0b1620;
+  cursor: pointer;
+}
+.postcard-picture.photo:focus-visible {
+  outline: 3px solid #19b3c4;
+  outline-offset: 3px;
+}
+.picture-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.postcard-picture.photo.shaking {
+  animation: lp-shake 0.5s linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .postcard-front {
+    transition: none;
+  }
+}
+/* Front card: two strips of washi tape instead of the pin */
+.postcard-washi {
   position: absolute;
-  bottom: 0;
+  top: -14px;
+  z-index: 5;
+  width: 96px;
+  height: 30px;
+  border-left: 2px dashed rgba(255, 255, 255, 0.55);
+  border-right: 2px dashed rgba(255, 255, 255, 0.55);
+  box-shadow: 0 2px 4px rgba(23, 48, 77, 0.18);
   pointer-events: none;
-
-  clip-path: polygon(
-    50% 0%,
-    100% 100%,
-    0% 100%
-  );
 }
-
-/* mountain behind */
-.mountain-back {
-  z-index: 2;
-
-  width: 330px;
-  height: 155px;
-
-  right: -55px;
-  bottom: 0;
-
-  background: #91a99c;
+.postcard-washi.left {
+  left: -18px;
+  background: repeating-linear-gradient(135deg, rgba(239, 189, 78, 0.92) 0 9px, rgba(247, 210, 120, 0.92) 9px 18px);
+  transform: rotate(-32deg);
 }
-
-/* main mountain */
-.mountain-front {
+.postcard-washi.right {
+  right: -18px;
+  background: repeating-linear-gradient(135deg, rgba(47, 167, 184, 0.88) 0 9px, rgba(120, 200, 210, 0.88) 9px 18px);
+  transform: rotate(30deg);
+}
+/* The photo as a print: a white border inside the navy edge */
+.postcard-picture.photo {
+  padding: 8px;
+  background: #fbf5ea;
+}
+.postcard-picture.photo .picture-svg {
+  border-radius: 3px;
+}
+/* The entry stamp, inked half over the photo's bottom corner */
+.postcard-caption {
+  padding-right: 112px; /* room for the entry stamp */
+}
+.postcard-entry {
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
   z-index: 3;
-
-  width: 470px;
-  height: 230px;
-
-  left: 50%;
-  bottom: 0;
-
-  transform: translateX(-50%);
-
-  background: #5f8175;
-}
-
-/* ---------- snow ---------- */
-
-.snow-cap {
-  position: absolute;
-
-  width: 190px;
-  height: 95px;
-
-  left: 50%;
-  top: 0;
-
-  transform: translateX(-50%);
-
-  background: #fffaf0;
-
-  clip-path: polygon(
-    50% 0%,
-    100% 100%,
-    76% 72%,
-    64% 88%,
-    51% 68%,
-    37% 88%,
-    23% 72%,
-    0% 100%
-  );
-}
-
-/* ---------- foreground hills ---------- */
-
-.foreground-hill {
-  position: absolute;
-  z-index: 4;
-
-  bottom: -65px;
-
-  border-radius: 50% 50% 0 0;
-
+  width: 104px;
+  color: rgba(31, 125, 139, 0.88);
+  font-family: var(--sb-display);
+  transform: rotate(-12deg);
+  mix-blend-mode: multiply;
   pointer-events: none;
 }
-
-.hill-one {
-  width: 430px;
-  height: 135px;
-
-  left: -100px;
-
-  background: #789888;
-}
-
-.hill-two {
-  width: 450px;
-  height: 125px;
-
-  right: -120px;
-
-  background: #698879;
-}
-
-/* ---------- plane ---------- */
-
-.picture-plane {
+/* The passport behind the postcard: a navy cover with gold foil */
+.journal-passport {
   position: absolute;
-  z-index: 8;
-
-  top: 28%;
-  left: 24%;
-
+  top: -5%;
+  right: 3%;
+  width: min(300px, 46%);
+  height: 410px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 20px 30px 34px; /* title and crest sit high, where they peek above the postcard */
+  border: 4px solid #0f2238;
+  border-radius: 10px 22px 22px 10px;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.3) 0 16px, rgba(255, 255, 255, 0.07) 16px 18px, transparent 18px),
+    radial-gradient(120% 80% at 30% 15%, rgba(255, 255, 255, 0.09), transparent 60%),
+    radial-gradient(circle, rgba(0, 0, 0, 0.12) 0.8px, transparent 1.2px) 0 0 / 5px 5px, /* fine leather grain */
+    #1d3f5c;
+  color: #e7c46a;
+  box-shadow: 0 15px 30px rgba(23, 48, 77, 0.2), 6px 8px 0 rgba(15, 34, 56, 0.25);
+  transform: rotate(7deg);
+}
+.journal-passport::after { /* gold foil border pressed into the cover */
+  content: '';
+  position: absolute;
+  inset: 12px 12px 12px 28px;
+  border: 1.5px solid rgba(231, 196, 106, 0.45);
+  border-radius: 6px 14px 14px 6px;
+  pointer-events: none;
+}
+.passport-title {
+  font-family: var(--sb-display);
+  font-size: clamp(22px, 2vw, 30px);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.passport-crest {
+  width: 44%;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.35));
+}
+/* "Start the journey": a big chunky button that bounces you down to the walkthrough */
+.journal-scroll {
+  bottom: 22px;
+}
+.journal-scroll .journal-start {
+  gap: 16px;
+  padding: 10px 12px 10px 26px;
+  border: 3px solid #17304d;
+  border-radius: 999px;
+  background: #fffaf0;
+  box-shadow: 0 6px 0 #17304d;
+  letter-spacing: 0.02em;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+}
+.journal-scroll .journal-start:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 0 #17304d;
+}
+.journal-scroll .journal-start:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #17304d;
+}
+.journal-scroll .journal-start:focus-visible {
+  outline: 3px solid #19b3c4;
+  outline-offset: 4px;
+}
+.journal-start-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.journal-start-text strong {
+  font-family: var(--sb-display);
+  font-size: clamp(20px, 1.8vw, 26px);
+  font-weight: 400;
+}
+.journal-start-text small {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #536376;
+}
+.journal-start .journal-arrow {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 3px solid #17304d;
+  border-radius: 50%;
+  background: #efbd4e;
   color: #17304d;
-
-  font-size: 27px;
-
-  transform: rotate(-12deg);
+}
+@media (max-width: 600px) {
+  .journal-scroll {
+    bottom: 14px;
+  }
+  .journal-scroll .journal-start {
+    padding: 8px 8px 8px 18px;
+  }
+  .journal-start-text strong {
+    font-size: 19px;
+  }
+  .journal-start-text small {
+    font-size: 11.5px;
+  }
+  .journal-start .journal-arrow {
+    width: 40px;
+    height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal-scroll .journal-start {
+    transition: none;
+  }
+}
+/* =========================================================
+   App previews (the 3D window and the phone) in the app's current look:
+   navy outlines, small hard shadows, Lilita One labels, amber for what's picked.
+   Kept light so the previews stay clean; the 3D tilt and animations are untouched.
+   ========================================================= */
+/* ----- the 3D window ----- */
+.lp-win {
+  border: 3px solid #17304d;
+  background: #fffaf0;
+  box-shadow: 0 10px 0 #17304d, 0 40px 70px rgba(23, 48, 77, 0.35);
+}
+.lp-win .lp-win-bar {
+  background: #17304d;
+}
+.lp-win .lp-win-bar i {
+  border: 1.5px solid #0d1f33;
+}
+.lp-win .w-nav {
+  background: #17304d;
+  border-bottom: 3px solid #0d1f33;
+}
+.lp-win .w-logo {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #efbd4e;
+}
+.lp-win .w-tab {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: rgba(255, 250, 240, 0.75);
+}
+.lp-win .w-tab.on {
+  border: 2px solid #0d1f33;
+  border-radius: 10px;
+  background: #efbd4e;
+  color: #17304d;
+  box-shadow: 0 3px 0 #0d1f33;
+  transform: rotate(-2deg);
+}
+.lp-win .w-faces i,
+.lp-phone .ph-faces i {
+  border: 2px solid #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.lp-win .lp-win-body {
+  background:
+    radial-gradient(circle, rgba(23, 48, 77, 0.07) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    #fffaf0;
+}
+.lp-win b,
+.lp-phone .ph-scroll b {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+/* chips, toggles, search */
+.lp-win .w-chip,
+.lp-win .w-search,
+.lp-win .w-seg {
+  border: 2px solid #17304d;
+  background: #fffdf8;
+  color: #17304d;
+  box-shadow: 0 2px 0 #17304d;
+}
+.lp-win .w-chip.gold,
+.lp-win .w-seg .on {
+  background: #efbd4e;
+  color: #17304d;
+}
+.lp-win .w-thumb,
+.lp-phone .ph-thumb {
+  border: 2px solid #17304d;
+}
+/* Discover */
+.lp-win .d-country,
+.lp-win .v-quick,
+.lp-win .v-row,
+.lp-win .t-card,
+.lp-win .t-next {
+  border: 2px solid #17304d;
+  border-radius: 12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-win .w-score {
+  border: 2px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  transform: rotate(-6deg);
+}
+.lp-win .d-city {
+  border: 2.5px solid #17304d;
+  box-shadow: 0 4px 0 #17304d;
+}
+.lp-win .d-gem {
+  border: 1.5px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+}
+.lp-win .d-map,
+.lp-win .p-map {
+  border: 2.5px solid #17304d;
+  box-shadow: 0 4px 0 #17304d;
+}
+.lp-win .d-pin {
+  border: 2px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.lp-win .d-legend,
+.lp-win .d-zoom i {
+  border: 1.5px solid #17304d;
+  background: #fffdf8;
+  color: #17304d;
+}
+/* Vote */
+.lp-win .v-pick,
+.lp-phone .ph-pick {
+  border: 2px solid #17304d;
+  border-radius: 6px;
+  background: #efbd4e;
+  color: #17304d;
+  font-family: var(--sb-display);
+  font-style: normal;
+  font-weight: 400;
+  transform: rotate(-3deg);
+}
+.lp-win .v-person {
+  border: 1.5px solid rgba(23, 48, 77, 0.35);
+  background: #fffdf8;
+  color: #17304d;
+}
+.lp-win .v-person.yes {
+  border-color: #17304d;
+  background: #e2f5e8;
+}
+.lp-win .v-yes {
+  border: 2px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-win .sc-bar,
+.lp-phone .ph-bar,
+.lp-phone .ph-progress {
+  border: 1.5px solid #17304d;
+  background: #fffaf0;
+}
+.lp-win .sc-bar span,
+.lp-phone .ph-bar i,
+.lp-phone .ph-progress i {
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0 4px, transparent 4px 8px), #efbd4e;
+}
+/* Itinerary: calendar day tabs, outlined stops, sticker numbers, ticket legs */
+.lp-win .p-day {
+  border: 2px solid #17304d;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #17304d;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-win .p-day.on {
+  background: #efbd4e;
+  transform: rotate(-3deg);
+}
+.lp-win .p-status {
+  border: 2px solid #17304d;
+  border-radius: 10px;
+  background: #e2f5e8;
+  color: #17304d;
+}
+.lp-win .sc-stop {
+  border: 2px solid #17304d;
+  border-radius: 12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-win .sc-stop.meal {
+  border-style: dashed;
+  background: #ffe9d6;
+  box-shadow: none;
+}
+.lp-win .p-num {
+  border: 2px solid #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.lp-win .p-chips i,
+.lp-phone .ph-chips i {
+  border: 1.5px solid #17304d;
+  background: #fffdf8;
+  color: #17304d;
+  font-style: normal;
+}
+.lp-win .p-chips i.quiet,
+.lp-phone .ph-chips i.quiet { background: #e2f5e8; }
+.lp-win .p-chips i.busy,
+.lp-phone .ph-chips i.busy { background: #fff1cf; }
+.lp-win .p-leg,
+.lp-phone .ph-leg {
+  align-self: flex-start;
+  width: max-content;
+  padding: 2px 12px;
+  border: 1.5px dashed #17304d;
+  border-radius: 999px;
+  background: #fff1cf;
+  color: #17304d;
+  font-weight: 700;
+}
+.lp-win .p-route {
+  stroke: #17304d;
+  stroke-dasharray: 6 6;
+}
+.lp-win .p-pin {
+  border: 2.5px solid #17304d;
+}
+.lp-win .p-pin i {
+  font-family: var(--sb-display);
+  font-style: normal;
+}
+.lp-win .p-map-foot {
+  border: 2px solid #17304d;
+  background: #fffdf8;
+}
+.lp-win .p-map-foot b,
+.lp-phone .ph-opt {
+  border: 2px solid #17304d;
+  border-radius: 999px;
+  background: #efbd4e;
+  color: #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  box-shadow: 0 3px 0 #17304d;
+}
+/* Travel smart */
+.lp-win .t-hour {
+  border: 2px solid rgba(23, 48, 77, 0.25);
+  background: #fffdf8;
+}
+.lp-win .t-hour.now {
+  border-color: #17304d;
+  background: #efbd4e;
+}
+.lp-win .t-alert {
+  border: 2px solid #17304d;
+  border-radius: 12px;
+  background: #fff1cf;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-win .t-swap em,
+.lp-win .t-card.money em {
+  border: 2px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+  font-family: var(--sb-display);
+  font-style: normal;
+  font-weight: 400;
+}
+.lp-win .t-go {
+  border: 1.5px solid #17304d;
+  background: #fffdf8;
+  color: #17304d;
+}
+/* The floating notes: cream stickers */
+.lp-chip {
+  border: 2.5px solid #17304d;
+  border-radius: 14px;
+  background: #fffaf0;
+  box-shadow: 0 5px 0 #17304d, 0 20px 40px rgba(23, 48, 77, 0.2);
+}
+.lp-chip b {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #17304d;
+}
+.lp-chip-icon {
+  border: 2px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+  box-shadow: 0 2px 0 #17304d;
 }
 
+/* ----- the phone ----- */
+.lp-phone {
+  background: #17304d;
+  box-shadow: 0 0 0 3px #0d1f33, 0 10px 0 #0d1f33, 0 40px 80px rgba(23, 48, 77, 0.45);
+}
+.lp-phone .lp-phone-screen,
+.lp-phone .ph-scroll {
+  background:
+    radial-gradient(circle, rgba(23, 48, 77, 0.07) 1px, transparent 1.4px) 0 0 / 14px 14px,
+    #fffaf0;
+}
+.lp-phone .ph-top {
+  background: #17304d;
+}
+.lp-phone .ph-appbar b {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.lp-phone .ph-card {
+  border: 2.5px solid #17304d;
+  background: #fffaf0;
+  box-shadow: 0 4px 0 #17304d;
+}
+.lp-phone .ph-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.lp-phone .ph-days b,
+.lp-phone .ph-days span {
+  border: 2px solid #17304d;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #17304d;
+  box-shadow: 0 2px 0 #17304d;
+}
+.lp-phone .ph-days b {
+  background: #efbd4e;
+  transform: rotate(-3deg);
+}
+.lp-phone .ph-stop,
+.lp-phone .ph-vote,
+.lp-phone .ph-tiles > div,
+.lp-phone .ph-cost {
+  border: 2px solid #17304d;
+  border-radius: 12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-phone .ph-stop.meal {
+  border-style: dashed;
+  background: #ffe9d6;
+  box-shadow: none;
+}
+.lp-phone .ph-votebtn {
+  border: 2px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.lp-phone .ph-check span {
+  border: 2px solid #17304d;
+  border-radius: 6px;
+  background: #fffdf8;
+}
+.lp-phone .ph-check span.on {
+  background: #efbd4e;
+  color: #17304d;
+}
+.lp-phone .ph-tiles .owe {
+  background: #fde6e1;
+}
+.lp-phone .ph-cost-icon {
+  border: 2px solid #17304d;
+  background: #fff1cf;
+}
+.lp-phone .ph-nav {
+  border-top: 2.5px solid #17304d;
+  border-radius: 0 0 38px 38px;
+  background: #fffaf0;
+  backdrop-filter: none; /* the blur ignored the screen's round corners and showed through */
+  -webkit-backdrop-filter: none;
+}
+.lp-phone .lp-phone-screen {
+  clip-path: inset(0 round 38px); /* everything inside follows the screen's round corners */
+}
+.lp-phone .ph-nav span {
+  padding: 3px 2px;
+  font-family: var(--sb-display);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #536376;
+}
+.lp-phone .ph-nav span.on {
+  border-radius: 10px;
+  background: #efbd4e;
+  color: #17304d;
+  box-shadow: inset 0 0 0 2px #17304d;
+}
+/* The panel behind the phone: the app's night look (ink navy, dots, stitched edge) */
+.lp-join-art {
+  border: 3px solid #0d1f33;
+  background:
+    radial-gradient(420px 300px at 50% 30%, rgba(239, 189, 78, 0.18), transparent 70%),
+    radial-gradient(circle, rgba(255, 250, 240, 0.07) 1.2px, transparent 1.5px) 0 0 / 22px 22px,
+    #17304d;
+  box-shadow: 0 10px 0 #0d1f33;
+}
+.lp-join-art::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 2px dashed rgba(255, 250, 240, 0.16);
+  border-radius: 24px;
+  pointer-events: none;
+}
+.lp-join-link {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+/* "Start planning": the chunky amber button used everywhere else */
+.lp-join-btn {
+  border: 3px solid #17304d;
+  background: #efbd4e;
+  color: #17304d;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 22px;
+  box-shadow: 0 6px 0 #17304d;
+}
+.lp-join-btn:hover {
+  background: #f7cf6e;
+  color: #17304d;
+  transform: translateY(-3px);
+  box-shadow: 0 9px 0 #17304d;
+}
+.lp-join-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #17304d;
+}
+/* =========================================================
+   "One app instead of ten tabs": the little illustrations in the app's current look.
+   Cream stickers with navy outlines and small hard shadows, amber for the key bit.
+   `rotate` (not transform) is used for the tilts, so the 3D pop and animations still work.
+   ========================================================= */
+.lp-card {
+  box-shadow: 0 7px 0 #17304d; /* straight down, like everything else */
+}
+.lp-art {
+  border: 2px solid rgba(23, 48, 77, 0.35);
+  background:
+    radial-gradient(circle, rgba(23, 48, 77, 0.08) 1px, transparent 1.4px) 0 0 / 14px 14px,
+    #f6efdf;
+}
+.lp-card:nth-child(odd) .lp-art { rotate: -1deg; }
+.lp-card:nth-child(even) .lp-art { rotate: 1deg; }
+
+/* Floating labels: cream stickers, amber for the important part */
+.lp-art .a-pill,
+.lp-art .a-tip {
+  border: 2.5px solid #17304d;
+  background: #fffaf0;
+  color: #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 0 #17304d;
+  rotate: -3deg;
+}
+.lp-art .a-pill b {
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #efbd4e;
+  color: #17304d;
+  font-weight: 400;
+}
+.art-recs .a-pill.r2 {
+  background: #d6f0f3;
+  color: #17304d;
+  rotate: 2deg;
+}
+.lp-art .a-pill.lock {
+  background: #efbd4e;
+}
+
+/* Cards, tiles and rows inside: thin navy outlines, small hard shadows */
+.lp-art .a-photo,
+.lp-art .a-bill,
+.lp-art .a-row,
+.lp-art .a-check,
+.lp-art .a-ticket:not(.back) {
+  border: 2px solid #17304d;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-art .a-bill,
+.lp-art .a-row,
+.lp-art .a-check {
+  background: #fffdf8;
+}
+.lp-art .a-bill b,
+.lp-art .a-row b,
+.lp-art .a-ticket b,
+.lp-art .a-ring b {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #17304d;
+}
+.lp-art .a-photo.p1 { rotate: -4deg; }
+.lp-art .a-photo.p2 { rotate: 3deg; }
+.lp-art .a-tag {
+  border: 2px solid #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  box-shadow: 0 2px 0 #17304d;
+}
+.lp-art .a-tag.t1 { rotate: -6deg; }
+.lp-art .a-tag.t2 { rotate: 4deg; }
+.lp-art .a-heart {
+  border: 2px solid #17304d;
+  background: #fffaf0;
+  box-shadow: 0 3px 0 #17304d;
+}
+.lp-art .a-faces i {
+  border: 2px solid #17304d;
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+/* The settle-up bar: striped amber, outlined */
+.lp-art .a-progress {
+  border: 2px solid #17304d;
+  background: #fffaf0;
+}
+.lp-art .a-progress span {
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0 5px, transparent 5px 10px), #efbd4e;
+}
+/* Packing: navy-outlined boxes that tick amber */
+.lp-art .a-tick {
+  border: 2px solid #17304d;
+  border-radius: 7px;
+}
+.lp-feat.shown .lp-card:not(.replay) .lp-art .a-tick {
+  border-color: #17304d;
+  background: #efbd4e;
+  color: #17304d;
+}
+/* The match ring gets a navy rim */
+.lp-art .a-ring {
+  box-shadow: 0 0 0 2.5px #17304d, 0 4px 0 2.5px #17304d;
+}
+/* The booked tour: an outlined ticket */
+.lp-art .a-ticket:not(.back) {
+  border-style: solid;
+  background: #fff1cf;
+}
+.lp-art .a-ticket em {
+  color: #17304d;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: #efbd4e;
+  text-decoration-thickness: 3px;
+}
+.lp-art .a-ticket.back {
+  border: 2px dashed rgba(23, 48, 77, 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-card .lp-art { rotate: 0deg; }
+}
 </style>

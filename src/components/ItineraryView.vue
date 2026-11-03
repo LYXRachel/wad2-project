@@ -733,12 +733,6 @@ export default {
     },
     
 
-    async removeStop(stop) {
-      trip.stops = trip.stops.filter((s) => s.id !== stop.id)
-      await this.updateTransitTimes()
-      this.reportItinerary()
-    },
-
     // ---------- crowd data ----------
     // Load one stop's crowd forecast (stops without an address aren't tracked)
     // What a hotel or flight brings along: its map position, its kind, the flight details (flights are locked)
@@ -803,51 +797,6 @@ export default {
         setTimeout(() => this.loadClimate(), 15000)
       }
     },
-    // ---------- weather ----------
-    // Find the weather that overlaps with a stop
-    weatherForStop(stop) {
-      if (!stop) return null
-
-      return this.weather.find((w) => {
-        const duration = stop.duration || 1
-
-        return (
-          w.date === stop.date &&
-          w.time < stop.hour + duration &&
-          w.time + (w.span || 3) > stop.hour
-        )
-      }) || null
-    },
-
-    // Start a temporary weather simulation
-    simulateWeather(stopId, condition) {
-      const stop = trip.stops.find(
-        (s) => s.id === stopId
-      )
-
-      if (!stop) return
-
-      this.weatherSimulation = {
-        stopId,
-        condition
-      }
-
-      this.showNotice(
-        `Demo: ${condition} weather simulated for ${this.shortName(stop.name)}.`,
-        'info'
-      )
-    },
-
-    // Return to the original simulated forecast
-    resetWeatherSimulation() {
-      this.weatherSimulation = null
-
-      this.showNotice(
-        'Weather simulation reset.',
-        'info'
-      )
-    },
-
     // ---------- transit ----------
     // Travel time from every stop to the next (all requests run at once)
     async updateTransitTimes() {

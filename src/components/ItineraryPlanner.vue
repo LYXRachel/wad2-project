@@ -1490,7 +1490,6 @@ const opts = computed(() => ({
   crowdWeight: { low: 0.5, medium: 1, high: 2 }[props.prefs.crowdSensitivity] || 1
 }))
 // ---------- where the day starts and ends (hotel or airport) ----------
-const cityName = computed(() => (props.dayCity ? props.dayCity.split(', ')[0] : ''))
 // Tonight's hotel and last night's (they differ on the day you change hotel)
 const dayStay = computed(() => (sampleMode.value ? null : props.dayStay))
 const morningStay = computed(() => (sampleMode.value ? null : props.morningStay || props.dayStay))
@@ -2322,9 +2321,6 @@ function formatHour(h) {
   const hour = Math.floor(h) % 24
   const min = Math.round((h - Math.floor(h)) * 60)
   return (hour % 12 === 0 ? 12 : hour % 12) + ':' + String(min).padStart(2, '0') + (hour >= 12 ? ' PM' : ' AM')
-}
-function shortDate(d) {
-  return new Date(d + 'T00:00:00').toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
 }
 function durationText(h) {
   const hrs = h || 1

@@ -448,12 +448,6 @@ export default {
       return list
     },
 
-    maxBalance() {
-      let max = 0.01
-      for (const b of this.balanceList) max = Math.max(max, Math.abs(b.amount))
-      return max
-    },
-
     payments() {
       return settleUp(this.balanceMap)
     },

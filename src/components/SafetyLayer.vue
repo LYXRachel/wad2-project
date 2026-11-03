@@ -23,6 +23,7 @@ import axios from 'axios'
 import SafetyRadar from './SafetyRadar.vue'
 import CustomDropdown from './CustomDropdown.vue'
 import AppIcon from './AppIcon.vue'
+import FlagImg from './FlagImg.vue'
 import {
   getLocationInfo, locatePlace, getTravelAdvisory, getNearbyEarthquakes, getDisasterAlerts,
   getNearbySafety, computeRiskScore, haversineKm, openStatus, EMERGENCY_NUMBERS, HOME_HELPLINE
@@ -115,8 +116,8 @@ const placeName = computed(() => (locationInfo.value && locationInfo.value.city)
 
 const areaOptions = computed(() => {
   const list = []
-  props.destinations.forEach((d, i) => list.push({ key: 'dest-' + i, label: '📍 ' + d.split(', ')[0] }))
-  list.push({ key: 'live', label: '🧭 My location' })
+  props.destinations.forEach((d, i) => list.push({ key: 'dest-' + i, icon: 'map-pin', label: d.split(', ')[0] }))
+  list.push({ key: 'live', icon: 'navigation', label: 'My location' })
   return list
 })
 
@@ -146,12 +147,12 @@ const safeMessage = computed(() => {
   before the trip we show the opening hours instead.
 */
 const KIND_GROUPS = [
-  { kind: 'hospital', label: '🏥 Hospitals', search: 'hospital', show: 5 },
-  { kind: 'clinic', label: '🩺 Clinics', search: 'clinic', show: 3 },
-  { kind: 'police', label: '👮 Police', search: 'police', show: 2 },
-  { kind: 'shelter', label: '🟢 Evacuation points', search: 'evacuation site', show: 3 },
-  { kind: 'fire_station', label: '🚒 Fire stations', search: 'fire station', show: 1 },
-  { kind: 'embassy', label: '🇸🇬 Singapore embassy', search: 'Singapore embassy', show: 1 }
+  { kind: 'hospital', icon: 'hospital', label: 'Hospitals', search: 'hospital', show: 5 },
+  { kind: 'clinic', icon: 'stethoscope', label: 'Clinics', search: 'clinic', show: 3 },
+  { kind: 'police', icon: 'police', label: 'Police', search: 'police', show: 2 },
+  { kind: 'shelter', icon: 'door', label: 'Evacuation points', search: 'evacuation site', show: 3 },
+  { kind: 'fire_station', icon: 'flame', label: 'Fire stations', search: 'fire station', show: 1 },
+  { kind: 'embassy', flag: 'SG', label: 'Singapore embassy', search: 'Singapore embassy', show: 1 }
 ]
 const showNow = computed(() => area.value === 'live' || tripIsNow.value)
 const expanded = ref([]) // kinds showing all their options
@@ -373,7 +374,6 @@ function showToast(message, level = 'advisory') {
   setTimeout(() => { toasts.value = toasts.value.filter((t) => t.id !== id) }, 8000)
 }
 
-
 /* ---------- demo scenarios (for presenting) ----------
    One tap sets up a believable situation where you're looking, and the page reacts as it would for
    real: banner, score, pop-up alert, the right guide, and (via risk-change) the itinerary's outdoor stops.
@@ -389,14 +389,14 @@ const DEMO_QUAKES = {
   'quake-tsunami': { magnitude: 7.6, tsunami: true, label: 'Major earthquake + tsunami (M7.6)' }
 }
 const DEMO_OPTIONS = [
-  { value: 'quake-light', icon: '🫨', label: DEMO_QUAKES['quake-light'].label, description: 'Felt, rarely harmful' },
-  { value: 'quake-moderate', icon: '🫨', label: DEMO_QUAKES['quake-moderate'].label, description: 'Moderate within 100 km' },
-  { value: 'quake-strong', icon: '🫨', label: DEMO_QUAKES['quake-strong'].label, description: 'High within 50 km' },
-  { value: 'quake-major', icon: '🫨', label: DEMO_QUAKES['quake-major'].label, description: 'Critical within 150 km' },
-  { value: 'quake-tsunami', icon: '🌊', label: DEMO_QUAKES['quake-tsunami'].label, description: 'Critical: move to high ground' },
-  { value: 'storm', icon: '🌀', label: 'Typhoon warning', description: 'Orange alert: Moderate' },
-  { value: 'advisory', icon: '🛂', label: 'Travel advice raised', description: 'Level 3: High' },
-  { value: 'offline', icon: '📵', label: 'Go offline', description: 'What still works without internet' }
+  { value: 'quake-light', appIcon: 'activity', label: DEMO_QUAKES['quake-light'].label, description: 'Felt, rarely harmful' },
+  { value: 'quake-moderate', appIcon: 'activity', label: DEMO_QUAKES['quake-moderate'].label, description: 'Moderate within 100 km' },
+  { value: 'quake-strong', appIcon: 'activity', label: DEMO_QUAKES['quake-strong'].label, description: 'High within 50 km' },
+  { value: 'quake-major', appIcon: 'activity', label: DEMO_QUAKES['quake-major'].label, description: 'Critical within 150 km' },
+  { value: 'quake-tsunami', appIcon: 'waves', label: DEMO_QUAKES['quake-tsunami'].label, description: 'Critical: move to high ground' },
+  { value: 'storm', appIcon: 'tornado', label: 'Typhoon warning', description: 'Orange alert: Moderate' },
+  { value: 'advisory', appIcon: 'id-card', label: 'Travel advice raised', description: 'Level 3: High' },
+  { value: 'offline', appIcon: 'wifi-off', label: 'Go offline', description: 'What still works without internet' }
 ]
 const demoPick = ref('quake-strong')
 const alsoStorm = ref(false) // "Add a typhoon" on top of the picked situation (not when the pick is the typhoon)
@@ -703,8 +703,8 @@ onUnmounted(() => {
     <!-- ===== Where to check ===== -->
     <div class="sf-areas" role="group" aria-label="Check safety for">
       <button v-for="o in areaOptions" :key="o.key" type="button" class="sf-pill" :class="{ on: area === o.key }"
-        :aria-pressed="area === o.key" @click="useArea(o.key)">{{ o.label }}</button>
-      <span v-if="area.startsWith('demo-')" class="sf-pill on">🎬 {{ DEMO_LOCATIONS[area.slice(5)].label }}</span>
+        :aria-pressed="area === o.key" @click="useArea(o.key)"><AppIcon :name="o.icon" :size="14" class="sf-ico" /> {{ o.label }}</button>
+      <span v-if="area.startsWith('demo-')" class="sf-pill on"><AppIcon name="clapperboard" :size="14" class="sf-ico" /> {{ DEMO_LOCATIONS[area.slice(5)].label }}</span>
     </div>
     <p v-if="notice" class="sf-notice" role="status">{{ notice }}</p>
 
@@ -746,9 +746,9 @@ onUnmounted(() => {
       <ul v-if="allAlerts.length" class="sf-alerts" data-testid="alert-list">
         <li v-for="a in allAlerts" :key="a.id" class="sf-alert" :class="'lv-' + a.level">
           <span class="sf-alert-what">{{ a.what }}<span v-if="a.simulated" class="sf-tag">demo</span></span>
-          <span class="sf-alert-where">📍 {{ a.where }}</span>
-          <span class="sf-alert-sev">⚠ {{ a.severity }}</span>
-          <span class="sf-alert-when">🕒 {{ timeAgo(a.time) }}</span>
+          <span class="sf-alert-where"><AppIcon name="map-pin" :size="13" class="sf-ico" /> {{ a.where }}</span>
+          <span class="sf-alert-sev"><AppIcon name="alert" :size="13" class="sf-ico" /> {{ a.severity }}</span>
+          <span class="sf-alert-when"><AppIcon name="clock" :size="13" class="sf-ico" /> {{ timeAgo(a.time) }}</span>
           <a v-if="a.url" :href="a.url" target="_blank" rel="noopener" class="sf-alert-link">Details ↗</a>
         </li>
       </ul>
@@ -771,11 +771,11 @@ onUnmounted(() => {
         <h3 id="sf-act-title" class="sf-ice-head">Emergency calls <span class="sf-sub">{{ (locationInfo && locationInfo.countryName) || '' }}</span></h3>
         <div class="sf-calls">
           <a v-for="(l, i) in callLines" :key="l.number" :href="telOf(l.number)" class="sf-call" :class="{ primary: i < 2 && !l.label.includes('Hotline') && !l.label.includes('Tourist') }">
-            <span class="sf-call-icon" aria-hidden="true">{{ l.icon }}</span>
+            <span class="sf-call-icon" aria-hidden="true"><AppIcon :name="l.icon" :size="22" /></span>
             <span class="sf-call-text"><strong>{{ l.number }}</strong><span>{{ l.label }}</span><small class="sf-call-tap">Tap to call</small></span>
           </a>
           <a :href="telOf(HOME_HELPLINE.number)" class="sf-call home">
-            <span class="sf-call-icon" aria-hidden="true">{{ HOME_HELPLINE.icon }}</span>
+            <span class="sf-call-icon" aria-hidden="true"><span class="sf-stamp"><FlagImg :code="HOME_HELPLINE.flag" :size="18" /></span></span>
             <span class="sf-call-text"><strong>{{ HOME_HELPLINE.number }}</strong><span>{{ HOME_HELPLINE.label }}</span></span>
           </a>
         </div>
@@ -808,7 +808,7 @@ onUnmounted(() => {
           <!-- Several options per kind, with opening hours, so there's a backup if one is closed -->
           <div v-for="g in KIND_GROUPS" :key="g.kind" v-show="optionsByKind[g.kind] && optionsByKind[g.kind].length" class="sf-group">
             <div class="sf-group-head">
-              <span class="sf-group-title">{{ g.label }}</span>
+              <span class="sf-group-title"><span v-if="g.flag" class="sf-stamp sm"><FlagImg :code="g.flag" :size="13" /></span><AppIcon v-else :name="g.icon" :size="17" class="sf-ico" /> {{ g.label }}</span>
               <a :href="searchUrl(g.search)" target="_blank" rel="noopener" class="sf-more-link">More on Google Maps ↗</a>
             </div>
             <ul class="sf-options">
@@ -821,7 +821,7 @@ onUnmounted(() => {
                     <span v-if="o.emergency" class="sf-badge er">24h emergency</span>
                     <span v-if="showNow && o.status.open === true" class="sf-badge open">{{ o.status.text }}</span>
                     <span v-else-if="showNow && o.status.open === false" class="sf-badge shut">{{ o.status.text }}</span>
-                    <span v-else-if="o.openingHours" class="sf-badge hours" :title="o.openingHours">🕒 {{ o.status.text === 'Open 24 hours' ? 'Open 24 hours' : o.openingHours }}</span>
+                    <span v-else-if="o.openingHours" class="sf-badge hours" :title="o.openingHours"><AppIcon name="clock" :size="11" class="sf-ico" /> {{ o.status.text === 'Open 24 hours' ? 'Open 24 hours' : o.openingHours }}</span>
                   </span>
                 </span>
                 <span class="sf-nearest-dist">{{ o.dist.toFixed(1) }} km</span>
@@ -841,7 +841,7 @@ onUnmounted(() => {
       <section class="sf-card sf-taxi-card" :class="{ fullscreen: taxiMode, 'sf-flash': highlight === 'offline' }" aria-labelledby="sf-stay-title">
         <div class="d-flex justify-content-between align-items-center gap-2">
           <h3 id="sf-stay-title" class="sf-h mb-0">Where we're staying</h3>
-          <span class="sf-offline" title="Saved in this browser, so it shows without internet">✓ Works offline</span>
+          <span class="sf-offline" title="Saved in this browser, so it shows without internet"><AppIcon name="check" :size="12" class="sf-ico" /> Works offline</span>
         </div>
 
         <template v-if="stayShown && !editingStay">
@@ -884,7 +884,7 @@ onUnmounted(() => {
       <section class="sf-card" :class="{ 'sf-flash': highlight === 'guides' || highlight === 'offline' }" aria-labelledby="sf-guides-title">
         <h3 id="sf-guides-title" class="sf-h">If something happens</h3>
         <details class="sf-guide" :open="openGuide === 'quake'">
-          <summary>🫨 Earthquake</summary>
+          <summary><AppIcon name="activity" :size="16" class="sf-ico" /> Earthquake</summary>
           <ol>
             <li><strong>Drop, cover, hold on:</strong> get under a sturdy table, protect your head.</li>
             <li>Stay away from windows and things that can fall. Don't run outside while it shakes.</li>
@@ -893,35 +893,35 @@ onUnmounted(() => {
           </ol>
         </details>
         <details class="sf-guide" :open="openGuide === 'tsunami'">
-          <summary>🌊 Tsunami warning</summary>
+          <summary><AppIcon name="waves" :size="16" class="sf-ico" /> Tsunami warning</summary>
           <ol>
             <li>Move to high ground or the 3rd floor or higher of a solid building now.</li>
             <li>Don't wait to see the wave and don't go back until the warning is lifted.</li>
           </ol>
         </details>
         <details class="sf-guide" :open="openGuide === 'storm'">
-          <summary>🌀 Typhoon / heavy rain</summary>
+          <summary><AppIcon name="tornado" :size="16" class="sf-ico" /> Typhoon / heavy rain</summary>
           <ol>
             <li>Stay indoors, away from rivers and slopes. Charge your phone and power bank.</li>
             <li>Check train status before heading out; swap outdoor stops for indoor ones.</li>
           </ol>
         </details>
         <details class="sf-guide">
-          <summary>🔥 Fire</summary>
+          <summary><AppIcon name="flame" :size="16" class="sf-ico" /> Fire</summary>
           <ol>
             <li>Leave by the stairs, never the lift. Stay low under smoke.</li>
             <li>Call the fire number above once you're outside.</li>
           </ol>
         </details>
         <details class="sf-guide">
-          <summary>🛂 Lost passport</summary>
+          <summary><AppIcon name="id-card" :size="16" class="sf-ico" /> Lost passport</summary>
           <ol>
             <li>Report it to the local police and get a police report.</li>
             <li>Call the Singapore MFA duty office (above) or visit the nearest embassy for a Document of Identity.</li>
           </ol>
         </details>
         <details class="sf-guide">
-          <summary>🚑 Medical emergency</summary>
+          <summary><AppIcon name="ambulance" :size="16" class="sf-ico" /> Medical emergency</summary>
           <ol>
             <li>Call the ambulance number above; the nearest hospital is in "Help nearby".</li>
             <li>Keep your insurance details and medication list with you.</li>
@@ -948,7 +948,7 @@ onUnmounted(() => {
 
     <!-- Demo tools for the presentation: set up a situation on cue (everything simulated says "demo") -->
     <details v-if="showDemo" class="sf-demo">
-      <summary>🎬 Demo tools</summary>
+      <summary><AppIcon name="clapperboard" :size="16" class="sf-ico" /> Demo tools</summary>
       <!-- Pick a situation (earthquakes: also how far away), then play the story -->
       <div class="sf-demo-row">
         <span class="sf-demo-label">Situation</span>
@@ -962,7 +962,7 @@ onUnmounted(() => {
       <div class="sf-demo-row">
         <label class="sf-demo-check" :class="{ off: demoPick === 'storm' }"
           :title="demoPick === 'storm' ? 'The typhoon is already the situation picked' : 'Add a typhoon warning on top of the situation'">
-          <input v-model="alsoStorm" type="checkbox" :disabled="demoPick === 'storm'"> 🌀 Add a typhoon
+          <input v-model="alsoStorm" type="checkbox" :disabled="demoPick === 'storm'"> <AppIcon name="tornado" :size="14" class="sf-ico" /> Add a typhoon
         </label>
       </div>
       <div class="sf-demo-row">
@@ -979,7 +979,7 @@ onUnmounted(() => {
     <!-- Pop-up alerts -->
     <Teleport to="body">
       <div class="sf-toasts" aria-live="assertive">
-        <div v-for="t in toasts" :key="t.id" class="sf-toast" :class="'lv-' + t.level" role="alert">⚠️ {{ t.message }}</div>
+        <div v-for="t in toasts" :key="t.id" class="sf-toast" :class="'lv-' + t.level" role="alert"><AppIcon name="alert" :size="16" class="sf-ico" /> {{ t.message }}</div>
       </div>
     </Teleport>
   </div>
@@ -1106,16 +1106,6 @@ onUnmounted(() => {
 .sf-score {
   text-align: right;
   flex-shrink: 0;
-}
-.sf-score-n {
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--tone);
-  font-variant-numeric: tabular-nums;
-}
-.sf-score-of {
-  font-size: 13px;
-  color: var(--muted);
 }
 .sf-alerts {
   list-style: none;
@@ -1273,10 +1263,6 @@ onUnmounted(() => {
   background: #1f8f4e;
   border-color: #25d366;
   color: #fff;
-}
-.sf-btn.danger {
-  border-color: rgba(209, 73, 91, 0.6);
-  color: #f3b7bf;
 }
 .sf-btn:disabled {
   opacity: 0.5;
@@ -2247,7 +2233,20 @@ onUnmounted(() => {
   font-weight: 800;
 }
 .sf-guide ol {
-  color: var(--sb-ink-soft);
+  margin-top: 10px;
+  padding-left: 24px;
+  color: var(--sb-ink, #12324a); /* full ink, not the soft grey, so the steps are easy to read in a hurry */
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.sf-guide li {
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+.sf-guide li::marker {
+  font-weight: 800;
+  color: #c98a1a;
 }
 .sf-level {
   border: 2px solid currentColor;
@@ -2340,6 +2339,123 @@ onUnmounted(() => {
   font-size: 15px;
 }
 
+/* ---------- Bolder, easier to read (in an emergency people skim): darker grey, heavier weights,
+   nothing smaller than 12px. Phone rules below still win where space is tight. ---------- */
+.sf {
+  --muted: #33485a;
+  font-weight: 500;
+}
+.sf small {
+  font-weight: 600;
+}
+/* the little helper lines and notes (Bootstrap's .small): bigger, semi-bold, full ink */
+.sf .small {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--sb-ink);
+}
+.sf-muted,
+.sf .sf-muted.small {
+  color: var(--muted);
+  font-weight: 600;
+}
+.sf .small strong {
+  font-weight: 800;
+}
+.sf-sub,
+.sf-notice,
+.sf-alert-link,
+.sf-nearest li,
+.sf-taxi-hint {
+  font-size: 14px;
+  font-weight: 600;
+}
+.sf-banner-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--sb-ink);
+}
+.sf-alert-where,
+.sf-alert-when {
+  font-weight: 600;
+}
+.sf-alert-sev {
+  font-weight: 800;
+}
+.sf-kicker {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+.sf-tag,
+.sf-badge,
+.sf-offline,
+.sf-needs-net,
+.sf-call-tap {
+  font-size: 12px;
+  font-weight: 700;
+}
+.sf-sync,
+.sf-meter-score {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.sf-step {
+  font-size: 12px;
+  font-weight: 800;
+}
+.sf-call-text span {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.sf-safe-preview {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--sb-ink);
+}
+.sf-btn,
+.sf-more,
+.sf-go {
+  font-size: 14px;
+  font-weight: 700;
+}
+.sf-more-link {
+  font-size: 13px;
+  font-weight: 700;
+}
+.sf-option {
+  font-size: 14px;
+  font-weight: 600;
+}
+.sf-option-name strong,
+.sf-nearest-name strong {
+  font-weight: 800;
+}
+.sf-option-name small,
+.sf-nearest-name small,
+.sf-nearest-label,
+.sf-result small {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sf-err {
+  font-size: 14px;
+  font-weight: 700;
+}
+.sf-demo,
+.sf-demo-preview,
+.sf-demo-active,
+.sf-demo-km,
+.sf-demo-check,
+.sf-demo-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.sf-postmark {
+  font-size: 11px;
+}
+
 @media (max-width: 700px) {
   .sf-banner-main {
     flex-direction: column;
@@ -2362,5 +2478,37 @@ onUnmounted(() => {
 @media (prefers-reduced-motion: reduce) {
   .sf-live { animation: none; }
   .sf-call, .sf-btn, .sf-ghost { transition: none; }
+}
+/* line icons (instead of emojis) sit on the text line */
+.sf-ico {
+  flex: none;
+  vertical-align: -0.15em;
+}
+.sf-guide summary .sf-ico,
+.sf-group-title .sf-ico {
+  margin-right: 2px;
+}
+.sf-call-icon {
+  display: inline-grid;
+  place-items: center;
+}
+/* a country flag as a little postage stamp (perforated edge), like on Discover */
+.sf-stamp {
+  display: inline-flex;
+  vertical-align: middle;
+  padding: 4px;
+  background: radial-gradient(circle, transparent 1.6px, #fffaf0 2px) -3.5px -3.5px / 7px 7px;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+  transform: rotate(-4deg);
+}
+.sf-stamp.sm {
+  padding: 3px;
+  margin-right: 4px;
+  background-size: 5px 5px;
+  background-position: -2.5px -2.5px;
+}
+.sf-stamp :deep(.fl) {
+  border-radius: 0;
+  box-shadow: none;
 }
 </style>

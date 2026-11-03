@@ -913,19 +913,6 @@ export default {
   background: transparent;
   font-size: 16px;
 }
-.wl-filter-btn {
-  border: 0;
-  background: transparent;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-size: 20px;
-  color: #3b6fd4;
-}
-.wl-filter-btn.on,
-.wl-filter-btn:hover {
-  background: #eef3ff;
-}
 .wl-filters {
   display: flex;
   gap: 8px;

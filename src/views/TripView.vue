@@ -241,7 +241,6 @@ import TripRecap from '../components/TripRecap.vue'
 import TripEditModal from '../components/TripEditModal.vue'
 import { notify } from '../notify.js'
 
-
 export default {
   components: { LoadingSkeleton, TripRecap, TripEditModal, AppIcon, ItineraryView, WishlistView, PlacesVoting, GroupVoting, PackingView, PhotosView, ExpensesView, SafetyLayer, FlightDelayWidget, OtherJourneys, TripShare, CrewView, TripTabs, TabIcon },
   props: { id: { type: String, default: 'seoul' } }, // from the route /trip/:id
@@ -257,7 +256,7 @@ export default {
         { key: 'itinerary', icon: '🗓', label: 'Itinerary', title: 'Itinerary', desc: 'Your day-by-day plan, with crowd tips and the forecast.' },
         { key: 'places', icon: '📍', label: 'Places', title: 'Places', desc: 'Save places you like, then vote on them together.', testid: 'places-tab' },
         { key: 'packing', icon: '🎒', label: 'Packing', title: 'Packing list', desc: 'Built from your activities, the weather and how long you are away.' },
-        { key: 'expenses', icon: '💸', label: 'Expenses', title: 'Expenses & split', desc: 'Log what the group spends and see who owes whom. Press N to add an expense.' },
+        { key: 'expenses', icon: '💸', label: 'Expenses', title: 'Expenses & Split', desc: 'Log what the group spends and see who owes whom. Press N to add an expense.' },
         { key: 'photos', icon: '📷', label: 'Photos', title: 'Photos', desc: "The group's trip photos in one place." },
         { key: 'safety', icon: '🛡', label: 'Safety', title: 'Safety', desc: 'Live alerts and risk levels near you.', testid: 'safety-tab' },
         { key: 'crew', icon: '👥', label: 'Crew', title: 'Trip crew', desc: '' },
@@ -396,14 +395,6 @@ export default {
     },
     headerTitle() {
       return this.isDemo ? 'Seoul, South Korea' : this.trip.name
-    },
-    headerSubtitle() {
-      if (this.isDemo) return '12 Oct – 17 Oct | Travellers: Sarah, John, Amy'
-      const t = this.trip
-      const fmt = (s) => new Date(s + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-      const dates = t.startDate ? (t.endDate ? fmt(t.startDate) + ' – ' + fmt(t.endDate) : 'From ' + fmt(t.startDate)) : 'Dates not set'
-      const places = t.destinations && t.destinations.length ? t.destinations.join(' → ') : t.destination
-      return places + ' | ' + dates + ' | Travellers: ' + t.travellers.join(', ')
     }
   },
   watch: {
@@ -591,10 +582,6 @@ export default {
   text-align: center;
   padding-top: 160px;
 }
-.skeleton-bar {
-  height: 62px;
-  opacity: 0.6;
-}
 
 /* Top bar */
 .trip-nav {
@@ -653,7 +640,6 @@ export default {
   margin-left: auto;
   flex: 0 0 auto;
 }
-
 
 /* Title */
 .trip-head {

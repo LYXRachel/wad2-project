@@ -197,9 +197,6 @@ export default {
   },
 
   computed: {
-    pickedCount() {
-      return this.profile.activities.length + this.profile.weather.length + this.profile.extras.length
-    },
     hasProfile() {
       return this.profile.activities.length + this.profile.weather.length + this.profile.extras.length > 0
     },

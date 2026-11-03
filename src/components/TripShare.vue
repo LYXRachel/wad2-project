@@ -6,7 +6,8 @@
       :aria-labelledby="inline ? null : 'ts-title'" tabindex="-1" ref="box" @keydown.esc="inline || $emit('close')">
       <header v-if="!inline" class="ts-head">
         <div>
-          <h2 id="ts-title" class="ts-title">Invite to {{ tripName }}</h2>
+          <span class="ts-kicker">Grow the crew</span>
+          <h2 id="ts-title" class="ts-title">Invite to <span class="ts-trip">{{ tripName }}</span></h2>
           <p class="ts-muted mb-0">Invite friends by username, or send them a link.</p>
         </div>
         <button type="button" class="btn-close" aria-label="Close" @click="$emit('close')"></button>
@@ -147,7 +148,7 @@
         <button type="submit" class="ts-invite" :disabled="!guestName.trim()">Add</button>
         <button type="button" class="ts-text-btn" @click="addingGuest = false">Cancel</button>
       </form>
-      <button v-else type="button" class="ts-text-btn mt-2" @click="openGuestForm">+ Add someone without an account</button>
+      <button v-else type="button" class="ts-text-btn ts-add-guest mt-2" @click="openGuestForm">+ Add someone without an account</button>
       <p v-if="guestError" class="ts-error" role="alert">{{ guestError }}</p>
 
       <footer class="ts-foot">
@@ -501,10 +502,6 @@ export default {
   background: #fff6e6;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
-.ts-link.copied {
-  border-color: #19b3c4;
-  background: #ecfafb;
-}
 .ts-link input {
   flex: 1;
   min-width: 0;
@@ -516,21 +513,9 @@ export default {
   color: #12324a;
 }
 .ts-copy {
-  padding: 10px 18px;
   white-space: nowrap;
-  background: #12324a;
-  color: #ffd87a;
-  box-shadow: 0 4px 0 #0b1f2e;
-  border: 0;
   border-radius: 12px;
-  font-weight: 800;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s;
-}
-.ts-link.copied .ts-copy {
-  background: #19b3c4;
-  color: #fff;
-  box-shadow: 0 4px 0 #0f8391;
 }
 .ts-copy:active:not(:disabled),
 .ts-invite:active:not(:disabled) {
@@ -707,12 +692,6 @@ export default {
 .ts-or::after {
   content: '';
   flex: 1;
-  border-top: 2px dashed #efdcbc;
-}
-.ts-av.sm {
-  width: 28px;
-  height: 28px;
-  font-size: 12px;
 }
 .ts-av.invited {
   background: #eaf4ff;
@@ -836,12 +815,7 @@ export default {
   margin-top: 18px;
 }
 .ts-done {
-  border: 0;
   border-radius: 999px;
-  background: #003d5b;
-  color: #edae49;
-  font-weight: 600;
-  padding: 9px 22px;
 }
 .ts-copy:focus-visible,
 .ts-app:focus-visible,
@@ -870,5 +844,310 @@ export default {
 }
 @media (prefers-reduced-motion: reduce) {
   .ts, .ts-backdrop { animation: none; }
+}
+/* =========================================================
+   Scrapbook look (same as the rest of the app): cream dotted paper, navy ink outlines,
+   hard shadows, Lilita One for headings, labels and buttons
+   ========================================================= */
+.ts-backdrop {
+  background: rgba(18, 50, 74, 0.45);
+}
+.ts:not(.flat) {
+  border: 3px solid #12324a;
+  border-radius: 24px;
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.09) 1.2px, transparent 1.6px) 0 0 / 18px 18px,
+    #fbf5ea;
+  box-shadow: 8px 8px 0 #12324a, 0 30px 60px -20px rgba(18, 50, 74, 0.45);
+  padding: 26px 26px 22px;
+}
+.ts-kicker {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 12px;
+  border: 2px solid #12324a;
+  border-radius: 999px;
+  background: #ffbf3c;
+  color: #12324a;
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+  box-shadow: 0 2px 0 #12324a;
+}
+.ts-title {
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-weight: 400;
+  font-size: 1.85rem;
+  line-height: 1.1;
+  color: #12324a;
+  margin-bottom: 6px;
+}
+.ts-trip {
+  text-transform: capitalize;
+  background: linear-gradient(transparent 62%, rgba(255, 191, 60, 0.6) 62%);
+  padding: 0 2px;
+}
+.ts-head .btn-close {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2.5px solid #12324a;
+  border-radius: 50%;
+  background-color: #fffdf8;
+  background-size: 12px;
+  opacity: 1;
+  box-shadow: 0 3px 0 #12324a;
+  transition: transform 0.15s ease, background-color 0.15s;
+}
+.ts-head .btn-close:hover {
+  background-color: #ffe3a3;
+  transform: rotate(90deg);
+}
+.ts-head .btn-close:focus {
+  box-shadow: 0 3px 0 #12324a, 0 0 0 4px rgba(25, 179, 196, 0.45);
+}
+
+/* section labels */
+.ts-label,
+.ts-sub {
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-weight: 400;
+  font-size: 1.12rem;
+  letter-spacing: 0.01em;
+  color: #12324a;
+}
+.ts-label .ts-muted,
+.ts-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: #e8f6f7;
+  color: #0f8391;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: 2px;
+}
+
+/* friends: a white card with an ink outline */
+.ts-friend-list {
+  padding: 4px 14px;
+  border: 2.5px solid #12324a;
+  background: #fffdf8;
+  box-shadow: 0 4px 0 #12324a;
+}
+.ts-friend + .ts-friend {
+  border-top-color: #ead7b4;
+}
+.ts-av {
+  border: 2.5px solid #12324a;
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-weight: 400;
+}
+.ts-av.sm {
+  width: 34px;
+  height: 34px;
+  font-size: 14px;
+}
+.ts-friend-name strong,
+.ts-person strong {
+  color: #12324a;
+}
+
+/* inputs: white with an ink outline, amber glow when typing */
+.ts-search,
+.ts-link,
+.ts-guest-input {
+  border: 2.5px solid #12324a;
+  background: #fffdf8;
+  box-shadow: inset 0 3px 0 rgba(18, 50, 74, 0.06);
+}
+.ts-search:focus-within,
+.ts-guest-input:focus {
+  border-color: #12324a;
+  background: #fffdf8;
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.ts-link.copied {
+  border-color: #0f8391;
+  background: #ecfafb;
+}
+.ts-link-icon {
+  color: #12324a;
+}
+.ts-results {
+  border: 2.5px solid #12324a;
+  box-shadow: 0 4px 0 #12324a;
+}
+
+/* buttons: chunky stickers */
+.ts-invite,
+.ts-copy,
+.ts-done {
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  border: 2.5px solid #12324a;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s;
+}
+.ts-invite {
+  font-size: 15px;
+  padding: 6px 18px;
+  background: #ffbf3c;
+  box-shadow: 0 3px 0 #12324a;
+}
+.ts-invite:hover:not(:disabled),
+.ts-result.clickable:hover .ts-invite {
+  background: #ffd36e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 #12324a;
+}
+.ts-copy {
+  font-size: 16px;
+  padding: 8px 18px;
+  background: #12324a;
+  color: #ffbf3c;
+  box-shadow: 0 3px 0 #0b1f2e;
+}
+.ts-link.copied .ts-copy {
+  background: #19b3c4;
+  color: #fff;
+  box-shadow: 0 3px 0 #12324a;
+}
+.ts-done {
+  padding: 9px 26px;
+  font-size: 17px;
+  background: #12324a;
+  color: #ffbf3c;
+  box-shadow: 0 4px 0 #ffbf3c;
+}
+.ts-done:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #ffbf3c;
+}
+.ts-done:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #ffbf3c;
+}
+
+/* "or share the link" divider */
+.ts-or {
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: #c98a1a;
+}
+.ts-or::before,
+.ts-or::after {
+  border-top: 2px dashed rgba(18, 50, 74, 0.25);
+}
+
+/* quick share: four sticker tiles in one row, each tilted a little */
+.ts-share {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 12px;
+}
+.ts-app {
+  min-height: 86px;
+  padding: 12px 6px 10px;
+  border: 2.5px solid #12324a;
+  border-radius: 18px;
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-weight: 400;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 0 #12324a;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+}
+.ts-app:nth-child(odd) { rotate: -1.5deg; }
+.ts-app:nth-child(even) { rotate: 1.5deg; }
+.ts-app:hover {
+  rotate: 0deg;
+  transform: translateY(-4px);
+  box-shadow: 0 7px 0 #12324a;
+}
+.ts-app:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #12324a;
+}
+.ts-app-icon {
+  border: 2px solid #12324a;
+}
+.ts-app.tg .ts-app-icon {
+  border: 0;
+}
+
+/* people on the trip */
+.ts-sub {
+  margin-top: 4px;
+}
+.ts-people {
+  padding: 2px 14px;
+  border: 2.5px solid #12324a;
+  border-radius: 18px;
+  background: #fffdf8;
+  box-shadow: 0 4px 0 #12324a;
+}
+.ts-person {
+  border-bottom: 2px dashed #ead7b4;
+}
+.ts-person:last-child {
+  border-bottom: 0;
+}
+.ts-av.guest {
+  border: 2.5px dashed #8a99a5;
+}
+.ts-badge {
+  padding: 3px 12px;
+  border: 2px solid #12324a;
+  background: #ffe3a3;
+  color: #12324a;
+  font-family: var(--sb-display, 'Lilita One'), sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  transform: rotate(3deg);
+  box-shadow: 0 2px 0 #12324a;
+}
+.ts-text-btn {
+  color: #12324a;
+}
+.ts-add-guest {
+  display: block;
+  width: 100%;
+  margin-top: 12px !important;
+  padding: 10px;
+  border: 2.5px dashed rgba(18, 50, 74, 0.4);
+  border-radius: 14px;
+  font-size: 14px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ts-add-guest:hover {
+  border-color: #12324a;
+  background: #fff1d6;
+}
+.ts-foot {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 2px dashed rgba(18, 50, 74, 0.2);
+}
+@media (max-width: 480px) {
+  .ts:not(.flat) {
+    padding: 20px 16px 18px;
+    box-shadow: 5px 5px 0 #12324a;
+  }
+  .ts-title {
+    font-size: 1.5rem;
+  }
+  .ts-share {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ts-app, .ts-app:hover { rotate: 0deg; transform: none; }
 }
 </style>

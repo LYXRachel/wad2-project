@@ -4,7 +4,7 @@
     <!-- ===== Header & quick invite ===== -->
     <header class="cw-head">
       <div>
-        <p class="cw-kicker">Crew manifest</p>
+        <p class="cw-kicker">Crewmates</p>
         <h3 class="cw-title">{{ city }} Crew</h3>
         <p class="cw-sub">
           {{ people.length }} traveller{{ people.length === 1 ? '' : 's' }}
