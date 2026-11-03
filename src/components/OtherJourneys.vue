@@ -3,7 +3,7 @@
        (airport → hotel, a day trip to another city). Between-stop travel lives in the itinerary. -->
   <section class="oj" aria-labelledby="oj-title">
     <header class="oj-head">
-      <h2 id="oj-title" class="oj-title">Other journeys</h2>
+      <h2 id="oj-title" class="oj-title">Plan journeys</h2>
     </header>
 
     <!-- Plan a journey (or change a saved one) -->
@@ -109,7 +109,8 @@ const props = defineProps({
   endDate: { type: String, default: '' },
   initialJourneys: { type: Array, default: () => [] },
   prefs: { type: Object, default: () => ({}) },
-  flights: { type: Array, default: () => [] } // flights on itinerary days: [{ id, date, from, to, dep, arr, number }]
+  flights: { type: Array, default: () => [] }, // flights on itinerary days: [{ id, date, from, to, dep, arr, number }]
+  wishlist: { type: Array, default: () => [] }
 })
 function shortAirport(name) {
   return name.replace(/ (International )?Airport.*$/i, '').split(',')[0]
@@ -137,18 +138,39 @@ function durationText(min) {
 // Places to pick from, in groups: your hotel, the stops on your plan, the trip's cities and their airports
 const placeGroups = computed(() => {
   const groups = []
+  // hotels
   const hotels = []
   for (const st of props.stays) {
     if (hotels.some((h) => h.label === st.name)) continue
     hotels.push({ label: st.name, sub: st.from ? 'From ' + dayLabel(st.from) : st.city ? st.city.split(', ')[0] : '' })
   }
   if (hotels.length) groups.push({ label: hotels.length === 1 ? 'Your hotel' : 'Your hotels', icon: 'door', items: hotels })
+  // wishlist places (excludes places already on the plan)
+  const wishlistItems = []
+  for (const w of props.wishlist) {
+    if (!w.name) continue
+    
+    // check if place is already listed on the itinerary stops
+    const isOnPlan = props.stops.some((s) => s.name && s.name.trim().toLowerCase() === w.name.trim().toLowerCase())
+    
+    if (!isOnPlan && !wishlistItems.some((x) => x.label === w.name)) {
+      wishlistItems.push({
+        label: w.name,
+        sub: w.city ? w.city.split(', ')[0] + ' · Wishlist' : 'Wishlist item'
+      })
+    }
+  }
+  if (wishlistItems.length) {
+    groups.push({ label: 'Wishlist', icon: 'heart', items: wishlistItems })
+  }
+  // plan stops
   const stops = []
   for (const s of props.stops) {
     if (!s.name || stops.some((x) => x.label === s.name)) continue
     stops.push({ label: s.name, sub: s.date ? dayLabel(s.date) : '' })
   }
   if (stops.length) groups.push({ label: 'On your plan', icon: 'map-pin', items: stops })
+  // airports & cities
   const cities = []
   const airports = []
   for (const a of props.myAirports) airports.push({ label: a.name, sub: 'Your flight' })
@@ -166,15 +188,22 @@ const toHint = computed(() => (props.stays.length ? 'e.g. ' + props.stays[0].nam
 // What to look a typed place up by: a stop's address or the hotel's, when it's one of those
 function lookupText(text) {
   const t = text.trim()
+  // check wishlist
+  const wish = props.wishlist.find((x) => x.name === t)
+  if (wish && wish.address) return wish.address
+  // check hotel
   const hotel = props.stays.find((x) => x.name === t)
   if (hotel && hotel.address) return hotel.address
+  // check stops
   const stop = props.stops.find((s) => s.name === t)
   return stop && stop.address ? stop.address : t
 }
 // Hotels and my airports already have a map position: no lookup needed
 function knownPlace(text) {
   const t = text.trim()
-  const p = props.stays.find((x) => x.name === t) || props.myAirports.find((x) => x.name === t)
+  const p = props.wishlist.find((x) => x.name === t) || props.stays.find((x) => x.name === t) || 
+    props.myAirports.find((x) => x.name === t)
+            
   return p && p.lat != null ? { lat: p.lat, lon: p.lon } : null
 }
 

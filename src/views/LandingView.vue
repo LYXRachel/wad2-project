@@ -3,6 +3,122 @@
     <!-- Landing page: an animated night scene with the brand, a big title and two ways in,
          then a scroll story: a 3D app window shows the four things the app does -->
     <section class="lp-hero">
+      <!-- ===== Travel journal hero ===== -->
+    <div class="journal-hero">
+      <header class="journal-nav">
+        <div class="journal-brand">
+          <div class="journal-logo">
+            <span>✈</span>
+          </div>
+
+          <span class="journal-brand-name">Chui-se Your Trip</span>
+        </div>
+
+        <router-link to="/login" class="journal-signin">
+          Sign In / Join
+        </router-link>
+      </header>
+
+      <div class="journal-dots" aria-hidden="true"></div>
+
+      <div class="journal-route" aria-hidden="true">
+        <span class="route-plane">✈</span>
+        <span class="route-line"></span>
+      </div>
+
+      <main class="journal-content">
+        <div class="journal-copy">
+          <span class="journal-eyebrow">
+            YOUR WHOLE TRIP, IN ONE PLACE
+          </span>
+
+          <h1>
+            Plan together.<br />
+            <span>Travel better.</span>
+          </h1>
+
+          <p>
+            Discover places, decide as a group, build your itinerary
+            and adapt when plans change — all without juggling ten tabs.
+          </p>
+
+          <div class="journal-actions">
+            <router-link to="/discover" class="journal-primary">
+              Explore Trips
+              <span>→</span>
+            </router-link>
+
+            <button
+              type="button"
+              class="journal-secondary"
+              @click="goToStep(0)"
+            >
+              See how it works
+            </button>
+          </div>
+        </div>
+
+        <div class="journal-art" aria-hidden="true">
+          <div class="journal-postcard postcard-back">
+            <div class="postcard-stamp">✈</div>
+
+            <div class="postcard-message">
+              Wish you<br />
+              were here!
+            </div>
+
+            <div class="postcard-lines">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+
+          <div class="journal-postcard postcard-front">
+            <div class="postcard-tape"></div>
+
+            <div class="postcard-picture">
+              <div class="picture-sky">
+                  <span class="picture-sun"></span>
+                  <span class="picture-cloud cloud-one"></span>
+                  <span class="picture-cloud cloud-two"></span>
+                </div>
+
+                <!-- Mountains -->
+                <div class="mountain mountain-back"></div>
+
+                <div class="mountain mountain-front">
+                  <div class="snow-cap"></div>
+                </div>
+
+                <!-- Foreground hills -->
+                <div class="foreground-hill hill-one"></div>
+                <div class="foreground-hill hill-two"></div>
+
+                <span class="picture-plane">✈</span>
+            </div>
+
+            <div class="postcard-caption">
+              <strong>The world is calling</strong>
+              <span>Where are we going next?</span>
+            </div>
+
+            <div class="postcard-stamp-small">
+              CHUI<br />SE
+            </div>
+          </div>
+
+          <div class="journal-pin">●</div>
+        </div>
+      </main>
+
+      <div class="journal-scroll">
+        <button type="button" @click="goToStep(0)">
+          <span>Start the journey</span>
+          <span class="journal-arrow">↓</span>
+        </button>
+      </div>
+    </div>
     <!-- ===== The scene: the photo, with the moving parts drawn on top in the same coordinates ===== -->
     <!-- The stage keeps the photo's shape on every screen and keeps the mountain in view
          (on a phone the right part of the photo is shown, not the empty middle) -->
@@ -654,8 +770,8 @@ const STEPS = [
     text: 'Drag places onto a day. Travel times, meal breaks and the order of stops work themselves out.',
     points: ['Drag or tap arrows to reorder', 'Optimize route in one tap', 'Lock reservations to their time'] },
   { key: 'smart', label: 'Travel smart', title: 'Ready for rain, crowds and costs',
-    text: 'Live weather and crowd levels nudge your plan while you travel, and shared expenses split themselves.',
-    points: ['Indoor swaps when rain is coming', 'Go when it\'s quiet', 'Who owes who, in any currency'] }
+    text: 'Weather and crowd conditions help you adapt your plan, while shared expenses keep group spending organised.',
+    points: ['Adapt activities when rain affects the plan', 'Go when it\'s quiet', 'Who owes who, in any currency'] }
 ]
 const PILLARS = [
   { x: 30, y: 40, h: 58 }, { x: 46, y: 26, h: 34 }, { x: 62, y: 50, h: 46 }, { x: 76, y: 32, h: 28 },
@@ -4334,4 +4450,996 @@ body.lp-body {
   background: #0b131d;
   overflow: hidden;
 }
+</style>
+
+<style scoped>
+
+/* =========================================================
+   NEW TRAVEL JOURNAL HERO
+   ========================================================= */
+
+/*
+  Keep the original hero code in the file for now,
+  but hide its visual elements while we test the redesign.
+*/
+.lp-hero > .lp-stage,
+.lp-hero > .lp-clouds,
+.lp-hero > .lp-shade,
+.lp-hero > .lp-brand,
+.lp-hero > .lp-top-signin,
+.lp-hero > .lp-content,
+.lp-hero > .lp-cue {
+  display: none;
+}
+
+.lp {
+  background: #f8f4e9;
+  color: #17304d;
+}
+
+.lp-hero {
+  min-height: var(--vh);
+  height: var(--vh);
+  background:
+    radial-gradient(circle, rgba(23, 48, 77, 0.10) 1.5px, transparent 1.6px)
+      0 0 / 34px 34px,
+    #f8f4e9;
+  color: #17304d;
+}
+
+.journal-hero {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ---------- navigation ---------- */
+
+.journal-nav {
+  position: relative;
+  z-index: 10;
+
+  height: 112px;
+  padding: 22px clamp(28px, 4vw, 68px);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.journal-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.journal-logo {
+  width: 66px;
+  height: 66px;
+
+  display: grid;
+  place-items: center;
+
+  border: 4px solid #17304d;
+  border-radius: 18px;
+
+  background: #efbd4e;
+
+  box-shadow: 0 7px 0 #17304d;
+
+  font-size: 30px;
+  transform: rotate(-3deg);
+}
+
+.journal-logo span {
+  display: block;
+  transform: rotate(-20deg);
+}
+
+.journal-brand-name {
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-size: clamp(25px, 2.3vw, 38px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.journal-signin {
+  padding: 15px 29px;
+
+  border: 3px solid #17304d;
+  border-radius: 18px;
+
+  background: #fffaf0;
+  color: #17304d;
+
+  box-shadow: 0 7px 0 #17304d;
+
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-size: 19px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.journal-signin:hover {
+  transform: translateY(3px);
+  box-shadow: 0 4px 0 #17304d;
+  background: #fff3d2;
+}
+
+/* ---------- main hero ---------- */
+
+.journal-content {
+  position: relative;
+  z-index: 3;
+
+  width: min(1450px, calc(100% - 80px));
+  height: calc(100% - 165px);
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(520px, 1.1fr);
+  align-items: center;
+  gap: clamp(35px, 6vw, 100px);
+}
+
+.journal-copy {
+  position: relative;
+  z-index: 5;
+  padding-bottom: 40px;
+}
+
+.journal-eyebrow {
+  display: inline-block;
+
+  margin-bottom: 22px;
+  padding: 9px 16px;
+
+  border: 2px solid #17304d;
+  border-radius: 999px;
+
+  background: #efbd4e;
+
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.journal-copy h1 {
+  margin: 0;
+
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-size: clamp(60px, 6.6vw, 108px);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+
+  color: #17304d;
+}
+
+.journal-copy h1 span {
+  color: #c88931;
+}
+
+.journal-copy p {
+  max-width: 610px;
+  margin: 30px 0 34px;
+
+  font-size: clamp(17px, 1.4vw, 22px);
+  line-height: 1.65;
+
+  color: #536376;
+}
+
+.journal-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.journal-primary,
+.journal-secondary {
+  min-height: 58px;
+  padding: 0 27px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+
+  border: 3px solid #17304d;
+  border-radius: 16px;
+
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+
+  cursor: pointer;
+  text-decoration: none;
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.journal-primary {
+  background: #efbd4e;
+  color: #17304d;
+  box-shadow: 0 7px 0 #17304d;
+}
+
+.journal-primary:hover {
+  transform: translateY(3px);
+  box-shadow: 0 4px 0 #17304d;
+}
+
+.journal-primary span {
+  font-size: 25px;
+}
+
+.journal-secondary {
+  background: transparent;
+  color: #17304d;
+  border-style: dashed;
+}
+
+.journal-secondary:hover {
+  background: rgba(239, 189, 78, 0.13);
+}
+
+/* ---------- postcard artwork ---------- */
+
+.journal-art {
+  position: relative;
+  width: 100%;
+  height: min(620px, 68vh);
+}
+
+.journal-postcard {
+  position: absolute;
+
+  border: 4px solid #17304d;
+  border-radius: 14px;
+
+  background: #fffaf0;
+
+  box-shadow: 0 15px 30px rgba(23, 48, 77, 0.12);
+}
+
+.postcard-back {
+  width: min(430px, 65%);
+  height: 460px;
+
+  right: 1%;
+  top: 11%;
+
+  transform: rotate(5deg);
+}
+
+.postcard-message {
+  position: absolute;
+  right: 35px;
+  top: 180px;
+
+  font-family: 'Newsreader', Georgia, serif;
+  font-size: 38px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1.05;
+
+  transform: rotate(-4deg);
+}
+
+.postcard-stamp {
+  position: absolute;
+  right: 26px;
+  top: 24px;
+
+  width: 86px;
+  height: 98px;
+
+  display: grid;
+  place-items: center;
+
+  border: 8px solid #f1ead8;
+
+  background: #88a6bd;
+  color: #fffaf0;
+
+  font-size: 35px;
+
+  transform: rotate(7deg);
+}
+
+.postcard-lines {
+  position: absolute;
+  right: 32px;
+  bottom: 62px;
+
+  width: 155px;
+
+  display: grid;
+  gap: 14px;
+}
+
+.postcard-lines span {
+  border-bottom: 2px dotted #c5b99e;
+}
+
+.postcard-front {
+  width: min(590px, 83%);
+  height: 410px;
+
+  left: 2%;
+  bottom: 7%;
+
+  padding: 22px;
+
+  transform: rotate(-2deg);
+
+  box-shadow:
+    0 17px 35px rgba(23, 48, 77, 0.15),
+    8px 10px 0 rgba(239, 189, 78, 0.16);
+}
+
+.postcard-tape {
+  position: absolute;
+  width: 55px;
+  height: 90px;
+
+  left: 51%;
+  top: -54px;
+
+  background: rgba(211, 75, 77, 0.9);
+
+  clip-path: polygon(
+    20% 0,
+    90% 6%,
+    78% 48%,
+    100% 100%,
+    10% 92%,
+    25% 50%
+  );
+
+  transform: rotate(7deg);
+
+  z-index: 5;
+}
+
+.postcard-picture {
+  position: relative;
+  height: 275px;
+
+  overflow: hidden;
+
+  border: 3px solid #17304d;
+  border-radius: 8px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #8fc6d5 0%,
+      #cfe4dc 55%,
+      #eee1b7 100%
+    );
+}
+
+.picture-sky {
+  position: absolute;
+  inset: 0;
+}
+
+.picture-cloud {
+  position: absolute;
+
+  width: 90px;
+  height: 25px;
+
+  border-radius: 50%;
+  background: rgba(255,255,255,0.65);
+}
+
+.cloud-one {
+  left: 12%;
+  top: 20%;
+}
+
+.cloud-two {
+  right: 14%;
+  top: 12%;
+  transform: scale(0.7);
+}
+
+.picture-mountain {
+  position: absolute;
+  bottom: -5px;
+
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.mountain-back {
+  width: 380px;
+  height: 210px;
+
+  right: -45px;
+
+  background: #7b8e83;
+}
+
+.mountain-front {
+  width: 430px;
+  height: 230px;
+
+  left: -50px;
+
+  background: #526c65;
+}
+
+.picture-plane {
+  position: absolute;
+  top: 55px;
+  left: 47%;
+
+  color: #17304d;
+  font-size: 27px;
+
+  transform: rotate(-12deg);
+}
+
+.postcard-caption {
+  padding-top: 14px;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.postcard-caption strong {
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.postcard-caption span {
+  margin-top: 3px;
+  color: #647284;
+}
+
+.postcard-stamp-small {
+  position: absolute;
+  right: 25px;
+  bottom: 25px;
+
+  width: 58px;
+  height: 58px;
+
+  display: grid;
+  place-items: center;
+
+  border: 2px dashed #17304d;
+  border-radius: 50%;
+
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+
+  transform: rotate(10deg);
+}
+
+.journal-pin {
+  position: absolute;
+  right: 45%;
+  top: 4%;
+
+  color: #d34b4d;
+  font-size: 62px;
+
+  text-shadow: 0 5px 8px rgba(23,48,77,0.25);
+
+  transform: rotate(10deg);
+}
+
+/* ---------- decorative route ---------- */
+
+.journal-route {
+  position: absolute;
+  z-index: 1;
+
+  left: 36%;
+  right: -5%;
+  bottom: 8%;
+
+  height: 180px;
+
+  border-bottom: 3px dashed rgba(200, 137, 49, 0.55);
+  border-radius: 50%;
+
+  transform: rotate(-7deg);
+
+  pointer-events: none;
+}
+
+.route-plane {
+  position: absolute;
+  left: 32%;
+  bottom: -16px;
+
+  width: 48px;
+  height: 48px;
+
+  display: grid;
+  place-items: center;
+
+  border: 3px solid #17304d;
+  border-radius: 50%;
+
+  background: #efbd4e;
+
+  font-size: 22px;
+
+  transform: rotate(-15deg);
+}
+
+.journal-scroll {
+  position: absolute;
+  z-index: 10;
+
+  left: 50%;
+  bottom: 17px;
+
+  transform: translateX(-50%);
+}
+
+.journal-scroll button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  border: 0;
+  background: transparent;
+
+  color: #17304d;
+
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+
+  cursor: pointer;
+}
+
+.journal-arrow {
+  display: inline-block;
+  animation: journal-bounce 1.6s ease-in-out infinite;
+}
+
+@keyframes journal-bounce {
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 950px) {
+  .journal-content {
+    width: min(90%, 760px);
+    grid-template-columns: 1fr;
+    align-content: center;
+  }
+
+  .journal-copy {
+    text-align: center;
+    padding-bottom: 0;
+  }
+
+  .journal-copy p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .journal-actions {
+    justify-content: center;
+  }
+
+  .journal-art {
+    display: none;
+  }
+
+  .journal-route {
+    left: 5%;
+    right: 5%;
+    bottom: 13%;
+  }
+}
+
+@media (max-width: 600px) {
+  .journal-nav {
+    height: 88px;
+    padding: 15px 18px;
+  }
+
+  .journal-logo {
+    width: 48px;
+    height: 48px;
+    border-width: 3px;
+    border-radius: 13px;
+    box-shadow: 0 5px 0 #17304d;
+    font-size: 22px;
+  }
+
+  .journal-brand {
+    gap: 10px;
+  }
+
+  .journal-brand-name {
+    max-width: 125px;
+    font-size: 18px;
+    line-height: 1.05;
+  }
+
+  .journal-signin {
+    padding: 11px 14px;
+    border-width: 2px;
+    border-radius: 12px;
+    box-shadow: 0 5px 0 #17304d;
+    font-size: 14px;
+  }
+
+  .journal-content {
+    width: calc(100% - 36px);
+    height: calc(100% - 105px);
+  }
+
+  .journal-copy h1 {
+    font-size: clamp(54px, 17vw, 76px);
+  }
+
+  .journal-copy p {
+    margin: 22px auto 27px;
+    font-size: 16px;
+  }
+
+  .journal-eyebrow {
+    font-size: 11px;
+  }
+
+  .journal-actions {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 300px;
+    margin: auto;
+  }
+
+  .journal-primary,
+  .journal-secondary {
+    width: 100%;
+  }
+
+  .journal-scroll {
+    bottom: 12px;
+  }
+}
+
+/* =========================================================
+   TRAVEL JOURNAL THEME — REST OF LANDING PAGE
+   ========================================================= */
+
+/* Shared paper background */
+.lp-story,
+.lp-feat {
+  background:
+    radial-gradient(
+      circle,
+      rgba(23, 48, 77, 0.09) 1.4px,
+      transparent 1.5px
+    ) 0 0 / 34px 34px,
+    #f8f4e9;
+}
+
+/* ---------- HOW IT WORKS / STORY ---------- */
+
+.lp-sticky {
+  color: #17304d;
+}
+
+.lp-step-num {
+  display: inline-flex;
+  width: fit-content;
+
+  padding: 8px 14px;
+  margin-bottom: 16px;
+
+  border: 2px solid #17304d;
+  border-radius: 999px;
+
+  background: #efbd4e;
+  color: #17304d;
+
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.lp-step-title {
+  color: #17304d;
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.lp-step-text {
+  color: #596879;
+}
+
+.lp-step-points {
+  color: #17304d;
+}
+
+.lp-step-points li::marker {
+  color: #c88931;
+}
+
+/* Story navigation dots */
+.lp-dot {
+  border-color: #17304d;
+  background: #fffaf0;
+}
+
+.lp-dot.on {
+  background: #efbd4e;
+}
+
+/* ---------- FEATURE SECTION ---------- */
+
+.lp-feat {
+  padding-top: 110px;
+  padding-bottom: 110px;
+}
+
+.lp-feat-title {
+  color: #17304d;
+
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.lp-feat-sub {
+  color: #657284;
+}
+
+/* Each feature becomes a scrapbook card */
+.lp-card {
+  border: 3px solid #17304d;
+  border-radius: 22px;
+
+  background: #fffaf0;
+
+  box-shadow: 8px 9px 0 #17304d;
+
+  overflow: visible;
+}
+
+.lp-card-in {
+  background: #fffaf0;
+  border-radius: 19px;
+}
+
+.lp-card h3 {
+  color: #17304d;
+
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-weight: 700;
+}
+
+.lp-card p {
+  color: #657284;
+}
+
+/* The mini UI illustration inside each feature */
+.lp-art {
+  background: #f6efdf;
+
+  border: 2px solid rgba(23, 48, 77, 0.16);
+  border-radius: 17px;
+}
+
+/* Story checklist — readable on cream background */
+.lp-step-points li {
+  color: #17304d;
+}
+
+.lp-step-points li::before {
+  color: #c88931;
+}
+
+/* ---------- JOIN SECTION ---------- */
+
+.lp-join-copy h2 {
+  color: #17304d;
+
+  font-family: 'Oswald', 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.lp-join-copy p {
+  color: #657284;
+}
+
+.lp-join-link {
+  color: #17304d;
+  font-weight: 700;
+}
+
+.lp-join-link:hover {
+  color: #c88931;
+}
+
+/* Cute postcard mountains */
+
+.picture-mountain {
+  position: absolute;
+  bottom: 0;
+
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.mountain-back {
+  width: 360px;
+  height: 175px;
+
+  right: -70px;
+  bottom: 0;
+
+  background: #8fa79d;
+
+  z-index: 1;
+}
+
+.mountain-front {
+  width: 440px;
+  height: 225px;
+
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  background: #587b72;
+
+  z-index: 2;
+}
+
+
+/* ==============================
+   POSTCARD LANDSCAPE
+   ============================== */
+
+.postcard-picture {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---------- mountains ---------- */
+
+.mountain {
+  position: absolute;
+  bottom: 0;
+  pointer-events: none;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 100%,
+    0% 100%
+  );
+}
+
+/* mountain behind */
+.mountain-back {
+  z-index: 2;
+
+  width: 330px;
+  height: 155px;
+
+  right: -55px;
+  bottom: 0;
+
+  background: #91a99c;
+}
+
+/* main mountain */
+.mountain-front {
+  z-index: 3;
+
+  width: 470px;
+  height: 230px;
+
+  left: 50%;
+  bottom: 0;
+
+  transform: translateX(-50%);
+
+  background: #5f8175;
+}
+
+/* ---------- snow ---------- */
+
+.snow-cap {
+  position: absolute;
+
+  width: 190px;
+  height: 95px;
+
+  left: 50%;
+  top: 0;
+
+  transform: translateX(-50%);
+
+  background: #fffaf0;
+
+  clip-path: polygon(
+    50% 0%,
+    100% 100%,
+    76% 72%,
+    64% 88%,
+    51% 68%,
+    37% 88%,
+    23% 72%,
+    0% 100%
+  );
+}
+
+/* ---------- foreground hills ---------- */
+
+.foreground-hill {
+  position: absolute;
+  z-index: 4;
+
+  bottom: -65px;
+
+  border-radius: 50% 50% 0 0;
+
+  pointer-events: none;
+}
+
+.hill-one {
+  width: 430px;
+  height: 135px;
+
+  left: -100px;
+
+  background: #789888;
+}
+
+.hill-two {
+  width: 450px;
+  height: 125px;
+
+  right: -120px;
+
+  background: #698879;
+}
+
+/* ---------- plane ---------- */
+
+.picture-plane {
+  position: absolute;
+  z-index: 8;
+
+  top: 28%;
+  left: 24%;
+
+  color: #17304d;
+
+  font-size: 27px;
+
+  transform: rotate(-12deg);
+}
+
 </style>
