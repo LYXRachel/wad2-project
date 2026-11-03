@@ -11,15 +11,26 @@
       <AppIcon name="pencil" :size="15" /> Changing <strong>{{ editing.from }} → {{ editing.to }}</strong>
       <button type="button" class="oj-link" @click="cancelEdit">Cancel</button>
     </p>
-    <form ref="formEl" class="oj-form" :class="{ editing: !!editing }" @submit.prevent="findWays">
-      <PlaceInput id="oj-from" v-model="fromText" label="From" :placeholder="fromHint" :groups="placeGroups" class="oj-field" />
-      <button type="button" class="oj-swap" aria-label="Swap from and to" title="Swap" @click="swap"><AppIcon name="swap" :size="16" /></button>
-      <PlaceInput id="oj-to" v-model="toText" label="To" :placeholder="toHint" :groups="placeGroups" class="oj-field" />
-      <div v-if="dayOptions.length" class="oj-field small">
-        <label for="oj-day">Day</label>
-        <CustomDropdown id="oj-day" v-model="day" :options="[{ value: '', label: 'Any day' }].concat(dayOptions)" block aria-label="Day" />
+    <!-- The planner is a ticket: From and To on the main part, the day and "Find ways" on the tear-off stub -->
+    <form ref="formEl" class="oj-form oj-ticket" :class="{ editing: !!editing }" @submit.prevent="findWays">
+      <div class="oj-ticket-main">
+        <p class="oj-ticket-kicker" aria-hidden="true"><AppIcon name="plane" :size="14" /> {{ editing ? 'Changing a journey' : 'Plan a journey' }}</p>
+        <div class="oj-route">
+          <PlaceInput id="oj-from" v-model="fromText" label="From" :placeholder="fromHint" :groups="placeGroups" />
+          <!-- the swap button sits on the dotted flight path between the two places -->
+          <div class="oj-path">
+            <button type="button" class="oj-swap" aria-label="Swap from and to" title="Swap" @click="swap"><AppIcon name="swap" :size="16" /></button>
+          </div>
+          <PlaceInput id="oj-to" v-model="toText" label="To" :placeholder="toHint" :groups="placeGroups" />
+        </div>
       </div>
-      <button type="submit" class="oj-go" :disabled="busy || !fromText.trim() || !toText.trim()">{{ busy ? 'Finding…' : 'Find ways' }}</button>
+      <div class="oj-ticket-stub">
+        <div v-if="dayOptions.length" class="oj-field small">
+          <label for="oj-day">Day</label>
+          <CustomDropdown id="oj-day" v-model="day" :options="[{ value: '', label: 'Any day' }].concat(dayOptions)" block aria-label="Day" />
+        </div>
+        <button type="submit" class="oj-go" :disabled="busy || !fromText.trim() || !toText.trim()">{{ busy ? 'Finding…' : 'Find ways' }} <span aria-hidden="true">→</span></button>
+      </div>
     </form>
 
     <p v-if="error" class="oj-error" role="alert">{{ error }}</p>
@@ -53,7 +64,11 @@
 
     <!-- Saved journeys -->
     <h3 class="oj-h">Saved journeys <span class="oj-count">{{ journeys.length }}</span></h3>
-    <p v-if="!journeys.length" class="oj-empty">Nothing saved yet. Airport transfers and day trips you plan above appear here.</p>
+    <!-- Nothing saved: a blank ticket saying so -->
+    <div v-if="!journeys.length" class="oj-empty">
+      <strong class="oj-empty-title">No journeys yet</strong>
+      <p>Nothing saved yet. Airport transfers and day trips you plan above appear here.</p>
+    </div>
     <ul v-else class="oj-list">
       <li v-for="j in journeys" :key="j.id" class="oj-item" :class="{ editing: editing && editing.id === j.id }">
         <!-- Tap a saved journey to change it (it opens in the form above) -->
@@ -314,119 +329,284 @@ function removeJourney(j) {
 </script>
 
 <style scoped>
+/* ===== Transport → Other journeys, as travel tickets (scrapbook look; colours from src/assets/scrapbook.css) =====
+   The planner is a ticket with a tear-off stub; each saved journey is a ticket stub. */
 .oj {
-  color: #001d2c;
+  color: var(--sb-ink);
 }
 .oj-title {
-  margin: 0 0 6px;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.25rem;
-  color: #003d5b;
+  margin: 0 0 12px;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.7rem;
+  color: var(--sb-ink);
 }
-.oj-form {
+
+/* ----- The planner ticket ----- */
+.oj-ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  border: var(--sb-line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.06) 1px, transparent 1.3px) 0 0 / 18px 18px,
+    var(--sb-card);
+  box-shadow: var(--sb-pop);
+}
+.oj-ticket.editing {
+  box-shadow: var(--sb-pop), 0 0 0 5px rgba(255, 191, 60, 0.45);
+}
+.oj-ticket-main {
+  min-width: 0;
+  padding: 16px 22px 20px;
+}
+.oj-ticket-kicker {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
+}
+.oj-ticket-kicker::after {
+  content: '';
+  flex: 1;
+  border-bottom: 2px dotted var(--sb-stitch);
+}
+/* From — swap — To */
+.oj-route {
+  display: flex;
   align-items: flex-end;
   gap: 10px;
-  padding: 16px;
-  border-radius: 22px;
-  background: #fbf5ea;
-  border: 1px solid #ece4d6;
 }
 .oj-field {
   flex: 1 1 200px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
-.oj-field.small {
-  flex: 0 1 190px;
+.oj-field label,
+.oj-route :deep(.pi-label) {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
 }
-.oj-field label {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #003d5b;
+/* (PlaceInput's own root can't take our class, so it's styled from .oj-route) */
+.oj-route > :deep(.pi) {
+  flex: 1 1 200px;
+  min-width: 0;
+  gap: 6px;
 }
-.oj-input {
-  border: 1.5px solid transparent;
+/* the place fields stay plain white boxes, so it's clear where to type */
+.oj-route :deep(.pi-input) {
+  min-height: 48px;
+  border: 2px solid var(--sb-ink);
   border-radius: 14px;
-  background: #f6f2eb;
-  padding: 10px 12px;
-  font: inherit;
-  font-size: 14px;
-  color: #001d2c;
-}
-.oj-input:focus {
-  outline: none;
   background: #fbf5ea;
-  border-color: #edae49;
-  box-shadow: 0 0 0 3px rgba(237, 174, 73, 0.2);
+  color: var(--sb-ink);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: inset 0 2px 0 rgba(18, 50, 74, 0.06);
+}
+.oj-route :deep(.pi-input:focus) {
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.oj-route :deep(.pi-pin) {
+  z-index: 1;
+  color: var(--sb-amber-lo);
+}
+/* the dotted flight path with the swap button on it */
+.oj-path {
+  position: relative;
+  flex: 0 0 64px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+}
+.oj-path::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 3px dotted var(--sb-ink);
+  opacity: 0.45;
 }
 .oj-swap {
-  flex: none;
+  position: relative;
   width: 40px;
   height: 40px;
-  border: 0;
+  border: 2px solid var(--sb-ink);
   border-radius: 50%;
-  background: #f6f2eb;
-  color: #003d5b;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.35s var(--sb-spring), box-shadow 0.12s;
 }
-.oj-go {
+.oj-swap:hover {
+  transform: rotate(180deg);
+}
+.oj-swap:active {
+  transform: rotate(180deg) translateY(-3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+
+/* the tear-off stub: a perforated line with a notch cut out at each end */
+.oj-ticket-stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 18px 20px;
+  border-left: 2.5px dashed var(--sb-ink);
+  border-radius: 0 17px 17px 0;
+  background: #fff1cf;
+}
+.oj-ticket-stub::before,
+.oj-ticket-stub::after {
+  content: '';
+  position: absolute;
+  left: -15px;
+  width: 28px;
+  height: 28px;
+  border: var(--sb-line);
+  border-radius: 50%;
+  background: var(--sb-cream);
+}
+.oj-ticket-stub::before {
+  top: -15px;
+  clip-path: inset(50% 0 0 0); /* only the lower half: a notch bitten out of the top edge */
+}
+.oj-ticket-stub::after {
+  bottom: -15px;
+  clip-path: inset(0 0 50% 0);
+}
+.oj-field.small {
   flex: none;
-  border: 0;
-  border-radius: 999px;
-  background: #edae49;
-  color: #001d2c;
-  font-weight: 700;
-  padding: 11px 22px;
-  box-shadow: 0 6px 18px rgba(237, 174, 73, 0.3);
 }
-.oj-go:disabled {
-  opacity: 0.5;
+.oj-field.small :deep(.dd-trigger) {
+  min-height: 46px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-weight: 700;
   box-shadow: none;
 }
-.oj-error {
-  margin: 10px 0 0;
-  color: #d1495b;
+.oj-field.small :deep(.dd-chevron) {
+  color: var(--sb-ink);
+}
+.oj-go {
+  min-height: 50px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.oj-go:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 5px 0 var(--sb-ink);
+}
+.oj-go:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.oj-go:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* "Changing Airport → Hotel" note above the ticket */
+.oj-editing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border: 2px dashed var(--sb-amber-lo);
+  border-radius: 14px;
+  background: #fff4dc;
+  color: var(--sb-ink);
+  font-size: 13.5px;
   font-weight: 600;
+}
+.oj-link {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
+}
+.oj-error {
+  margin: 12px 0 0;
+  color: #b3263a;
+  font-weight: 700;
   font-size: 14px;
 }
+
+/* ----- Ways found ----- */
 .oj-result {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 .oj-why {
   margin: 0 0 12px;
-  padding: 12px 14px;
+  padding: 12px 16px;
+  border: 2px dashed var(--sb-stitch);
   border-radius: 16px;
-  background: #fbefd9;
+  background: var(--sb-card);
   font-size: 14px;
   line-height: 1.45;
 }
 .oj-note {
   margin: 10px 0 0;
   font-size: 12.5px;
-  color: #5a6b78;
+  font-weight: 600;
+  color: var(--sb-muted);
 }
+
+/* ----- Saved journeys and flights: ticket stubs ----- */
 .oj-h {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 26px 0 10px;
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #003d5b;
+  margin: 30px 0 12px;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.4rem;
+  color: var(--sb-ink);
 }
 .oj-count {
-  padding: 1px 9px;
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border: 2px solid var(--sb-ink);
   border-radius: 999px;
-  background: #fbefd9;
-  font-size: 12px;
-}
-.oj-empty {
-  margin: 0;
-  font-size: 14px;
-  color: #5a6b78;
+  background: var(--sb-amber);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  transform: rotate(-6deg);
 }
 .oj-list {
   list-style: none;
@@ -434,39 +614,63 @@ function removeJourney(j) {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 .oj-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 18px;
-  background: #fbf5ea;
-  border: 1px solid #ece4d6;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.2s var(--sb-spring), box-shadow 0.12s;
 }
+.oj-item:hover {
+  transform: translateY(-2px) rotate(-0.4deg);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.oj-item.editing {
+  background: #fff1cf;
+  box-shadow: var(--sb-pop-sm), 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+/* the mode of transport, stamped in an amber square */
 .oj-item-icon {
   flex: none;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  background: #003d5b;
-  color: #fff;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transform: rotate(-4deg);
 }
-.oj-item {
-  transition: border-color 0.15s, box-shadow 0.15s;
+.oj-item-icon.sun {
+  background: var(--sb-teal-soft);
 }
-.oj-item:hover,
-.oj-item.editing {
-  border-color: #edae49;
-  box-shadow: 0 6px 16px rgba(0, 61, 91, 0.08);
+.oj-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
-.oj-item.editing {
-  box-shadow: 0 0 0 3px rgba(237, 174, 73, 0.3);
+.oj-item-main strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
 }
-/* The card's main part is one big button (the delete button sits beside it) */
+.oj-item-main small {
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+/* the whole stub opens the journey in the ticket above; the bin sits beyond the tear line */
 .oj-item-open {
   flex: 1;
   min-width: 0;
@@ -474,18 +678,15 @@ function removeJourney(j) {
   align-items: center;
   gap: 12px;
   margin: -12px 0 -12px -14px;
-  padding: 12px 0 12px 14px;
+  padding: 12px 14px 12px 14px;
   border: 0;
-  border-radius: 18px 0 0 18px;
+  border-right: 2.5px dashed var(--sb-ink);
+  border-radius: 12px 0 0 12px;
   background: none;
   text-align: left;
   color: inherit;
   font: inherit;
   cursor: pointer;
-}
-.oj-item-open:focus-visible {
-  outline: 3px solid rgba(237, 174, 73, 0.7);
-  outline-offset: -3px;
 }
 .oj-item-edit {
   flex: none;
@@ -493,76 +694,121 @@ function removeJourney(j) {
   align-items: center;
   gap: 5px;
   padding: 5px 10px;
-  border-radius: 999px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-cream);
   font-size: 12.5px;
-  font-weight: 700;
-  color: #00798c;
+  font-weight: 800;
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
 }
 .oj-item-open:hover .oj-item-edit {
-  background: #e6f2f4;
-}
-.oj-editing {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 8px;
-  padding: 8px 14px;
-  border-radius: 14px;
-  background: #fbefd9;
-  color: #7a4b00;
-  font-size: 13.5px;
-}
-.oj-link {
-  margin-left: auto;
-  border: 0;
-  background: none;
-  padding: 0;
-  color: #00798c;
-  font-weight: 700;
-  text-decoration: underline;
-}
-.oj-form.editing {
-  border-color: #edae49;
-}
-.oj-item-icon.sun {
-  background: #edae49;
-  color: #001d2c;
-}
-.oj-item-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.oj-item-main small {
-  color: #5a6b78;
+  background: var(--sb-amber);
 }
 .oj-del {
   flex: none;
-  width: 36px;
-  height: 36px;
-  border: 0;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
   border-radius: 50%;
-  background: #f6f2eb;
-  color: #5a6b78;
+  background: var(--sb-cream);
+  color: var(--sb-ink-soft);
+  box-shadow: 0 2px 0 var(--sb-ink);
 }
 .oj-del:hover {
-  background: #fbe7ea;
-  color: #d1495b;
+  background: #ffe1e5;
+  color: var(--sb-red);
 }
+
+/* Nothing saved: a blank ticket */
+.oj-empty {
+  position: relative;
+  padding: 18px 22px;
+  border: 2.5px dashed var(--sb-stitch);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--sb-muted);
+  text-align: center;
+}
+.oj-empty-title {
+  display: block;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.3rem;
+  color: var(--sb-ink-soft);
+}
+.oj-empty p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .oj-swap:focus-visible,
 .oj-go:focus-visible,
-.oj-del:focus-visible {
-  outline: 3px solid rgba(237, 174, 73, 0.7);
-  outline-offset: 2px;
+.oj-del:focus-visible,
+.oj-link:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 3px;
 }
-@media (max-width: 640px) {
+.oj-item-open:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: -3px;
+}
+
+/* Phones: the stub goes under the ticket, torn along a line across */
+@media (max-width: 760px) {
+  .oj-ticket {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .oj-route {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .oj-route > :deep(.pi) {
+    flex: none;
+  }
+  .oj-path {
+    flex-basis: 40px;
+    height: 40px;
+  }
+  .oj-path::before {
+    left: 50%;
+    right: auto;
+    top: 0;
+    bottom: 0;
+    border-top: 0;
+    border-left: 3px dotted var(--sb-ink);
+  }
   .oj-swap {
-    align-self: center;
+    transform: rotate(90deg);
   }
-  .oj-go {
-    width: 100%;
+  .oj-swap:hover {
+    transform: rotate(270deg);
   }
+  .oj-ticket-stub {
+    border-left: 0;
+    border-top: 2.5px dashed var(--sb-ink);
+    border-radius: 0 0 17px 17px;
+  }
+  .oj-ticket-stub::before {
+    top: -15px;
+    left: -15px;
+    clip-path: inset(0 0 0 50%);
+  }
+  .oj-ticket-stub::after {
+    top: -15px;
+    bottom: auto;
+    left: auto;
+    right: -15px;
+    clip-path: inset(0 50% 0 0);
+  }
+  .oj-item-edit {
+    display: none; /* the whole stub is the button; no room for the label */
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oj-swap, .oj-item, .oj-go { transition: none; }
 }
 </style>

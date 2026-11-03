@@ -95,24 +95,35 @@
     </div>
     <div class="lp-shade" aria-hidden="true"></div>
 
+    <!-- Two origami paper planes drifting across the sky on glowing dotted trails -->
+    <div class="lp-origami" aria-hidden="true">
+      <span v-for="n in 2" :key="'o' + n" class="lp-paper" :class="'p' + n">
+        <svg viewBox="0 0 220 90">
+          <path class="lp-paper-trail" d="M4 70 C 50 84, 90 40, 140 52 S 180 50, 196 40" />
+          <g transform="translate(176 22)">
+            <path d="M0 18 L40 0 L18 26 Z" fill="#faf8f3" />
+            <path d="M18 26 L40 0 L22 36 Z" fill="#e8dcc4" />
+            <path d="M18 26 L22 36 L14 30 Z" fill="#cdbb98" />
+          </g>
+        </svg>
+      </span>
+    </div>
+
     <!-- ===== Brand, title and the two ways in ===== -->
+    <!-- Brand: a rounded cream tab with a hand-drawn paper plane -->
     <header class="lp-brand">
-      <svg class="lp-compass" viewBox="0 0 40 40" aria-hidden="true">
-        <circle cx="20" cy="20" r="17" fill="none" stroke="#edae49" stroke-width="2.5" />
-        <path d="M27 13 L22 22 L13 27 L18 18 Z" fill="#edae49" />
-        <circle cx="20" cy="20" r="2" fill="#05080d" />
-      </svg>
+      <span class="lp-brand-icon" aria-hidden="true"><DoodleIcon name="plane" :size="28" anim="" /></span>
       <span class="lp-brand-text"><span>CHUI-SE</span> <span>YOUR TRIP</span></span>
     </header>
 
-    <router-link to="/login" class="lp-btn ghost lp-top-signin">Sign in / Join</router-link>
+    <router-link to="/login" class="lp-signin lp-top-signin">Sign in / Join</router-link>
 
     <main class="lp-content">
       <h1 class="lp-title"><span>Travel</span><span class="lp-accent">without</span><span>limits</span></h1>
       <p class="lp-tag">Plan together. Drift nowhere.</p>
       <div class="lp-actions">
         <!-- Explore straight away as a guest; sign in only when saving something -->
-        <router-link to="/discover" class="lp-btn primary">Explore trips</router-link>
+        <router-link to="/discover" class="lp-explore">Explore trips <span class="lp-arrow" aria-hidden="true">→</span></router-link>
       </div>
     </main>
 
@@ -123,13 +134,42 @@
     </button>
     </section>
 
+    <!-- ===== The Campfire Briefing: Pip welcomes you and shows what you'll pack when you join ===== -->
+    <section class="lp-brief" aria-labelledby="lp-brief-title">
+      <div class="lp-brief-card">
+        <span class="lp-brief-tape tl" aria-hidden="true"></span>
+        <span class="lp-brief-tape tr" aria-hidden="true"></span>
+        <div class="lp-brief-guide">
+          <button type="button" class="lp-brief-pip" aria-label="Pip, your guide. Tap to say hi" @click="pipHi">
+            <PlaneGuide :size="124" :mood="pipMood" />
+          </button>
+          <div class="lp-brief-bubble">
+            <p class="lp-brief-kicker">The Campfire Briefing</p>
+            <h2 id="lp-brief-title" class="lp-brief-title">Ahoy, explorer! Before we hit the trail, let’s pack your field essentials.</h2>
+          </div>
+        </div>
+        <div class="lp-brief-body">
+          <p class="lp-brief-sub">Tell us once and every trip your crew plans fits you: what you eat, how to reach you, the money you think in and how fast you like to go.</p>
+          <ul class="lp-bags">
+            <li v-for="t in BRIEF_TAGS" :key="t.label" class="lp-bag" :style="{ '--r': t.r + 'deg' }">
+              <span class="lp-bag-stamp" aria-hidden="true"><DoodleIcon :name="t.icon" :size="20" anim="" /></span>{{ t.label }}
+            </li>
+          </ul>
+          <div class="lp-brief-btns">
+            <router-link to="/signup" class="lp-explore small">Pack my essentials <span class="lp-arrow" aria-hidden="true">→</span></router-link>
+            <small class="lp-brief-hint">Free account · change them anytime in Settings</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Scroll story: the window stays pinned while you scroll; each quarter is one step ===== -->
     <section ref="storyEl" class="lp-story" :style="{ height: (STEPS.length + 1) * 100 + 'vh' }" aria-label="How Chui-se Your Trip works">
       <div class="lp-sticky">
         <!-- The words: one step at a time -->
         <div class="lp-copy">
           <article v-for="(st, k) in STEPS" :key="st.key" class="lp-step" :class="{ on: step === k, past: step > k }" :aria-hidden="step !== k">
-            <span class="lp-step-num">{{ String(k + 1).padStart(2, '0') }} · {{ st.label }}</span>
+            <span class="lp-step-num">Chapter {{ String(k + 1).padStart(2, '0') }} · {{ st.label }}</span>
             <h2 class="lp-step-title">{{ st.title }}</h2>
             <p class="lp-step-text">{{ st.text }}</p>
             <ul class="lp-step-points">
@@ -354,6 +394,7 @@
                 <div class="z3 a-pill lock">🔒 Locked on Day 2</div>
               </template>
             </div>
+            <span class="lp-card-log">Field log {{ String(k + 1).padStart(2, '0') }}</span>
             <h3>{{ f.title }}</h3>
             <p>{{ f.text }}</p>
           </div>
@@ -478,6 +519,48 @@
       </div>
     </section>
 
+    <!-- ===== Footer: one last call to adventure, quick links and the expedition's status ===== -->
+    <footer class="lp-foot" aria-labelledby="lp-foot-title">
+      <svg class="lp-foot-ridge" viewBox="0 0 1440 110" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 110 L0 72 L110 44 L200 66 L330 20 L430 58 L560 34 L690 74 L820 28 L930 62 L1060 16 L1180 56 L1300 36 L1440 66 L1440 110 Z" />
+      </svg>
+      <div class="lp-foot-in">
+        <div class="lp-foot-cta">
+          <h2 id="lp-foot-title" class="lp-foot-title">Where to next?</h2>
+          <p class="lp-foot-text">Pick a place, rally your crew and let the route draw itself.</p>
+          <router-link to="/discover" class="lp-explore">Launch your next journey <span class="lp-arrow" aria-hidden="true">→</span></router-link>
+        </div>
+
+        <div class="lp-foot-grid">
+          <div class="lp-foot-brand">
+            <span class="lp-brand static"><span class="lp-brand-icon" aria-hidden="true"><DoodleIcon name="plane" :size="24" anim="" /></span><span class="lp-brand-text">CHUI-SE YOUR TRIP</span></span>
+            <p>Plan together. Drift nowhere.</p>
+          </div>
+          <nav class="lp-foot-nav" aria-label="Quick links">
+            <p class="lp-foot-head">Trailheads</p>
+            <router-link to="/discover">Explore trips</router-link>
+            <button type="button" @click="goToStep(0)">How it works</button>
+            <button type="button" @click="scrollToFeat">Features</button>
+            <router-link to="/login">Sign in</router-link>
+            <router-link to="/signup">Create a free account</router-link>
+          </nav>
+          <div class="lp-foot-status">
+            <p class="lp-foot-head">Expedition status</p>
+            <ul>
+              <li><span class="lp-dot green" aria-hidden="true"></span>Discover is open to guests</li>
+              <li><span class="lp-dot amber" aria-hidden="true"></span>Crew planning with a free account</li>
+              <li><span class="lp-dot teal" aria-hidden="true"></span>Weather and crowd tips in every itinerary</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="lp-foot-base">
+          <small>© {{ year }} Chui-se Your Trip</small>
+          <button type="button" class="lp-foot-top" @click="toTop">Back to the summit <span aria-hidden="true">↑</span></button>
+        </div>
+      </div>
+    </footer>
+
     <AuthJoinModal :open="authOpen" :initial-tab="authTab" :initial-code="authCode" @close="authOpen = false" />
   </div>
 </template>
@@ -486,6 +569,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import AuthJoinModal from '../components/AuthJoinModal.vue'
+import DoodleIcon from '../components/DoodleIcon.vue'
+import PlaneGuide from '../components/PlaneGuide.vue'
 
 // Sign in / Join dialog. /welcome?auth=signin or ?code=XXXX opens it straight away (handy for links)
 const route = useRoute()
@@ -796,14 +881,28 @@ function goToStep(k) {
   lpEl.value.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' })
 }
 
-// Brush and condensed fonts, only loaded on this page
-function loadFonts() {
-  if (document.getElementById('lp-fonts')) return
-  const link = document.createElement('link')
-  link.id = 'lp-fonts'
-  link.rel = 'stylesheet'
-  link.href = 'https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Oswald:wght@500;600&family=Inter:wght@400;500;600&display=swap'
-  document.head.appendChild(link)
+// ---------- Campfire Briefing ----------
+const BRIEF_TAGS = [
+  { label: 'Food needs & allergies', icon: 'bowl', r: -2 },
+  { label: 'WhatsApp number', icon: 'chat', r: 1.5 },
+  { label: 'Base currency', icon: 'wallet', r: -1 },
+  { label: 'Trip pacing', icon: 'boot', r: 2 }
+]
+// Tap Pip: he does a loop-the-loop, then floats again
+const pipMood = ref('idle')
+function pipHi() {
+  if (pipMood.value === 'loop') return
+  pipMood.value = 'loop'
+  setTimeout(() => { pipMood.value = 'idle' }, 1200)
+}
+
+// ---------- footer ----------
+const year = new Date().getFullYear()
+function scrollToFeat() {
+  featEl.value.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' })
+}
+function toTop() {
+  lpEl.value.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' })
 }
 
 // ---------- the plane ----------
@@ -870,7 +969,6 @@ function flyPlane(now) {
 
 onMounted(() => {
   reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  loadFonts()
   document.body.classList.add('lp-body')
   // Feature cards: play their entrance once, when a quarter of the section is on screen
   if (window.IntersectionObserver && featEl.value) {
@@ -924,7 +1022,7 @@ onBeforeUnmount(() => {
   overflow-y: auto; /* the page scrolls inside here: hero, then the story */
   background: #05080d;
   color: #fff;
-  font-family: 'Inter', system-ui, sans-serif; /* body text; headings use Newsreader, labels and buttons Oswald */
+  font-family: var(--sans); /* everything you read; the big titles use --hand */
 }
 /* The first screen: the night scene (everything in it is placed inside this box) */
 .lp-hero {
@@ -1141,7 +1239,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sans);
   font-weight: 600;
   font-size: 22px;
   letter-spacing: 0.06em;
@@ -1168,12 +1266,10 @@ onBeforeUnmount(() => {
   transform: translate(calc(var(--mx) * 6px), calc(var(--my) * 4px));
   transition: transform 0.6s cubic-bezier(.2, .7, .2, 1);
 }
-/* A sharp, high-contrast display serif (Newsreader at its largest optical size), in plain warm white */
+/* The headline (hand lettering is set in the night theme further down) */
 .lp-title {
   margin: 0;
-  font-family: 'Newsreader', 'Georgia', serif;
-  font-optical-sizing: auto;
-  font-variation-settings: 'opsz' 72;
+  font-family: var(--sans);
   font-weight: 500;
   font-size: clamp(64px, 10vw, 150px);
   line-height: 0.92;
@@ -1201,7 +1297,7 @@ onBeforeUnmount(() => {
 }
 .lp-tag {
   margin: 20px 0 40px;
-  font-family: 'Oswald', 'Inter', sans-serif; /* same as Sign in / Explore trips / See how it works */
+  font-family: var(--sans); /* same as Sign in / Explore trips / See how it works */
   font-weight: 500;
   font-size: clamp(18px, 1.9vw, 24px);
   letter-spacing: 0.08em;
@@ -1219,7 +1315,7 @@ onBeforeUnmount(() => {
   animation: lp-rise 0.9s 0.6s cubic-bezier(.2, .8, .2, 1) forwards;
 }
 .lp-btn {
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sans);
   font-weight: 500;
   font-size: 20px;
   letter-spacing: 0.04em;
@@ -1311,7 +1407,7 @@ onBeforeUnmount(() => {
   border: 0;
   background: none;
   color: rgba(255, 255, 255, 0.85);
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sans);
   font-size: 15px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1377,7 +1473,7 @@ onBeforeUnmount(() => {
   pointer-events: auto;
 }
 .lp-step-num {
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sans);
   font-size: 15px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -1385,8 +1481,7 @@ onBeforeUnmount(() => {
 }
 .lp-step-title {
   margin: 10px 0 14px;
-  font-family: 'Newsreader', 'Georgia', serif; /* same serif as the big hero title */
-  font-variation-settings: 'opsz' 72;
+  font-family: var(--sans); /* same serif as the big hero title */
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: clamp(36px, 4.4vw, 60px);
@@ -1571,7 +1666,7 @@ onBeforeUnmount(() => {
   margin-top: 8px;
   padding: 7px 10px;
   border-radius: 10px;
-  background: #fff;
+  background: #fbf5ea;
   border: 1px solid #e8dfcf;
   color: #8a959c;
   font-size: 11px;
@@ -1760,7 +1855,7 @@ onBeforeUnmount(() => {
 }
 .d-city-text > b {
   display: block;
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--sans);
   font-size: 19px;
   font-weight: 500;
   line-height: 1.1;
@@ -1835,7 +1930,7 @@ onBeforeUnmount(() => {
   top: 46px;
   padding: 3px 8px;
   border-radius: 8px;
-  background: #fff;
+  background: #fbf5ea;
   font-size: 10px;
   font-weight: 800;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
@@ -1890,7 +1985,7 @@ onBeforeUnmount(() => {
   display: block;
 }
 .v-head b {
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--sans);
   font-size: 18px;
   font-weight: 500;
 }
@@ -1928,7 +2023,7 @@ onBeforeUnmount(() => {
   margin-bottom: 6px;
   padding: 7px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 2px 8px rgba(0, 29, 44, 0.07);
 }
 .v-main {
@@ -2034,7 +2129,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   padding: 6px 8px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 2px 8px rgba(0, 29, 44, 0.07);
   opacity: 0;
   transform: translateX(40px);
@@ -2167,7 +2262,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   padding: 6px 8px;
   border-radius: 10px;
-  background: #fff;
+  background: #fbf5ea;
   font-size: 9.5px;
   box-shadow: 0 4px 12px rgba(0, 29, 44, 0.12);
 }
@@ -2193,7 +2288,7 @@ onBeforeUnmount(() => {
   gap: 1px;
   padding: 6px 2px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   overflow: hidden;
 }
 .t-hour span {
@@ -2266,7 +2361,7 @@ onBeforeUnmount(() => {
 .t-card {
   padding: 9px 11px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 2px 8px rgba(0, 29, 44, 0.07);
 }
 .t-card-head {
@@ -2317,7 +2412,7 @@ onBeforeUnmount(() => {
   margin-top: 8px;
   padding: 7px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 2px 8px rgba(0, 29, 44, 0.07);
 }
 .t-next div {
@@ -2348,7 +2443,7 @@ onBeforeUnmount(() => {
   font-size: 10px;
 }
 .t-card.money b {
-  font-family: 'Newsreader', Georgia, serif;
+  font-family: var(--sans);
   font-size: 24px;
   font-weight: 500;
   color: #edae49;
@@ -2473,7 +2568,7 @@ onBeforeUnmount(() => {
   margin-left: -150px;
   padding: 12px;
   border-radius: 48px;
-  background: #0d1117;
+  background: #00283c;
   box-shadow: 0 0 0 2px #2b3440, 0 40px 80px rgba(0, 0, 0, 0.5);
   transition: transform 0.2s ease-out;
 }
@@ -2485,7 +2580,7 @@ onBeforeUnmount(() => {
   height: 26px;
   margin-left: -46px;
   border-radius: 999px;
-  background: #0d1117;
+  background: #00283c;
 }
 .lp-phone-screen {
   position: relative;
@@ -2581,7 +2676,7 @@ onBeforeUnmount(() => {
   margin: -42px 12px 0;
   padding: 12px 14px;
   border-radius: 16px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 10px 24px rgba(0, 29, 44, 0.14);
 }
 .ph-title {
@@ -2715,7 +2810,7 @@ onBeforeUnmount(() => {
   margin: 0 12px;
   padding: 8px;
   border-radius: 14px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 2px 8px rgba(0, 29, 44, 0.07);
 }
 .ph-stop + .ph-stop {
@@ -2791,7 +2886,7 @@ onBeforeUnmount(() => {
   margin: 0 12px 8px;
   padding: 9px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 2px 8px rgba(0, 29, 44, 0.07);
 }
 .ph-vote-top {
@@ -2861,7 +2956,7 @@ onBeforeUnmount(() => {
   margin: 0 12px 6px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   font-weight: 600;
 }
 .ph-check span {
@@ -2911,7 +3006,7 @@ onBeforeUnmount(() => {
   margin: 0 12px 6px;
   padding: 8px 10px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
 }
 .ph-cost-icon {
   width: 30px;
@@ -2987,8 +3082,7 @@ onBeforeUnmount(() => {
 
 .lp-join-copy h2 {
   margin: 0 0 16px;
-  font-family: 'Newsreader', 'Georgia', serif; /* same serif as the big hero title */
-  font-variation-settings: 'opsz' 72;
+  font-family: var(--sans); /* same serif as the big hero title */
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: clamp(42px, 5vw, 68px);
@@ -3013,7 +3107,7 @@ onBeforeUnmount(() => {
   border-radius: 999px;
   background: #edae49;
   color: #001d2c;
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sans);
   font-size: 19px;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -3029,7 +3123,7 @@ onBeforeUnmount(() => {
 }
 .lp-join-link {
   color: #fff;
-  font-family: 'Oswald', 'Inter', sans-serif;
+  font-family: var(--sans);
   font-size: 19px;
   font-weight: 500;
   letter-spacing: 0.05em;
@@ -3092,8 +3186,7 @@ onBeforeUnmount(() => {
 .lp-feat-title {
   margin: 0 0 10px;
   text-align: center;
-  font-family: 'Newsreader', 'Georgia', serif; /* same serif as the big hero title */
-  font-variation-settings: 'opsz' 72;
+  font-family: var(--sans); /* same serif as the big hero title */
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: clamp(38px, 5vw, 64px);
@@ -3178,8 +3271,7 @@ onBeforeUnmount(() => {
 }
 .lp-card h3 {
   margin: 20px 8px 8px;
-  font-family: 'Newsreader', 'Georgia', serif; /* same serif as the big hero title */
-  font-variation-settings: 'opsz' 72;
+  font-family: var(--sans); /* same serif as the big hero title */
   font-weight: 500;
   letter-spacing: -0.02em;
   font-size: 25px;
@@ -3281,7 +3373,7 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #fff;
+  background: #fbf5ea;
   color: #c9c2b5;
   font-size: 22px;
   box-shadow: 0 10px 22px rgba(0, 29, 44, 0.2);
@@ -3301,7 +3393,7 @@ onBeforeUnmount(() => {
   gap: 2px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 10px 20px rgba(0, 29, 44, 0.12);
 }
 .a-bill small, .a-bill span { color: #5b6b75; font-size: 12px; }
@@ -3339,7 +3431,7 @@ onBeforeUnmount(() => {
   gap: 10px;
   padding: 12px 16px;
   border-radius: 14px;
-  background: #fff;
+  background: #fbf5ea;
   box-shadow: 0 10px 20px rgba(0, 29, 44, 0.12);
 }
 .a-row b, .a-row small { display: block; }
@@ -3365,7 +3457,7 @@ onBeforeUnmount(() => {
   gap: 12px;
   padding: 9px 12px;
   border-radius: 12px;
-  background: #fff;
+  background: #fbf5ea;
   font-weight: 600;
   box-shadow: 0 6px 14px rgba(0, 29, 44, 0.08);
   top: calc(20px + var(--n) * 52px);
@@ -3425,7 +3517,7 @@ onBeforeUnmount(() => {
   gap: 2px;
   padding: 14px 16px;
   border-radius: 14px;
-  background: #fff;
+  background: #fbf5ea;
   border: 2px dashed #edae49;
   box-shadow: 0 10px 20px rgba(0, 29, 44, 0.12);
 }
@@ -3460,12 +3552,786 @@ onBeforeUnmount(() => {
   .lp-card.pop .lp-art { animation: none; }
   .ph-cursor, .ph-caret { animation: none; }
 }
+
+/* =====================================================================
+   Night expedition theme (the whole page, top to bottom)
+   Navy-slate night sky, warm campfire amber, cream sketch-paper.
+   Hand lettering (Caveat) only for the big titles and chapter markers;
+   everything you read or press uses Plus Jakarta Sans.
+   ===================================================================== */
+.lp {
+  --sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --hand: 'Caveat', 'Segoe Script', cursive;
+  --night: #0f172a;
+  --night-2: #0b131d;
+  --slip: #132238;
+  --edge: #1e293b;
+  --cream: #faf8f3;
+  --amber: #f59e0b;
+  --amber-hi: #fbbf24;
+  --amber-dark: #b45309;
+  --soft: #cbd5e1;
+  background: var(--night-2);
+  /* faint constellations and topographic contour lines, shared by the night sections */
+  --stars: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='420'%3E%3Cg fill='%23faf8f3'%3E%3Ccircle cx='40' cy='60' r='1.6'/%3E%3Ccircle cx='96' cy='34' r='1.1'/%3E%3Ccircle cx='150' cy='72' r='1.8'/%3E%3Ccircle cx='204' cy='50' r='1.2'/%3E%3Ccircle cx='330' cy='300' r='1.7'/%3E%3Ccircle cx='384' cy='262' r='1.2'/%3E%3Ccircle cx='440' cy='310' r='1.5'/%3E%3Ccircle cx='470' cy='360' r='1'/%3E%3Ccircle cx='260' cy='170' r='0.9'/%3E%3Ccircle cx='70' cy='300' r='0.9'/%3E%3Ccircle cx='480' cy='90' r='1'/%3E%3Ccircle cx='160' cy='380' r='0.8'/%3E%3C/g%3E%3Cg fill='none' stroke='%23faf8f3' stroke-width='0.8' stroke-dasharray='2 4'%3E%3Cpath d='M40 60 96 34 150 72 204 50'/%3E%3Cpath d='M330 300 384 262 440 310 470 360'/%3E%3C/g%3E%3C/svg%3E");
+  --contours: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Cg fill='none' stroke='%23faf8f3' stroke-width='1'%3E%3Cpath d='M-20 380 C 80 320 160 360 250 300 S 420 250 520 290 660 260 680 250'/%3E%3Cpath d='M-20 410 C 90 350 170 390 260 330 S 430 280 530 320 660 290 680 280'/%3E%3Cpath d='M-20 440 C 100 380 180 420 270 360 S 440 310 540 350 660 320 680 310'/%3E%3Cpath d='M-20 120 C 90 80 170 140 280 100 S 470 40 560 90 660 110 680 100'/%3E%3Cpath d='M-20 150 C 100 110 180 170 290 130 S 480 70 570 120 660 140 680 130'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ----- A. Hero ----- */
+/* Brand: a rounded cream tab with a hand-drawn paper plane */
+.lp-brand {
+  gap: 10px;
+  padding: 7px 16px 7px 8px;
+  border: 2px solid #e2d9cc;
+  border-radius: 16px;
+  background: var(--cream);
+  color: var(--night);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-shadow: none;
+  box-shadow: 0 4px 0 #c9b893, 0 0 28px rgba(245, 158, 11, 0.25);
+}
+.lp-brand.static {
+  position: static;
+  display: inline-flex;
+  font-size: 13px;
+}
+.lp-brand-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: #fdf1d6;
+  border: 1.5px solid #e8d5a8;
+}
+.lp-brand-text span {
+  white-space: nowrap;
+}
+
+/* Sign in / Join: a dark tactile button with a cream edge */
+.lp-signin {
+  display: inline-flex;
+  align-items: center;
+  padding: 11px 20px;
+  border: 2px solid var(--cream);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.78);
+  color: var(--cream);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 0 4px 0 #c9b893, 0 12px 26px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
+}
+.lp-signin:hover {
+  background: rgba(19, 34, 56, 0.92);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #c9b893, 0 16px 30px rgba(0, 0, 0, 0.4);
+}
+.lp-signin:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #c9b893;
+}
+.lp-signin:focus-visible {
+  outline: 3px solid rgba(245, 158, 11, 0.8);
+  outline-offset: 4px;
+}
+
+/* The headline in hand lettering, one word glowing like a campfire */
+.lp-title {
+  font-family: var(--hand);
+  font-weight: 700;
+  font-size: clamp(76px, 11vw, 168px);
+  line-height: 0.82;
+  letter-spacing: 0;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+}
+.lp-title .lp-accent {
+  font-style: normal;
+  color: var(--amber-hi);
+  padding-left: 0;
+  text-shadow: 0 0 28px rgba(245, 158, 11, 0.55), 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+.lp-tag {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(16px, 1.6vw, 20px);
+  letter-spacing: 0.14em;
+  color: var(--cream);
+}
+
+/* The big amber button: chunky, bevelled, presses down */
+.lp-explore {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  border: 2px solid var(--amber-dark);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+  color: #1a1408;
+  font-family: var(--sans);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -3px 0 rgba(180, 83, 9, 0.35),
+    0 6px 0 #92400e,
+    0 18px 34px rgba(245, 158, 11, 0.32);
+  transition: transform 0.12s, box-shadow 0.12s, filter 0.15s;
+}
+.lp-explore:hover {
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -3px 0 rgba(180, 83, 9, 0.35),
+    0 8px 0 #92400e,
+    0 22px 40px rgba(245, 158, 11, 0.4);
+}
+.lp-explore:active {
+  transform: translateY(6px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 0 0 #92400e, 0 8px 16px rgba(245, 158, 11, 0.25);
+}
+.lp-explore:focus-visible {
+  outline: 3px solid var(--cream);
+  outline-offset: 4px;
+}
+.lp-explore.small {
+  padding: 13px 24px;
+  font-size: 15px;
+}
+.lp-arrow {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+.lp-explore:hover .lp-arrow {
+  transform: translateX(4px);
+}
+.lp-cue {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+/* Origami paper planes drifting on glowing dotted trails */
+.lp-origami {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.lp-paper {
+  position: absolute;
+  display: block;
+  width: 200px;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
+  animation: lp-paper-drift 9s ease-in-out infinite;
+}
+.lp-paper svg {
+  display: block;
+  width: 100%;
+}
+.lp-paper.p1 {
+  top: 15%;
+  left: 36%;
+}
+.lp-paper.p2 {
+  top: 7%;
+  left: 60%;
+  width: 130px;
+  opacity: 0.75;
+  animation-duration: 12s;
+  animation-delay: -4s;
+}
+.lp-paper-trail {
+  fill: none;
+  stroke: var(--amber-hi);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1 9;
+  opacity: 0.8;
+  animation: lp-trail-run 1.6s linear infinite;
+}
+@keyframes lp-paper-drift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  50% { transform: translate(26px, -12px) rotate(-3deg); }
+}
+@keyframes lp-trail-run {
+  to { stroke-dashoffset: -20; }
+}
+
+/* ----- B. The Campfire Briefing ----- */
+.lp-brief {
+  position: relative;
+  padding: 90px 40px 100px;
+  background:
+    radial-gradient(520px 200px at 50% 78%, rgba(245, 158, 11, 0.16), transparent 70%),
+    linear-gradient(180deg, #05080d 0%, var(--night) 60%, var(--night-2) 100%);
+}
+/* faint stars behind the card */
+.lp-brief::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--stars) 0 0 / 520px 420px;
+  opacity: 0.18;
+  pointer-events: none;
+}
+.lp-brief-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px 40px;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 34px 38px 32px;
+  border: 2px solid #e2d9cc;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.07) 1px, transparent 1.2px) 0 0 / 18px 18px,
+    var(--cream);
+  color: var(--night);
+  box-shadow: 0 6px 0 #c9b893, 0 30px 60px -20px rgba(0, 0, 0, 0.7), 0 0 80px rgba(245, 158, 11, 0.12);
+  transform: rotate(-0.4deg);
+}
+/* stitching round the inside edge */
+.lp-brief-card::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 2px dashed rgba(201, 184, 148, 0.7);
+  border-radius: 15px;
+  pointer-events: none;
+}
+.lp-brief-tape {
+  position: absolute;
+  top: -12px;
+  width: 92px;
+  height: 26px;
+  background: rgba(245, 158, 11, 0.55);
+  border-left: 2px dashed rgba(255, 255, 255, 0.5);
+  border-right: 2px dashed rgba(255, 255, 255, 0.5);
+}
+.lp-brief-tape.tl {
+  left: 34px;
+  transform: rotate(-6deg);
+}
+.lp-brief-tape.tr {
+  right: 34px;
+  transform: rotate(5deg);
+  background: rgba(47, 143, 148, 0.45);
+}
+.lp-brief-guide {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.lp-brief-pip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 150px;
+  height: 150px;
+  padding: 0;
+  border: 3px solid var(--night);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #1f3a5c, var(--night));
+  box-shadow: 0 0 0 6px #f3e8cf, 0 0 0 8px #c9b893, 0 0 30px rgba(245, 158, 11, 0.35);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.lp-brief-pip:hover {
+  transform: rotate(-4deg) scale(1.03);
+}
+.lp-brief-pip:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 10px;
+}
+.lp-brief-bubble {
+  position: relative;
+  padding: 16px 20px 18px;
+  border: 2px solid var(--night);
+  border-radius: 18px;
+  background: #fbf5ea;
+  box-shadow: 0 4px 0 var(--night);
+}
+/* the bubble's tail points at Pip */
+.lp-brief-bubble::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 40%;
+  width: 20px;
+  height: 20px;
+  background: #fbf5ea;
+  border-left: 2px solid var(--night);
+  border-bottom: 2px solid var(--night);
+  transform: rotate(45deg);
+}
+.lp-brief-kicker {
+  margin: 0 0 2px;
+  font-family: var(--hand);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--amber-dark);
+}
+.lp-brief-title {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--night);
+}
+.lp-brief-sub {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #3a4a57;
+}
+/* luggage tags */
+.lp-bags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+.lp-bag {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 26px;
+  border: 2px solid var(--night);
+  border-radius: 6px 12px 12px 6px;
+  background: #fdf1d6;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--night);
+  box-shadow: 0 3px 0 var(--night);
+  transform: rotate(var(--r));
+  transition: transform 0.2s;
+}
+/* the tag's eyelet */
+.lp-bag::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border: 2px solid var(--night);
+  border-radius: 50%;
+  background: var(--cream);
+}
+.lp-bag:hover {
+  transform: rotate(0deg) translateY(-2px);
+}
+.lp-bag-stamp {
+  display: grid;
+  place-items: center;
+}
+.lp-brief-btns {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+}
+.lp-brief-hint {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #5b6b75;
+}
+
+/* ----- C. Story and features: the night trail ----- */
+.lp-story {
+  background:
+    radial-gradient(900px 600px at 75% 40%, rgba(245, 158, 11, 0.08), transparent 70%),
+    radial-gradient(700px 500px at 15% 80%, rgba(47, 143, 148, 0.12), transparent 70%),
+    linear-gradient(180deg, var(--night-2) 0%, var(--night) 30%, var(--night) 80%, var(--night-2) 100%);
+}
+.lp-story::before,
+.lp-feat::before,
+.lp-join::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--stars) 0 0 / 520px 420px, var(--contours) 0 0 / 640px 480px;
+  opacity: 0.12;
+  pointer-events: none;
+}
+.lp-step-num {
+  font-family: var(--hand);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--amber-hi);
+}
+.lp-step-title {
+  font-family: var(--hand);
+  font-weight: 700;
+  letter-spacing: 0;
+  font-size: clamp(48px, 5.4vw, 78px);
+  line-height: 0.95;
+  color: var(--cream);
+}
+.lp-step-text {
+  color: var(--soft);
+}
+.lp-step-points li {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.lp-step-points li::before {
+  color: var(--amber);
+}
+
+.lp-feat {
+  position: relative;
+  background:
+    radial-gradient(800px 400px at 50% 0%, rgba(245, 158, 11, 0.08), transparent 70%),
+    linear-gradient(180deg, var(--night-2), var(--night) 40%, var(--night-2));
+}
+.lp-feat > * {
+  position: relative;
+}
+.lp-feat-title {
+  font-family: var(--hand);
+  font-weight: 700;
+  letter-spacing: 0;
+  font-size: clamp(54px, 6vw, 86px);
+  line-height: 1;
+  color: var(--cream);
+}
+.lp-feat-sub {
+  color: var(--soft);
+}
+/* Each feature: a navy dossier card with a cream sketch-paper picture */
+.lp-card-in {
+  padding: 12px 12px 22px;
+  border-radius: 16px;
+  background: var(--slip);
+  border: 1px solid var(--edge);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 24px 40px -26px rgba(0, 0, 0, 0.8);
+}
+.lp-card-in.hover {
+  border-color: rgba(245, 158, 11, 0.55);
+  background: #16294a;
+}
+.lp-art {
+  border-radius: 10px;
+  border: 1px solid #e2d9cc;
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.07) 1px, transparent 1.2px) 0 0 / 16px 16px,
+    var(--cream);
+}
+.lp-card-log {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 8px 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+  transform: translateZ(20px);
+}
+.lp-card-log::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+}
+.lp-card h3 {
+  margin: 8px 8px 8px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--cream);
+}
+.lp-card p {
+  font-size: 14.5px;
+  color: var(--soft);
+}
+
+/* Join */
+.lp-join {
+  position: relative;
+}
+.lp-join > * {
+  position: relative;
+}
+/* the stars and contours run the full width, not just the centred column */
+.lp-join::before {
+  left: 50%;
+  right: auto;
+  width: 100vw;
+  margin-left: -50vw;
+}
+.lp-join-art {
+  background:
+    radial-gradient(420px 300px at 50% 30%, rgba(245, 158, 11, 0.16), transparent 70%),
+    linear-gradient(180deg, var(--slip), var(--night));
+  border: 1px solid var(--edge);
+}
+.lp-join-copy h2 {
+  font-family: var(--hand);
+  font-weight: 700;
+  letter-spacing: 0;
+  font-size: clamp(56px, 6vw, 88px);
+  line-height: 0.95;
+  color: var(--cream);
+}
+.lp-join-copy p {
+  color: var(--soft);
+}
+.lp-join-btn {
+  border: 2px solid var(--amber-dark);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+  color: #1a1408;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 6px 0 #92400e, 0 18px 34px rgba(245, 158, 11, 0.3);
+  transition: transform 0.12s, box-shadow 0.12s, filter 0.15s;
+}
+.lp-join-btn:hover {
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+  filter: brightness(1.06);
+  transform: translateY(-2px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 8px 0 #92400e, 0 22px 40px rgba(245, 158, 11, 0.4);
+}
+.lp-join-btn:active {
+  transform: translateY(6px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.45), 0 0 0 #92400e;
+}
+.lp-join-link {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--cream);
+}
+
+/* ----- D. Footer ----- */
+.lp-foot {
+  position: relative;
+  padding: 120px 40px 28px;
+  background:
+    radial-gradient(1.2px 1.2px at 12% 30%, rgba(250, 248, 243, 0.8), transparent),
+    radial-gradient(1px 1px at 28% 12%, rgba(250, 248, 243, 0.6), transparent),
+    radial-gradient(1.4px 1.4px at 46% 22%, rgba(250, 248, 243, 0.7), transparent),
+    radial-gradient(1px 1px at 63% 8%, rgba(250, 248, 243, 0.5), transparent),
+    radial-gradient(1.3px 1.3px at 78% 26%, rgba(250, 248, 243, 0.75), transparent),
+    radial-gradient(1px 1px at 91% 14%, rgba(250, 248, 243, 0.55), transparent),
+    radial-gradient(600px 260px at 50% 100%, rgba(245, 158, 11, 0.14), transparent 70%),
+    linear-gradient(180deg, var(--night-2) 0 88px, var(--night) 88px, #060b12);
+  color: var(--soft);
+  overflow: hidden;
+}
+/* a faint mountain ridge along the top edge */
+.lp-foot-ridge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+  height: 90px;
+  fill: var(--night); /* the same colour as the footer below it, so the peaks rise out of it */
+}
+.lp-foot-in {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.lp-foot-cta {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-bottom: 64px;
+  text-align: center;
+}
+.lp-foot-title {
+  margin: 0;
+  font-family: var(--hand);
+  font-size: clamp(56px, 6vw, 84px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cream);
+  text-shadow: 0 0 30px rgba(245, 158, 11, 0.25);
+}
+.lp-foot-text {
+  margin: 0 0 14px;
+  font-size: 17px;
+  color: var(--soft);
+}
+.lp-foot-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 32px 40px;
+  padding: 28px;
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  background: rgba(19, 34, 56, 0.7);
+}
+.lp-foot-brand p {
+  margin: 14px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+.lp-foot-head {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.lp-foot-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.lp-foot-nav a,
+.lp-foot-nav button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s, transform 0.15s;
+}
+.lp-foot-nav a:hover,
+.lp-foot-nav button:hover {
+  color: var(--amber-hi);
+  transform: translateX(3px);
+}
+.lp-foot-status ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.lp-foot-status li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.lp-dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  animation: lp-dot-glow 2.4s ease-in-out infinite;
+}
+.lp-dot.green { background: #4ade80; color: #4ade80; }
+.lp-dot.amber { background: var(--amber); color: var(--amber); animation-delay: 0.6s; }
+.lp-dot.teal { background: #5fbfc4; color: #5fbfc4; animation-delay: 1.2s; }
+@keyframes lp-dot-glow {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; }
+  50% { box-shadow: 0 0 10px 1px currentColor; }
+}
+.lp-foot-base {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+.lp-foot-top {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #94a3b8;
+  font: inherit;
+  font-weight: 700;
+}
+.lp-foot-top:hover {
+  color: var(--amber-hi);
+}
+.lp-foot-nav a:focus-visible,
+.lp-foot-nav button:focus-visible,
+.lp-foot-top:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ----- Smaller screens ----- */
+@media (max-width: 900px) {
+  .lp-step-num { font-size: 24px; }
+  .lp-step-title { font-size: 40px; margin: 4px 0 8px; }
+  .lp-brief-card { grid-template-columns: minmax(0, 1fr); padding: 30px 24px 26px; }
+  .lp-foot-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .lp-foot-brand { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .lp-brand { left: 16px; top: 16px; font-size: 12px; letter-spacing: 0.1em; padding: 5px 12px 5px 6px; }
+  .lp-brand.static { font-size: 12px; }
+  .lp-brand-icon { width: 28px; height: 28px; border-radius: 9px; }
+  .lp-signin { padding: 9px 14px; font-size: 12px; }
+  .lp-explore { padding: 14px 24px; font-size: 16px; }
+  .lp-content { bottom: 86px; } /* room for "See how it works" under the taller button */
+  .lp-paper.p1 { left: 8%; top: 18%; width: 150px; }
+  .lp-paper.p2 { display: none; }
+  .lp-brief { padding: 60px 16px 70px; }
+  .lp-brief-guide { flex-direction: column; align-items: flex-start; }
+  .lp-brief-pip { width: 116px; height: 116px; }
+  .lp-brief-bubble::before { left: 40px; top: -12px; transform: rotate(135deg); }
+  .lp-brief-title { font-size: 17px; }
+  .lp-foot { padding: 100px 20px 24px; }
+  .lp-foot-grid { grid-template-columns: minmax(0, 1fr); padding: 22px; }
+}
+@media (max-width: 520px) {
+  .lp-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+  .lp-brand.static .lp-brand-text { display: inline; }
+  .lp-title { font-size: 72px; }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  .lp-title { font-size: clamp(44px, 15vh, 84px); }
+  .lp-explore { padding: 9px 20px; font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-paper, .lp-paper-trail, .lp-dot { animation: none !important; }
+  .lp-explore, .lp-signin, .lp-bag, .lp-brief-pip { transition: none; }
+}
 </style>
 
 <!-- The page fills the whole window, so the body behind it goes dark too -->
 <style>
 body.lp-body {
-  background: #05080d;
+  background: #0b131d;
   overflow: hidden;
 }
 </style>

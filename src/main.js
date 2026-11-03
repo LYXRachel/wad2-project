@@ -6,6 +6,7 @@ import axios from 'axios'
 import { setOffline } from './notify.js'
 import './assets/style.css'
 import './assets/playful.css' // the playful look: colours, chunky buttons, cards, animations
+import './assets/scrapbook.css' // the scrapbook look shared by the trip tabs (tokens + .sb-* pieces)
 
 // ---------- A "background lane" for slow lookups ----------
 // Photos, map positions, crowd forecasts and popular places can take seconds each, and a trip page asks

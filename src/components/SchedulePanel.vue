@@ -116,17 +116,16 @@ const saveText = computed(() => saving.value || props.saveStatus)
 </script>
 
 <style scoped>
+/* Smart Schedule in the travel journal look (colours from src/assets/scrapbook.css) */
 .sp {
-  --mint: #edae49;
-  --line: rgba(255, 255, 255, 0.08);
-  --muted: #8b949e;
-  --text: #e6edf3;
-  background: #00283c;
-  color: var(--text);
-  border: 1px solid var(--line);
+  position: relative;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  border: 2.5px solid var(--sb-ink);
   border-radius: 18px;
-  padding: 16px 18px;
-  margin-bottom: 18px;
+  box-shadow: 0 5px 0 var(--sb-ink);
+  padding: 18px 20px;
+  margin-bottom: 22px;
 }
 .sp-head {
   display: flex;
@@ -136,18 +135,33 @@ const saveText = computed(() => saving.value || props.saveStatus)
   gap: 12px;
 }
 .sp-title {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
-  color: #fff;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  color: var(--sb-ink);
 }
 .sp-spark {
-  color: var(--mint);
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transform: rotate(-6deg);
 }
 .sp-sub {
-  margin: 2px 0 0;
-  font-size: 13px;
-  color: var(--muted);
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--sb-ink-soft);
 }
 .sp-head-right {
   display: flex;
@@ -156,121 +170,157 @@ const saveText = computed(() => saving.value || props.saveStatus)
   margin-left: auto;
 }
 .sp-saved {
+  padding: 3px 10px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: #d9f2e4;
+  color: #17603f;
   font-size: 12px;
-  color: var(--muted);
+  font-weight: 800;
+  transform: rotate(2deg);
 }
 .sp-saved.bad {
-  color: #f09aa5;
+  background: #fde0dc;
+  color: #a3262a;
 }
 
-/* Controls */
+/* Controls: one cream strip, three settings */
 .sp-controls {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, auto));
   justify-content: start;
-  gap: 12px 22px;
-  margin-top: 14px;
-  padding: 12px;
-  background: #0a3550;
-  border: 1px solid var(--line);
+  gap: 14px 28px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--sb-cream);
+  border: 2px dashed rgba(18, 50, 74, 0.3);
   border-radius: 14px;
 }
 .sp-control {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
 }
 .sp-label {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--sb-ink-soft);
 }
 .sp-hours {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 6px 2px 12px;
+  padding: 3px 6px 3px 12px;
+  border: 2px solid var(--sb-ink);
   border-radius: 999px;
-  background: #00283c;
-  border: 1px solid var(--line);
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
 }
 .sp-time :deep(.dd-trigger) {
   border: 0;
+  border-radius: 999px;
   background: transparent;
   box-shadow: none;
-  padding: 0 6px;
-  font-weight: 600;
+  padding: 2px 8px;
+  color: var(--sb-ink);
+  font-weight: 800;
 }
 .sp-time :deep(.dd-trigger:hover),
 .sp-time.open :deep(.dd-trigger) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 191, 60, 0.35);
 }
 .sp-dash {
-  color: var(--muted);
+  color: var(--sb-ink-soft);
+  font-weight: 800;
 }
 
-/* Segmented controls */
+/* Segmented controls: the picked one is an amber button */
 .sp-seg {
   display: inline-flex;
-  gap: 2px;
+  gap: 3px;
   padding: 3px;
+  border: 2px solid var(--sb-ink);
   border-radius: 999px;
-  background: #00283c;
-  border: 1px solid var(--line);
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
 }
 .sp-seg button {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--muted);
-  padding: 5px 12px;
+  color: var(--sb-ink-soft);
+  padding: 5px 13px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.15s var(--sb-spring);
 }
 .sp-seg button:hover {
-  color: var(--text);
+  color: var(--sb-ink);
+  background: var(--sb-cream);
 }
 .sp-seg button.on {
-  background: rgba(237, 174, 73, 0.14);
-  color: var(--mint);
-  box-shadow: inset 0 0 0 1px rgba(237, 174, 73, 0.35);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: inset 0 0 0 2px var(--sb-ink);
 }
 
-/* Status strip */
+/* Status strip: a note from the scheduler */
 .sp-status {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  margin: 12px 0 0;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #cbd5e1;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 9px 12px;
+  border: 2px solid rgba(18, 50, 74, 0.2);
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: #fffdf8;
+  color: var(--sb-ink);
 }
 .sp-status-icon {
   flex: none;
-  font-weight: 700;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-cream);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
 }
 .sp-status.is-ok {
-  background: rgba(237, 174, 73, 0.08);
-  color: #f8deb0;
+  border-color: var(--sb-ink);
+  background: #e6f6ec;
+}
+.sp-status.is-ok .sp-status-icon {
+  background: #8fd6a8;
 }
 .sp-status.is-fixed {
-  background: rgba(88, 166, 255, 0.1);
-  color: #c9e1ff;
+  border-color: var(--sb-ink);
+  background: #e3f4f7;
+}
+.sp-status.is-fixed .sp-status-icon {
+  background: var(--sb-teal);
+  color: #fff;
 }
 .sp-status.is-warn {
-  background: rgba(255, 176, 32, 0.1);
-  color: #ffd38a;
+  border-color: var(--sb-ink);
+  background: #fff1cf;
+}
+.sp-status.is-warn .sp-status-icon {
+  background: var(--sb-amber);
 }
 .sp button:focus-visible {
-  outline: 2px solid var(--mint);
+  outline: 3px solid var(--sb-teal);
   outline-offset: 2px;
 }
 
@@ -278,6 +328,7 @@ const saveText = computed(() => saving.value || props.saveStatus)
   .sp-controls {
     grid-template-columns: 1fr;
   }
+  .sp-hours,
   .sp-seg {
     align-self: flex-start;
   }
@@ -285,6 +336,21 @@ const saveText = computed(() => saving.value || props.saveStatus)
     margin-left: 0;
     width: 100%;
     justify-content: space-between;
+  }
+}
+@media (max-width: 420px) {
+  .sp {
+    padding: 16px 14px;
+  }
+  .sp-controls {
+    padding: 12px;
+  }
+  .sp-hours {
+    max-width: 100%;
+    padding-left: 10px;
+  }
+  .sp-time :deep(.dd-trigger) {
+    padding: 2px 4px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

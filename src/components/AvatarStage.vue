@@ -1,8 +1,8 @@
 <template>
   <!-- The 3D Travel Twin. Drag (or arrow keys) to turn it; the camera glides to whatever you're changing.
-       play('celebrate') / play('hop') for the unlock pop-up and after saving. -->
+       play('celebrate') / play('hop') for the unlock pop-up and after saving. Click the twin and it waves, hops, spins or cheers. -->
   <div ref="wrap" class="av-stage" :class="{ dragging }" tabindex="0" role="group" aria-roledescription="3D preview"
-    aria-label="Your travel twin. Drag, or use the left and right arrow keys, to turn it."
+    aria-label="Your travel twin. Drag, or use the left and right arrow keys, to turn it. Click it, or press Enter, and it does a little move."
     @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onCancel" @lostpointercapture="onCancel"
     @keydown="onKey">
     <canvas ref="canvas" class="av-canvas"></canvas>
@@ -37,7 +37,7 @@ const dragging = ref(false)
 
 // Where the camera looks, how far away it is, and which way the twin faces for each focus
 const VIEWS = {
-  full: { y: 1.05, dist: 4.4, yaw: 0.35 },
+  full: { y: 1.0, dist: 4.7, yaw: 0.35 },
   face: { y: 1.8, dist: 1.75, yaw: 0.25 },
   body: { y: 1.15, dist: 2.7, yaw: 0.35 },
   legs: { y: 0.55, dist: 2.5, yaw: 0.35 },
@@ -45,7 +45,15 @@ const VIEWS = {
   back: { y: 1.15, dist: 2.9, yaw: Math.PI + 0.45 }
 }
 // Little moves (seconds): a celebration for new unlocks, a hop after saving
-const MOVES = { celebrate: { name: 'celebrate', dur: 2.4 }, hop: { name: 'hop', dur: 0.8 } }
+const MOVES = {
+  celebrate: { name: 'celebrate', dur: 2.4 },
+  hop: { name: 'hop', dur: 0.8 },
+  wave: { name: 'wave', dur: 1.6 },
+  spin: { name: 'spin', dur: 1.1 }
+}
+// Click (or tap) the twin and it does one of these, taking turns
+const TAP_MOVES = ['wave', 'hop', 'spin', 'celebrate']
+let tapTurn = 0
 
 const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 // Slower phones/laptops: no shadows, fewer pixels
@@ -101,7 +109,7 @@ onMounted(async () => {
   camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60)
 
   // Lights: soft sky fill, a warm key light that casts the shadow, and two rim lights (amber + teal) from behind
-  scene.add(new THREE.HemisphereLight('#cfe3ff', '#0b3a52', 0.9))
+  scene.add(new THREE.HemisphereLight('#fff6e6', '#d9c7a4', 1.0))
   const key = new THREE.DirectionalLight('#fff4e3', 2.4)
   key.position.set(2.2, 4, 3)
   key.castShadow = !lowPower
@@ -120,13 +128,15 @@ onMounted(async () => {
   rimCool.position.set(3, 1.5, -3)
   scene.add(rimCool)
 
-  // The round platform it stands on, with a glowing amber edge
+  // The round platform it stands on: a cream compass rug with a navy rim (matches the app's paper look)
   platform = new THREE.Group()
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.9, 0.1, 64), new THREE.MeshStandardMaterial({ color: '#0b3a52', roughness: 0.6 }))
+  const rugMat = new THREE.MeshStandardMaterial({ color: '#f6ead2', roughness: 0.9 })
+  const rugTop = new THREE.MeshStandardMaterial({ map: compassTexture(), roughness: 0.9 })
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.9, 0.1, 64), [rugMat, rugTop, rugMat])
   disc.position.y = -0.05
   disc.receiveShadow = true
   platform.add(disc)
-  const edge = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.012, 8, 96), new THREE.MeshStandardMaterial({ color: '#edae49', emissive: '#edae49', emissiveIntensity: 1.4 }))
+  const edge = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.018, 8, 96), new THREE.MeshStandardMaterial({ color: '#12324a', roughness: 0.6 }))
   edge.rotation.x = Math.PI / 2
   platform.add(edge)
   scene.add(platform)
@@ -250,6 +260,19 @@ function applyMove(t) {
     right.rotation.z = 0.14 + arms * 2.2 * e
     for (const leg of P.legs) leg.rotation.x = p > 0.2 && p < 0.75 ? -0.25 : 0
   }
+  if (m.name === 'wave') {
+    // Right arm up, hand waving side to side
+    right.rotation.z = 0.14 + e * 2.7
+    right.rotation.x = -Math.sin(t * 14) * 0.35 * e
+    P.head.rotation.z += 0.12 * e
+  }
+  if (m.name === 'spin') {
+    // A little hop with a full twirl
+    P.body.position.y += hopHeight(p, 0.18)
+    avatarRoot.rotation.y = yaw.v + ease(p) * Math.PI * 2
+    left.rotation.z = -0.14 - e * 0.9
+    right.rotation.z = 0.14 + e * 0.9
+  }
   if (m.name === 'celebrate') {
     // Two jumps with arms up, spinning on the second
     const q = p < 0.5 ? p / 0.5 : (p - 0.5) / 0.5
@@ -304,9 +327,15 @@ function tick(now) {
 let lastX = 0
 let lastMoveT = 0
 let speed = 0
+let downX = 0
+let downY = 0
+let downT = 0
 function onDown(e) {
   if (state.value !== 'ready') return
   dragging.value = true
+  downX = e.clientX
+  downY = e.clientY
+  downT = performance.now()
   lastX = e.clientX
   lastMoveT = performance.now()
   speed = 0
@@ -321,15 +350,34 @@ function onMove(e) {
   speed = (dx * 0.012) / Math.max(1, nowT - lastMoveT) // radians per ms
   lastMoveT = nowT
 }
-function onUp() {
+function onUp(e) {
   if (!dragging.value) return
   dragging.value = false
+  // A quick click that barely moved, on the twin itself: it does a little move
+  const moved = Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY)
+  if (moved < 6 && performance.now() - downT < 400) {
+    if (hitsTwin(e)) {
+      play(TAP_MOVES[tapTurn % TAP_MOVES.length])
+      tapTurn++
+    }
+    return
+  }
   yaw.target += speed * 180 // a flick keeps it spinning a little further
+}
+// Is the pointer over the twin (not just the empty room)?
+function hitsTwin(e) {
+  if (!avatarRoot || !camera) return false
+  const rect = canvas.value.getBoundingClientRect()
+  const pointer = new THREE.Vector2(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1)
+  const ray = new THREE.Raycaster()
+  ray.setFromCamera(pointer, camera)
+  return ray.intersectObject(avatarRoot, true).length > 0
 }
 function onCancel() {
   dragging.value = false
 }
 function onKey(e) {
+  if (e.key === 'Enter') { e.preventDefault(); play(TAP_MOVES[tapTurn % TAP_MOVES.length]); tapTurn++ }
   if (e.key === 'ArrowLeft') { e.preventDefault(); yaw.target -= 0.5 }
   if (e.key === 'ArrowRight') { e.preventDefault(); yaw.target += 0.5 }
 }
@@ -378,6 +426,51 @@ function snapshot() {
   if (!url.startsWith('data:image/webp')) url = out.toDataURL('image/jpeg', 0.85)
   return url
 }
+// The rug's top: cream with a dashed stitched ring and a simple navy compass rose
+function compassTexture() {
+  const c = document.createElement('canvas')
+  c.width = c.height = 512
+  const ctx = c.getContext('2d')
+  ctx.fillStyle = '#f6ead2'
+  ctx.fillRect(0, 0, 512, 512)
+  ctx.translate(256, 256)
+  ctx.strokeStyle = 'rgba(18, 50, 74, 0.55)'
+  ctx.lineWidth = 6
+  ctx.setLineDash([18, 14])
+  ctx.beginPath()
+  ctx.arc(0, 0, 222, 0, Math.PI * 2)
+  ctx.stroke()
+  ctx.setLineDash([])
+  ctx.lineWidth = 4
+  ctx.beginPath()
+  ctx.arc(0, 0, 150, 0, Math.PI * 2)
+  ctx.stroke()
+  // Four long points (amber north) and four short ones
+  for (let i = 0; i < 8; i++) {
+    const long = i % 2 === 0
+    const len = long ? 200 : 110
+    ctx.save()
+    ctx.rotate((i * Math.PI) / 4)
+    ctx.beginPath()
+    ctx.moveTo(0, -len)
+    ctx.lineTo(long ? 26 : 16, 0)
+    ctx.lineTo(0, 0)
+    ctx.closePath()
+    ctx.fillStyle = i === 0 ? '#ffbf3c' : 'rgba(18, 50, 74, 0.75)'
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(0, -len)
+    ctx.lineTo(long ? -26 : -16, 0)
+    ctx.lineTo(0, 0)
+    ctx.closePath()
+    ctx.fillStyle = i === 0 ? '#e09a12' : 'rgba(18, 50, 74, 0.4)'
+    ctx.fill()
+    ctx.restore()
+  }
+  const tex = new THREE.CanvasTexture(c)
+  tex.colorSpace = THREE.SRGBColorSpace
+  return tex
+}
 defineExpose({ snapshot, play })
 </script>
 
@@ -391,15 +484,15 @@ defineExpose({ snapshot, play })
   touch-action: pan-y; /* sideways drags turn the twin; scrolling the page still works */
   outline: none;
   background:
-    radial-gradient(60% 50% at 50% 38%, rgba(237, 174, 73, 0.16), transparent 70%),
-    radial-gradient(90% 70% at 50% 100%, #0b3a52 0%, transparent 70%),
-    linear-gradient(180deg, #002a40 0%, #001d2c 100%);
+    radial-gradient(55% 45% at 50% 40%, rgba(255, 191, 60, 0.22), transparent 70%),
+    radial-gradient(circle, rgba(18, 50, 74, 0.07) 1.2px, transparent 1.5px) 0 0 / 22px 22px,
+    linear-gradient(180deg, #fff6e4 0%, #f6ead2 100%);
 }
 .av-stage.dragging {
   cursor: grabbing;
 }
 .av-stage:focus-visible {
-  box-shadow: inset 0 0 0 3px rgba(237, 174, 73, 0.7);
+  box-shadow: inset 0 0 0 3px var(--sb-teal, #2fa7b8);
 }
 .av-canvas {
   display: block;
@@ -415,8 +508,9 @@ defineExpose({ snapshot, play })
   gap: 10px;
   padding: 24px;
   text-align: center;
-  color: #c9d6df;
+  color: var(--sb-ink, #12324a);
   font-size: 14px;
+  font-weight: 600;
 }
 .av-spinner {
   width: 18px;

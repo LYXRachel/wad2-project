@@ -4,6 +4,7 @@
     <!-- ===== Header & quick invite ===== -->
     <header class="cw-head">
       <div>
+        <p class="cw-kicker">Crew manifest</p>
         <h3 class="cw-title">{{ city }} Crew</h3>
         <p class="cw-sub">
           {{ people.length }} traveller{{ people.length === 1 ? '' : 's' }}
@@ -14,7 +15,6 @@
         <button type="button" class="cw-primary" :class="{ done: copied }" @click="copyLink" data-testid="crew-copy">
           <AppIcon :name="copied ? 'check' : 'link'" :size="15" /> {{ copied ? 'Link copied' : 'Copy invite link' }}
         </button>
-        <button v-if="!demo" type="button" class="cw-ghost" @click="$emit('invite')">+ Add member</button>
       </div>
     </header>
 
@@ -29,15 +29,21 @@
             <TwinFace class="cw-avatar" :style="{ background: colorFor(p.name) }" :user-id="p.id" :version="p.avatarV" :name="p.name" :trip="tripId">
               <span v-if="p.kind !== 'guest'" class="cw-dot" :class="{ on: p.activeNow }"></span>
             </TwinFace>
+            <!-- passport-style fields: a small label over each value -->
             <div class="cw-who">
+              <span class="cw-field" aria-hidden="true">Name</span>
               <span class="cw-name">{{ p.name }}<span v-if="p.name === me" class="cw-you"> (you)</span></span>
+              <span class="cw-field" aria-hidden="true">Status</span>
               <span class="cw-status">{{ p.statusText }}</span>
             </div>
             <span class="cw-role" :class="'r-' + p.kind" :title="roleHelp[p.kind]">{{ roleNames[p.kind] }}</span>
           </div>
 
-          <p v-if="p.profile.persona" class="cw-persona"><AppIcon name="tag" :size="13" /> "{{ p.profile.persona }}"</p>
-          <button v-else-if="p.canEdit" type="button" class="cw-persona add" @click="startEdit(p)"><AppIcon name="tag" :size="13" /> Add a crew title</button>
+          <div v-if="p.profile.persona || p.canEdit" class="cw-titlebox">
+            <span class="cw-field" aria-hidden="true">Crew title</span>
+            <p v-if="p.profile.persona" class="cw-persona"><AppIcon name="tag" :size="13" /> "{{ p.profile.persona }}"</p>
+            <button v-else type="button" class="cw-persona add" @click="startEdit(p)"><AppIcon name="tag" :size="13" /> Add a crew title</button>
+          </div>
 
           <div class="cw-pills">
             <span class="cw-pill" :class="{ empty: !p.flight.flight && !p.flight.arrival }">
@@ -91,9 +97,14 @@
           <button type="button" class="cw-ghost danger" :disabled="busy === inv.id" @click="revoke(inv)">Revoke</button>
         </div>
       </article>
+      <!-- An empty passport: the next crewmate's place (opens the invite dialog) -->
+      <button v-if="!demo" type="button" class="cw-card cw-add" @click="$emit('invite')">
+        <span class="cw-add-plus" aria-hidden="true">+</span>
+        <span>Add a crewmate</span>
+      </button>
     </div>
 
-    <!-- ===== Group snapshot ===== -->
+    <!-- ===== Group snapshot: two luggage tags ===== -->
     <section class="cw-summary" aria-label="Group snapshot">
       <div class="cw-sum-item">
         <span class="cw-sum-label"><AppIcon name="utensils" :size="14" /> Food needs</span>
@@ -165,7 +176,7 @@ export default {
       error: '',
       busy: null,
       resent: null,
-      roleNames: { owner: 'Admin', member: 'Editor', guest: 'Guest' },
+      roleNames: { owner: 'Organiser', member: 'Editor', guest: 'Guest' },
       roleHelp: {
         owner: 'Organiser: can invite, remove people and delete the trip',
         member: 'Joined with an account: can edit the plan, expenses and photos',
@@ -293,7 +304,7 @@ export default {
         this.showToast('Invite link copied. Paste it in your group chat.')
         setTimeout(() => { this.copied = false }, 2500)
       } catch (err) {
-        this.showToast('Could not copy the link. Use "+ Add member" instead.')
+        this.showToast('Could not copy the link. Use "Add a crewmate" instead.')
       }
     },
 
@@ -391,19 +402,10 @@ export default {
 </script>
 
 <style scoped>
+/* ===== Trip crew: a crew manifest of passport cards (scrapbook look; colours from src/assets/scrapbook.css) ===== */
 .cw {
-  --bg: #00283c;
-  --card: #0a3550;
-  --line: rgba(255, 255, 255, 0.08);
-  --mint: #edae49;
-  --text: #e9f1ee;
-  --muted: rgba(233, 241, 238, 0.62);
   position: relative;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  padding: 22px;
+  color: var(--sb-ink);
 }
 
 /* Header */
@@ -411,134 +413,202 @@ export default {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+}
+.cw-kicker {
+  margin: 0 0 2px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
 }
 .cw-title {
-  font-family: var(--font-display);
-  font-size: 1.6rem;
   margin: 0;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 2rem;
+  line-height: 1.05;
 }
 .cw-sub {
-  margin: 0;
+  margin: 2px 0 0;
   font-size: 14px;
-  color: var(--muted);
+  font-weight: 600;
+  color: var(--sb-muted);
 }
 .cw-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
-.cw-primary {
-  border: 0;
-  border-radius: 999px;
-  background: var(--mint);
-  color: #00283c;
-  font-weight: 700;
-  padding: 9px 18px;
-  box-shadow: 0 6px 20px rgba(237, 174, 73, 0.25);
-  transition: transform 0.15s, background 0.15s;
+.cw-primary,
+.cw-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  color: var(--sb-ink);
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
 }
-.cw-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
+.cw-primary {
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
 }
 .cw-primary.done {
-  background: #f8deb0;
-}
-.cw-primary:disabled {
-  opacity: 0.6;
+  background: var(--sb-teal-soft);
 }
 .cw-ghost {
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
-  border-radius: 999px;
-  padding: 8px 16px;
-  font-weight: 600;
-  font-size: 14px;
-}
-.cw-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--sb-cream);
 }
 .cw-ghost.danger {
-  color: #f09aa5;
+  color: var(--sb-red);
+}
+.cw-primary:hover:not(:disabled),
+.cw-ghost:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.cw-primary:active:not(:disabled),
+.cw-ghost:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.cw-primary:disabled,
+.cw-ghost:disabled {
+  opacity: 0.6;
 }
 
-/* Cards */
+/* ----- Passport cards ----- */
 .cw-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
 }
 .cw-card {
-  background: rgba(10, 53, 80, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 16px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  gap: 12px;
+  padding: 16px 16px 14px 50px; /* room for the PASSPORT strip */
+  border: var(--sb-line);
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(135deg, rgba(47, 167, 184, 0.05) 0 2px, transparent 2px 9px),
+    var(--sb-card);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop);
+  transition: transform 0.25s var(--sb-spring), box-shadow 0.15s;
+}
+/* the navy strip down the left edge, like a passport's spine */
+.cw-card::before {
+  content: 'Passport';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: var(--sb-line);
+  border-radius: 11px 0 0 11px;
+  background: #1d3b5c;
+  color: #f3e3b8;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
 }
 .cw-card.clickable {
   cursor: pointer;
 }
 .cw-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(237, 174, 73, 0.35);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 0 var(--sb-ink);
 }
 .cw-card.me {
-  border-color: rgba(237, 174, 73, 0.45);
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 191, 60, 0.09) 0 2px, transparent 2px 9px),
+    var(--sb-card);
 }
 .cw-card.editing {
-  transform: none;
   grid-column: 1 / -1;
+  padding-left: 20px;
+  transform: none;
+  box-shadow: var(--sb-pop), 0 0 0 5px rgba(255, 191, 60, 0.4);
 }
+.cw-card.editing::before {
+  display: none;
+}
+/* a pending invite: a passport still being issued */
 .cw-card.ghost {
+  border-style: dashed;
   background: transparent;
-  border: 1.5px dashed rgba(255, 255, 255, 0.2);
+  box-shadow: none;
 }
+.cw-card.ghost::before {
+  border-right-style: dashed;
+  background: #e6ddcb;
+  color: var(--sb-ink-soft);
+}
+
 .cw-id {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 14px;
 }
+/* the photo: a framed square, like a passport photo */
 .cw-avatar {
   position: relative;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  color: #fff;
-  font-weight: 800;
-  font-size: 20px;
+  width: 66px;
+  height: 78px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  box-shadow: inset 0 -6px 12px rgba(0, 0, 0, 0.2);
+  overflow: visible;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 24px;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.cw-avatar :deep(img) {
+  border-radius: 4px;
 }
 .cw-avatar.ghost {
-  background: transparent;
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  color: var(--muted);
+  border-style: dashed;
+  background: var(--sb-cream);
+  color: var(--sb-muted);
   box-shadow: none;
 }
 .cw-dot {
   position: absolute;
-  right: 0;
-  bottom: 2px;
-  width: 14px;
-  height: 14px;
+  right: -6px;
+  bottom: -6px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #4b5563;
-  border: 3px solid var(--card);
+  border: 2px solid var(--sb-ink);
+  background: #b8c2ca;
 }
 .cw-dot.on {
-  background: var(--mint);
+  background: #3cbf6e;
 }
 .cw-who {
   flex: 1;
@@ -546,111 +616,199 @@ export default {
   display: flex;
   flex-direction: column;
 }
+/* small labels over each value, like the fields on a passport page */
+.cw-field {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sb-muted);
+}
+.cw-who .cw-field + .cw-name,
+.cw-who .cw-field + .cw-status {
+  margin-bottom: 6px;
+}
 .cw-name {
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-family: var(--sb-display);
+  font-size: 1.25rem;
+  line-height: 1.15;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .cw-you,
 .cw-handle {
-  font-weight: 400;
-  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sb-muted);
 }
 .cw-status {
-  font-size: 12px;
-  color: var(--muted);
-}
-.cw-role {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+}
+/* the role: an inked stamp in the corner */
+.cw-role {
+  flex: none;
+  align-self: flex-start;
+  padding: 2px 9px;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  font-family: var(--sb-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-radius: 999px;
-  padding: 3px 10px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--muted);
+  background: rgba(255, 255, 255, 0.6);
+  color: #1d6b8a;
+  transform: rotate(6deg);
 }
 .cw-role.r-owner {
-  background: rgba(237, 174, 73, 0.16);
-  color: var(--mint);
+  color: var(--sb-red);
 }
 .cw-role.r-member {
-  background: rgba(57, 135, 229, 0.18);
-  color: #9cc4f5;
+  color: #1d6b8a;
+}
+.cw-role.r-guest {
+  color: var(--sb-muted);
 }
 .cw-role.r-pending {
-  background: rgba(255, 176, 32, 0.15);
-  color: #ffd38a;
+  color: #9a6400;
+}
+.cw-titlebox {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .cw-persona {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
-  font-weight: 600;
-  color: #fff;
+  font-weight: 800;
+  color: var(--sb-ink);
 }
+/* "Add a crew title": a blank line waiting to be filled in */
 .cw-persona.add {
-  text-align: left;
+  align-self: flex-start;
+  padding: 2px 0 4px;
   border: 0;
+  border-bottom: 2px dashed var(--sb-stitch);
   background: none;
-  color: var(--mint);
-  font-weight: 600;
-  padding: 0;
+  color: var(--sb-ink-soft);
+  font-weight: 700;
+  text-align: left;
 }
+.cw-persona.add:hover {
+  border-bottom-color: var(--sb-amber-lo);
+  color: var(--sb-ink);
+}
+/* the details strip at the bottom of the page (real info only) */
 .cw-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin: 0 -2px;
+  padding: 10px;
+  border: 2px dashed rgba(18, 50, 74, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
 }
 .cw-pill {
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 8px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-size: 12px;
+  font-weight: 700;
 }
 .cw-pill.empty {
-  color: var(--muted);
-  font-weight: 400;
   border-style: dashed;
+  border-color: rgba(18, 50, 74, 0.35);
+  color: var(--sb-muted);
+  font-weight: 600;
 }
 .cw-pill.allergy {
-  background: rgba(209, 73, 91, 0.16);
-  border-color: rgba(209, 73, 91, 0.45);
-  color: #f6c4cb;
+  border-color: #b3263a;
+  background: #ffe8e4;
+  color: #8f1d2c;
 }
 .cw-pill.diet {
-  background: rgba(237, 174, 73, 0.1);
-  border-color: rgba(237, 174, 73, 0.3);
-  color: #f8deb0;
+  background: var(--sb-teal-soft);
 }
 .cw-foot {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
   margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
 }
 .cw-links {
   display: flex;
-  gap: 14px;
-  margin-left: auto;
+  gap: 8px;
 }
 .cw-link {
-  border: 0;
-  background: none;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
   font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
+  font-weight: 800;
   text-decoration: none;
+  box-shadow: 0 2px 0 var(--sb-ink);
   cursor: pointer;
 }
 .cw-link:hover {
-  color: var(--mint);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.cw-link:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+
+/* the next crewmate's place: an empty passport */
+.cw-add {
+  min-height: 210px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sb-ink-soft);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.cw-add::before {
+  border-right-style: dashed;
+  background: #e6ddcb;
+  color: var(--sb-ink-soft);
+}
+.cw-add:hover {
+  background: rgba(255, 191, 60, 0.1);
+  box-shadow: none;
+  color: var(--sb-ink);
+}
+.cw-add-plus {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 2rem;
+  line-height: 1;
+  box-shadow: var(--sb-pop-sm);
 }
 
 /* Edit form */
@@ -661,35 +819,54 @@ export default {
   margin-top: 12px;
 }
 
-/* Summary strip */
+/* ----- Group snapshot: two luggage tags ----- */
 .cw-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  margin-top: 18px;
-  background: var(--line);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  overflow: hidden;
+  gap: 16px;
+  margin-top: 24px;
 }
 .cw-sum-item {
-  background: var(--card);
-  padding: 12px 16px;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  text-align: left;
-  border: 0;
-  color: var(--text);
+  padding: 12px 16px 12px 44px;
+  border: var(--sb-line);
+  border-radius: 8px 16px 16px 8px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+}
+.cw-sum-item + .cw-sum-item {
+  background: var(--sb-teal-soft);
+}
+/* the tag's eyelet */
+.cw-sum-item::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-cream);
 }
 .cw-sum-label {
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
 }
 .cw-sum-value {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 800;
 }
 .cw-toast {
   position: fixed;
@@ -697,13 +874,14 @@ export default {
   bottom: 24px;
   transform: translateX(-50%);
   z-index: 1080;
-  background: #0a3550;
-  color: #fff;
-  border: 1px solid rgba(237, 174, 73, 0.5);
-  border-radius: 999px;
   padding: 10px 18px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
   font-size: 14px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  font-weight: 700;
+  box-shadow: var(--sb-pop);
   animation: cw-in 0.2s ease;
 }
 
@@ -711,21 +889,16 @@ export default {
 .cw-primary:focus-visible,
 .cw-ghost:focus-visible,
 .cw-link:focus-visible,
+.cw-add:focus-visible,
 .cw-persona.add:focus-visible {
-  outline: 3px solid var(--mint);
-  outline-offset: 2px;
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 3px;
 }
 @keyframes cw-in {
   from { opacity: 0; transform: translate(-50%, 8px); }
 }
 @media (max-width: 720px) {
-  .cw {
-    padding: 16px;
-  }
   .cw-summary {
-    grid-template-columns: 1fr;
-  }
-  .cw-row {
     grid-template-columns: 1fr;
   }
   .cw-actions {
@@ -734,18 +907,18 @@ export default {
   .cw-actions > * {
     flex: 1;
   }
+  .cw-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .cw-card, .cw-primary { transition: none; }
+  .cw-card, .cw-primary, .cw-ghost { transition: none; }
   .cw-card:hover { transform: none; }
 }
-
 /* Phones and touch screens: every control is at least 40px to tap (WCAG / Apple guidance) */
 @media (pointer: coarse), (max-width: 560px) {
   .cw-link {
     min-height: 40px;
-    display: inline-flex;
-    align-items: center;
   }
 }
 </style>

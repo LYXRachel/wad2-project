@@ -237,4 +237,113 @@ watch(() => !!props.leg, (open) => {
 @media (prefers-reduced-motion: reduce) {
   .ls, .ls-dot { animation: none; }
 }
+/* =====================================================================
+   Travel journal look for this side panel (colours from src/assets/scrapbook.css).
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.ls-overlay {
+  background: rgba(18, 50, 74, 0.4);
+}
+.ls {
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.06) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    var(--sb-paper);
+  color: var(--sb-ink);
+  border-left: 3px solid var(--sb-ink);
+  box-shadow: -6px 0 0 rgba(18, 50, 74, 0.18);
+}
+.ls-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+  padding-bottom: 14px;
+}
+.ls-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--sb-ink);
+}
+.ls-sub {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.ls-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 9px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.ls-x {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.ls-x:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+}
+.ls-x:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+@media (max-width: 640px) {
+  .ls {
+    border-left: 0;
+    border-top: 3px solid var(--sb-ink);
+    box-shadow: 0 -6px 0 rgba(18, 50, 74, 0.18);
+  }
+}
+.ls-why {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+}
+.ls-note,
+.ls-checking {
+  color: var(--sb-ink-soft);
+}
+.ls-dot {
+  background: var(--sb-amber);
+}
+.ls-chip {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.ls-chip:hover {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.ls-chip.on {
+  background: var(--sb-amber);
+  border-color: var(--sb-ink);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ls-link {
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+}
 </style>

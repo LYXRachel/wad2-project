@@ -85,7 +85,7 @@ function costText(o) {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 18px;
-  background: #fff;
+  background: #fbf5ea;
   border: 1.5px solid #ece4d6;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -221,5 +221,85 @@ function costText(o) {
 }
 @media (prefers-reduced-motion: reduce) {
   .tc-btn { transition: none; }
+}
+/* =====================================================================
+   Travel journal look: each way to get there is a small ticket.
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.tc-row {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.tc-row.picked {
+  border-color: var(--sb-ink);
+  background: #fff1cf;
+  box-shadow: 0 3px 0 var(--sb-ink), 0 0 0 3px rgba(255, 191, 60, 0.6);
+}
+.tc-row.off {
+  border-style: dashed;
+  box-shadow: none;
+  background: rgba(255, 253, 248, 0.6);
+}
+.tc-icon {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.tc-row.picked .tc-icon {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.tc-min {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  color: var(--sb-ink);
+}
+.tc-sub,
+.tc-off {
+  color: var(--sb-ink-soft);
+}
+.tc-badge {
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 6px;
+  font-weight: 800;
+  color: var(--sb-ink);
+  background: #fffdf8;
+}
+.tc-badge.sug,
+.tc-badge.pick {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.tc-src {
+  border: 1.5px solid rgba(18, 50, 74, 0.35);
+  background: transparent;
+  color: var(--sb-ink-soft);
+}
+.tc-btn {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-ink);
+  color: #fffdf8;
+  font-weight: 800;
+  box-shadow: 0 3px 0 rgba(18, 50, 74, 0.35);
+}
+.tc-btn:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.tc-chosen {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.tc-link {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.tc-link:hover {
+  color: var(--sb-ink);
+  text-decoration-color: var(--sb-amber);
 }
 </style>

@@ -3030,8 +3030,8 @@ async function drawMap() {
       .on('click', () => { selectedId.value = it.stop.id })
       .addTo(layer)
   }
-  if (points.length > 1) L.polyline(points, { color: '#d1495b', weight: 4, opacity: 0.85, dashArray: '1 8', lineCap: 'round' }).addTo(layer)
-  if (points.length > 1) L.polyline(points, { color: '#d1495b', weight: 3, opacity: 0.55 }).addTo(layer)
+  if (points.length > 1) L.polyline(points, { color: '#ffbf3c', weight: 8, opacity: 0.55, lineCap: 'round' }).addTo(layer)
+  if (points.length > 1) L.polyline(points, { color: '#12324a', weight: 3, opacity: 0.9, dashArray: '2 9', lineCap: 'round' }).addTo(layer)
   if (points.length === 1) map.setView(points[0], 15)
   else if (points.length) map.fitBounds(points, { padding: [40, 40] })
   else map.setView([20, 0], 2)
@@ -5381,5 +5381,1090 @@ watch(
     min-width: 40px;
     min-height: 40px;
   }
+}
+
+/* =====================================================================
+   Travel journal look, pass 1: day navigator, actions and the timeline
+   (colours from src/assets/scrapbook.css). Small accents only (the open day, the pins,
+   the tickets); stop cards sit straight so the day stays quick to scan.
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.ip {
+  --ink: var(--sb-ink);
+  --muted: var(--sb-muted);
+  --line: rgba(18, 50, 74, 0.18);
+  --primary: #0f6f7a;
+}
+
+/* ----- Day navigator: tear-off calendar pages ----- */
+.ip-daynav {
+  padding: 12px 14px 10px;
+  border: var(--sb-line);
+  border-radius: 18px;
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop);
+}
+.ip-daynav-where {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sb-muted);
+}
+.ip-daynav-where strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  color: var(--sb-ink);
+}
+.ip-small {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.ip-small:hover,
+.ip-small[aria-expanded='true'] {
+  border-color: var(--sb-ink);
+  background: #fbf5ea;
+  color: var(--sb-ink);
+}
+.ip-small:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.ip-small.add {
+  border-style: solid;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ip-small.remove {
+  border-style: dashed;
+  color: #b3263a;
+}
+.ip-small.remove:hover {
+  border-color: var(--sb-ink);
+  background: #ffe8e4;
+  color: #b3263a;
+}
+.ip-arrow {
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-arrow:hover:not(:disabled) {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ip-days {
+  gap: 8px;
+  padding: 8px 4px 6px;
+}
+/* each day: a little calendar page with a coloured header strip */
+.ip-day {
+  width: 62px;
+  padding: 0 0 6px;
+  overflow: hidden;
+  border: 2px solid var(--sb-ink);
+  border-radius: 8px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.25s var(--sb-spring), box-shadow 0.15s, background 0.15s;
+}
+.ip-day small {
+  display: block;
+  width: 100%;
+  margin-bottom: 3px;
+  padding: 2px 0;
+  border-bottom: 2px solid var(--sb-ink);
+  background: #1d3b5c;
+  color: #f3e3b8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+.ip-day.weekend small,
+.ip-day.weekend:not(.on) small {
+  background: #c4302b;
+  color: #fff;
+}
+.ip-day strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  line-height: 1.05;
+}
+.ip-day-n {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sb-muted);
+}
+.ip-day:hover {
+  border-color: var(--sb-ink);
+  transform: translateY(-2px);
+}
+.ip-day.today:not(.on) {
+  border-color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink), 0 0 0 3px var(--sb-teal);
+}
+/* the open day is pulled forward: amber, tilted and lifted */
+.ip-day.on {
+  background: var(--sb-amber);
+  border-color: var(--sb-ink);
+  color: var(--sb-ink);
+  box-shadow: 0 5px 0 var(--sb-ink);
+  transform: translateY(-3px) rotate(-3deg);
+}
+.ip-day.on small,
+.ip-day.on .ip-day-n {
+  color: var(--sb-ink);
+}
+.ip-day.on small {
+  color: #f3e3b8;
+}
+.ip-day-dots i,
+.ip-day.on .ip-day-dots i {
+  background: var(--sb-ink);
+}
+.ip-day.flagged::after {
+  top: 22px;
+  right: 5px;
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-amber-lo);
+}
+/* "All days": a wall calendar */
+.ip-grid {
+  border: var(--sb-line);
+  border-radius: 16px;
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop), 0 18px 34px -14px rgba(18, 50, 74, 0.4);
+}
+.ip-grid-day {
+  border: 2px solid var(--sb-ink);
+  border-radius: 8px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-grid-day:hover {
+  border-color: var(--sb-ink);
+  background: #fff7e2;
+}
+.ip-grid-day.on {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ip-grid-day.on small {
+  color: var(--sb-ink);
+}
+.ip-grid-day strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.ip-load {
+  border: 1px solid rgba(18, 50, 74, 0.3);
+  background: #fbf5ea;
+}
+.ip-load i {
+  background: var(--sb-teal);
+}
+.ip-flag {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-amber-lo);
+}
+
+/* ----- Actions ----- */
+.ip-bar {
+  gap: 10px;
+  margin-top: 14px;
+}
+.ip-cta {
+  min-height: 44px;
+  padding: 0 20px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.ip-cta:hover:not(:disabled) {
+  filter: none;
+  transform: translateY(-2px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 5px 0 var(--sb-ink);
+}
+.ip-cta:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.ip-cta:disabled:not(.busy) {
+  opacity: 0.5;
+  box-shadow: var(--sb-pop-sm);
+}
+.ip-cta.busy {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+}
+.ip-cta.danger {
+  background: #c4302b;
+  color: #fff;
+}
+.ip-cta.small,
+.ip-outline.small {
+  min-height: 38px;
+  padding: 0 16px;
+}
+.ip-spin {
+  border-color: rgba(18, 50, 74, 0.2);
+  border-top-color: var(--sb-ink);
+}
+.ip-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-outline:hover {
+  background: #fbf5ea;
+}
+.ip-link {
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
+}
+.ip-totals span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 8px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.ip-issues-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-issues-btn:hover,
+.ip-issues-btn[aria-expanded="true"] {
+  background: var(--sb-amber);
+}
+.ip-issues {
+  border: var(--sb-line);
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop), 0 18px 34px -14px rgba(18, 50, 74, 0.4);
+}
+/* List | Map: the same amber switch as Places */
+.ip-views {
+  padding: 4px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop-sm);
+}
+.ip-views-thumb {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-amber);
+  box-shadow: none;
+}
+.ip-views button {
+  border-radius: 10px;
+  color: var(--sb-ink-soft);
+  font-weight: 800;
+}
+.ip-views button.on {
+  color: var(--sb-ink);
+}
+.ip-sample {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+
+/* Optimize's answer: a journal note */
+.ip-preview {
+  border: var(--sb-line);
+  border-radius: 16px;
+  background: #fff7e2;
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+}
+.ip-preview.same {
+  background: var(--sb-card);
+}
+
+/* An empty day: a dashed page waiting to be filled */
+.ip-start {
+  border: 2.5px dashed var(--sb-stitch);
+  border-radius: 18px;
+  background: transparent;
+}
+.ip-start-icon {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-start-text strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+}
+
+/* Too much planned: a calm sticky note with the fix */
+.ip-overflow {
+  position: relative;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: #fff3a8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ip-overflow::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 70px;
+  height: 18px;
+  margin-left: -35px;
+  background: rgba(255, 255, 255, 0.65);
+  border-left: 2px dashed rgba(18, 50, 74, 0.2);
+  border-right: 2px dashed rgba(18, 50, 74, 0.2);
+}
+.ip-overflow-icon {
+  border: 2px solid var(--sb-ink);
+  background: #c4302b;
+}
+.ip-overflow-text small {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+
+/* ----- The timeline: a dashed route with sticker pins ----- */
+.ip-list::before {
+  left: 15px;
+  width: 0;
+  background: none;
+  border-left: 3px dashed rgba(18, 50, 74, 0.45);
+}
+.ip-num {
+  border: 2.5px solid var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1rem;
+  box-shadow: 0 0 0 4px var(--sb-cream), 0 3px 0 4px rgba(18, 50, 74, 0.15);
+}
+.ip-stop:nth-child(odd) .ip-num { transform: rotate(-6deg); }
+.ip-stop:nth-child(even) .ip-num { transform: rotate(5deg); }
+.ip-reorder-hint {
+  font-weight: 600;
+  color: var(--sb-ink-soft);
+}
+
+/* Stop cards: straight, outlined, easy to scan */
+.ip-card {
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ip-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-card.locked {
+  border-color: var(--sb-ink);
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 191, 60, 0.1) 0 6px, transparent 6px 14px),
+    #fffdf8;
+}
+.ip-card.moved {
+  box-shadow: 0 3px 0 var(--sb-ink), 0 0 0 4px rgba(255, 191, 60, 0.55);
+}
+.ip-thumb {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+}
+.ip-when {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+.ip-dur {
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 8px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.ip-name {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  letter-spacing: 0.01em;
+  margin: 2px 0 8px;
+}
+.ip-chip,
+.ip-pill,
+.ip-sig {
+  border: 1.5px solid rgba(18, 50, 74, 0.35);
+  border-radius: 8px;
+  font-weight: 700;
+}
+.ip-chip {
+  background: #fbf5ea;
+  color: var(--sb-ink-soft);
+}
+/* weather and crowds: small calm stamps (colour = how it looks) */
+.ip-sig.ok { background: #e3f4ea; color: #1d6b40; border-color: #1d6b40; }
+.ip-sig.mid { background: #fff1cf; color: #7a5200; border-color: #b07a00; }
+.ip-sig.bad { background: #fde6e4; color: #a3261f; border-color: #a3261f; }
+.ip-sig.none { background: #fbf5ea; color: var(--sb-muted); }
+.ip-sig:hover {
+  border-color: var(--sb-ink);
+}
+.ip-pill.warn {
+  border-color: #b07a00;
+  background: #fff1cf;
+  color: #7a5200;
+}
+.ip-pill.lock,
+.ip-pill.wait {
+  background: #fbf5ea;
+}
+.ip-back,
+.ip-lock,
+.ip-go {
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-back:hover:not(:disabled),
+.ip-lock:hover:not(:disabled),
+.ip-go:hover {
+  background: #fbf5ea;
+  color: var(--sb-ink);
+}
+.ip-lock.on {
+  background: var(--sb-amber);
+}
+.ip-side .ip-back:hover:not(:disabled) {
+  background: #ffe1e5;
+}
+
+/* Between stops: tiny transport tickets on the route (notched like the Transport tab) */
+.ip-leg {
+  --tk: #fff;
+  --tk-edge: var(--sb-ink);
+  margin: 7px 0;
+  padding: 3px 14px 3px 8px;
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 0 50%, transparent 5px, var(--tk) 5.5px) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 5px, var(--tk) 5.5px) right / 51% 100% no-repeat;
+  color: var(--sb-ink);
+  font-weight: 700;
+  filter:
+    drop-shadow(1.5px 0 0 var(--tk-edge)) drop-shadow(-1.5px 0 0 var(--tk-edge))
+    drop-shadow(0 1.5px 0 var(--tk-edge)) drop-shadow(0 -1.5px 0 var(--tk-edge));
+}
+.ip-leg :deep(svg) {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ip-leg.clickable:hover {
+  --tk: #fff7e2;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--sb-ink);
+}
+.ip-leg.picked {
+  --tk: #fff1cf;
+  border-color: transparent;
+  background:
+    radial-gradient(circle at 0 50%, transparent 5px, var(--tk) 5.5px) left / 51% 100% no-repeat,
+    radial-gradient(circle at 100% 50%, transparent 5px, var(--tk) 5.5px) right / 51% 100% no-repeat;
+  color: var(--sb-ink);
+}
+.ip-leg-why {
+  color: var(--sb-muted);
+}
+
+/* Lunch / dinner: a food sticker strip on the route */
+.ip-num.meal {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-peach);
+  box-shadow: 0 0 0 4px var(--sb-cream);
+}
+.ip-meal {
+  border: 2px dashed rgba(18, 50, 74, 0.35);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(-45deg, rgba(255, 122, 92, 0.08) 0 10px, transparent 10px 20px),
+    #fffdf8;
+  color: var(--sb-muted);
+}
+.ip-meal-name {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+}
+
+/* Where the day starts and ends: "base camp" luggage tags */
+.ip-anchor {
+  position: relative;
+  padding: 10px 14px 10px 34px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 8px 18px 18px 8px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ip-anchor::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-cream);
+}
+.ip-anchor:hover {
+  border-color: var(--sb-ink);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-anchor.empty {
+  border-style: dashed;
+  background: transparent;
+  box-shadow: none;
+}
+.ip-anchor-icon {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-ink);
+  color: #f3e3b8;
+}
+.ip-anchor.empty .ip-anchor-icon {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.ip-anchor-text small {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
+}
+.ip-anchor-text strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+.ip-anchor-edit {
+  padding: 4px 10px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 8px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+/* Landing / flying home: a boarding-pass stub, with its button past a tear line */
+.ip-flight-card {
+  padding: 10px 10px 10px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, #1d3b5c 0 8px, transparent 8px),
+    #fff;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ip-flight-card:hover {
+  border-color: var(--sb-ink);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-flight-icon {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ip-flight-card .ip-anchor-text small {
+  color: var(--sb-muted);
+}
+.ip-flight-btn {
+  margin-left: 4px;
+  padding: 6px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-flight-card .ip-flight-btn {
+  position: relative;
+}
+.ip-flight-card .ip-flight-btn::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: -14px;
+  bottom: -14px;
+  border-left: 2px dashed rgba(18, 50, 74, 0.4);
+}
+.ip-flight-times {
+  color: var(--sb-ink-soft);
+}
+.ip-end-choice {
+  border: 2.5px dashed var(--sb-stitch);
+}
+.ip-end-q {
+  font-weight: 700;
+  color: var(--sb-ink-soft);
+}
+.ip-end-option {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ip-end-option.main {
+  border-color: var(--sb-ink);
+  background: #fff1cf;
+}
+.ip-end-option:hover {
+  border-color: var(--sb-ink);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-end-switch {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-end-switch:hover {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+}
+
+/* Add stop: a dashed slot at the end of the day */
+.ip-add-stop {
+  min-height: 52px;
+  border: 2.5px dashed var(--sb-ink);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+}
+.ip-add-stop span {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 9px;
+  background: var(--sb-amber);
+  font-size: 18px;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-add-stop:hover {
+  background: rgba(255, 191, 60, 0.12);
+}
+
+/* Confirm dialogs and the Undo message */
+.ip-dialog {
+  border: var(--sb-line);
+  border-radius: 18px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop), 0 24px 50px -20px rgba(18, 50, 74, 0.5);
+}
+.ip-dialog-icon {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ip-dialog-icon.danger {
+  background: #c4302b;
+  color: #fff;
+}
+.ip-dialog-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.ip-toast {
+  border: var(--sb-line);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 700;
+  box-shadow: var(--sb-pop);
+}
+
+.ip-small:focus-visible,
+.ip-arrow:focus-visible,
+.ip-day:focus-visible,
+.ip-cta:focus-visible,
+.ip-outline:focus-visible,
+.ip-leg:focus-visible,
+.ip-anchor:focus-visible,
+.ip-flight-card:focus-visible,
+.ip-add-stop:focus-visible,
+.ip-back:focus-visible,
+.ip-lock:focus-visible,
+.ip-go:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 3px;
+}
+/* The flight card's line reads as a normal sentence, not a label */
+.ip-flight-card .ip-anchor-text small {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* Phones: a slimmer route and photo so each stop's name has room */
+@media (max-width: 560px) {
+  .ip-stop {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .ip-num {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+  .ip-list::before {
+    left: 13px;
+  }
+  .ip-gap {
+    padding-left: 36px;
+  }
+  .ip-card {
+    gap: 8px;
+    padding: 8px;
+  }
+  .ip-thumb {
+    width: 56px;
+    height: 56px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ip-day, .ip-cta, .ip-small { transition: none; }
+  .ip-day.on { transform: none; }
+}
+/* =====================================================================
+   Travel journal look, pass 2: the map and the saved-places tray
+   ===================================================================== */
+
+/* Map: a taped-in map page with an outline and a hard shadow */
+.ip-mapview {
+  position: relative;
+}
+.ip-mapview::before {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  top: -9px;
+  right: 28px;
+  width: 78px;
+  height: 22px;
+  background: rgba(255, 191, 60, 0.75);
+  border: 1.5px solid rgba(18, 50, 74, 0.25);
+  transform: rotate(4deg);
+  pointer-events: none;
+}
+.ip-map {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 16px;
+  box-shadow: 0 5px 0 var(--sb-ink);
+  background: var(--sb-cream);
+}
+.ip-map :deep(.ip-pin) {
+  border: 2.5px solid var(--sb-ink);
+  font: 400 15px/1 var(--sb-display);
+  box-shadow: 0 0 0 3px #fffdf8, 0 4px 0 3px rgba(18, 50, 74, 0.35);
+}
+.ip-map :deep(.ip-pin.active) {
+  transform: scale(1.25) rotate(-6deg);
+}
+.ip-map :deep(.leaflet-control-zoom) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ip-map :deep(.leaflet-control-zoom a) {
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+
+/* The picked stop: a postcard pinned under the map */
+.ip-detail {
+  margin-top: -30px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 16px;
+  background: #fffdf8;
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-detail-photo {
+  border: 6px solid #fff;
+  border-bottom-width: 18px;
+  border-radius: 4px;
+  outline: 2px solid var(--sb-ink);
+  transform: rotate(-2deg);
+}
+.ip-detail-name {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.35rem;
+  color: var(--sb-ink);
+}
+.ip-detail-line {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.ip-directions {
+  border: 2.5px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  box-shadow: 0 4px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.ip-directions:hover {
+  color: var(--sb-ink);
+  filter: none;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--sb-ink);
+}
+.ip-step {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+
+/* Saved places: a tray of small polaroids */
+.ip-drawer {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 16px;
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.07) 1px, transparent 1.4px) 0 0 / 14px 14px,
+    var(--sb-cream);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-drawer.target {
+  border-color: var(--sb-teal);
+  box-shadow: 0 5px 0 var(--sb-ink), 0 0 0 4px rgba(47, 167, 184, 0.25);
+}
+.ip-drawer-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+}
+.ip-drawer-icon {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: rotate(-6deg);
+}
+.ip-drawer-title strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.15rem;
+  color: var(--sb-ink);
+}
+.ip-drawer-title small {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.ip-chev {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  font-size: 16px;
+}
+.ip-drawer-body {
+  padding-top: 12px;
+}
+.ip-drawer-body > .ip-muted {
+  margin: 0;
+  padding: 10px 12px;
+  border: 2px dashed rgba(18, 50, 74, 0.3);
+  border-radius: 12px;
+  background: #fffdf8;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sb-ink-soft);
+}
+.ip-vote-rule {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+  font-weight: 500;
+}
+.ip-vote-rule svg {
+  color: var(--sb-ink);
+}
+.ip-unschedule {
+  border: 2.5px dashed var(--sb-teal);
+  background: rgba(47, 167, 184, 0.08);
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.ip-group + .ip-group {
+  border-top: 2px dashed rgba(18, 50, 74, 0.2);
+}
+.ip-group-head {
+  color: var(--sb-ink-soft);
+  font-weight: 800;
+}
+.ip-group-count {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+
+/* Each place: a straight card, the photo is the tilted polaroid */
+.ip-wish {
+  padding: 8px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ip-wish:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-wish .ip-thumb.sm {
+  border: 4px solid #fff;
+  border-bottom-width: 10px;
+  border-radius: 3px;
+  outline: 1.5px solid var(--sb-ink);
+  box-shadow: 0 2px 4px rgba(18, 50, 74, 0.2);
+  transform: rotate(-4deg);
+}
+.ip-group .ip-wish:nth-of-type(even) .ip-thumb.sm {
+  transform: rotate(3deg);
+}
+.ip-wish-name {
+  font-weight: 800;
+  color: var(--sb-ink);
+}
+.ip-wish-text small {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.ip-wish.clickable:hover {
+  border-color: var(--sb-ink);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ip-add {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-wish.clickable:hover .ip-add {
+  background: var(--sb-amber-hi, #ffd36b);
+  color: var(--sb-ink);
+}
+/* Waiting for votes: still readable, clearly not ready yet */
+.ip-wish.waiting {
+  border-style: dashed;
+  background: rgba(255, 253, 248, 0.6);
+  box-shadow: none;
+}
+.ip-wish.waiting:hover {
+  transform: none;
+}
+.ip-wish.waiting .ip-thumb,
+.ip-wish.waiting .ip-wish-name {
+  opacity: 0.75;
+}
+.ip-vote {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ip-vote:hover,
+.ip-vote:focus-visible {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ip-drawer.flash {
+  border-color: var(--sb-ink);
+}
+.ip-drawer.flash .ip-add {
+  background: var(--sb-amber);
+  border-color: var(--sb-ink);
+  color: var(--sb-ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ip-directions { transition: none; }
 }
 </style>

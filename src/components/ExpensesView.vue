@@ -14,19 +14,21 @@
       <ExchangeRates :home="home" :live="liveRates" :live-date="ratesDate" :live-error="ratesError" :group="state.groupRates"
         :totals="currencyTotals" :me="me" @set="setGroupRate" @reset="resetGroupRate" />
       <button v-if="state.items.length" type="button" class="btn xp-add" @click="openForm(null)" data-testid="expense-add">
-        + Add expense <kbd aria-hidden="true">N</kbd>
+        <span class="xp-coin-drop" aria-hidden="true">🪙</span> Add expense <kbd aria-hidden="true">N</kbd>
       </button>
     </div>
 
-    <!-- ===== Empty state ===== -->
+    <!-- ===== Empty state: an empty wallet ===== -->
     <div v-if="!state.items.length" class="xp-empty">
-      <div class="xp-empty-art" aria-hidden="true"><AppIcon name="receipt" :size="40" /></div>
+      <div class="xp-empty-wallet" aria-hidden="true"><span class="xp-empty-flap"></span><AppIcon name="receipt" :size="34" /></div>
       <h1 class="xp-h">No expenses yet</h1>
-      <button type="button" class="btn xp-add" @click="openForm(null)">+ Add the first expense</button>
+      <p class="xp-muted mb-0">Your trip wallet is empty. Add a receipt and the group's totals start here.</p>
+      <button type="button" class="btn xp-add" @click="openForm(null)">
+        <span class="xp-coin-drop" aria-hidden="true">🪙</span> Add the first expense
+      </button>
     </div>
 
     <template v-else>
-      <!-- ===== Summary tiles ===== -->
       <!-- No exchange rate for some currencies: say so, instead of showing wrong totals -->
       <div v-if="unconverted.count" class="xp-warn" role="status">
         <AppIcon name="alert" :size="16" />
@@ -36,155 +38,230 @@
           Set one in <strong>Live rates</strong> above, or try again later.
         </span>
       </div>
-      <div class="xp-tiles">
-        <div class="xp-tile xp-tile-dark">
-          <span class="xp-tile-label">Group spent</span>
-          <span class="xp-big" data-testid="expense-total">{{ money(total, home) }}</span>
-          <template v-if="state.budget">
-            <div class="xp-budget" role="progressbar" :aria-valuenow="Math.round(budgetPct)" aria-valuemin="0" aria-valuemax="100" aria-label="Budget used">
-              <div class="xp-budget-fill" :class="{ over: budgetPct > 100 }" :style="{ width: Math.min(100, budgetPct) + '%' }"></div>
-            </div>
-            <span class="xp-tile-sub">
-              {{ Math.round(budgetPct) }}% of {{ money(state.budget, home) }} budget
-              <button type="button" class="xp-link-light" @click="editBudget">Edit</button>
-            </span>
-          </template>
-          <button v-else type="button" class="xp-link-light mt-2" @click="editBudget">+ Set a budget</button>
-          <form v-if="budgetEditing" class="xp-budget-form" @submit.prevent="saveBudget">
-            <label for="xp-budget" class="visually-hidden">Budget in {{ home }}</label>
-            <input id="xp-budget" ref="budget" v-model.number="budgetInput" type="number" min="0" class="form-control form-control-sm" :placeholder="'Budget in ' + home">
-            <button type="submit" class="btn btn-sm xp-mini">Save</button>
-          </form>
-        </div>
 
-        <div class="xp-tile">
-          <span class="xp-tile-label">Your balance</span>
-          <span class="xp-big" :class="myBalance > 0.009 ? 'pos' : myBalance < -0.009 ? 'neg' : ''">
-            <AppIcon :name="myBalance > 0.009 ? 'arrow-up' : myBalance < -0.009 ? 'arrow-down' : 'check'" :size="22" :stroke="2.6" />
-            {{ money(Math.abs(myBalance), home) }}
-          </span>
-          <span class="xp-tile-sub">{{ myBalance > 0.009 ? 'The group owes you' : myBalance < -0.009 ? 'You owe the group' : "You're all settled" }}</span>
-        </div>
+      <!-- ===== The trip wallet: cards on the left, receipts on the right ===== -->
+      <section class="xp-wallet" aria-label="Trip wallet">
+        <div class="xp-side-l">
+          <p class="xp-pocket-label">Trip cards</p>
 
-        <div class="xp-tile">
-          <span class="xp-tile-label">Your share</span>
-          <span class="xp-big">{{ money(myShare, home) }}</span>
-          <span class="xp-tile-sub">What you've used of the group's spending</span>
-        </div>
+          <!-- Group spent: the cash card behind the clear window -->
+          <div class="xp-window">
+            <div class="xp-cash">
+              <span class="xp-chip" aria-hidden="true"></span>
+              <span class="xp-k">Group spent</span>
+              <span class="xp-big xp-num" data-testid="expense-total">{{ money(total, home) }}</span>
+              <span class="xp-cash-foot">
+                <span>{{ travellers.length }} traveller{{ travellers.length === 1 ? '' : 's' }}</span>
+                <span>{{ dayCount }} day{{ dayCount === 1 ? '' : 's' }}</span>
+              </span>
 
-        <div class="xp-tile">
-          <span class="xp-tile-label">Per day</span>
-          <span class="xp-big">{{ money(perDay, home) }}</span>
-          <span class="xp-tile-sub">Group average over {{ dayCount }} day{{ dayCount === 1 ? '' : 's' }}</span>
-        </div>
-      </div>
-
-      <div class="xp-grid">
-        <!-- ===== Expense feed ===== -->
-        <section class="xp-card xp-feed" aria-labelledby="xp-feed-title">
-          <div class="xp-card-head">
-            <h3 id="xp-feed-title" class="xp-h">Expenses <span class="xp-count">{{ state.items.length }}</span></h3>
-            <div class="xp-search">
-              <AppIcon name="search" :size="16" />
-              <label for="xp-search" class="visually-hidden">Search expenses</label>
-              <input id="xp-search" v-model="search" type="search" placeholder="Search">
+              <!-- Budget: ten notes; the spent ones turn into dashed outlines -->
+              <template v-if="state.budget">
+                <span class="xp-budget-row">
+                  <span>Budget {{ money(state.budget, home) }}</span>
+                  <span class="xp-num" :class="{ over: budgetPct > 100 }">
+                    {{ budgetPct > 100 ? money(total - state.budget, home) + ' over' : money(state.budget - total, home) + ' left' }}
+                  </span>
+                </span>
+                <span class="xp-notes" :class="{ over: budgetPct > 100 }" role="progressbar" :aria-valuenow="Math.round(budgetPct)"
+                  aria-valuemin="0" aria-valuemax="100" aria-label="Budget used">
+                  <i v-for="n in 10" :key="n" :class="{ spent: n <= spentNotes }"></i>
+                </span>
+                <span class="xp-cash-foot">
+                  <span>{{ Math.round(budgetPct) }}% used</span>
+                  <button type="button" class="xp-link" @click="editBudget">Edit budget</button>
+                </span>
+              </template>
+              <button v-else type="button" class="xp-link xp-set-budget" @click="editBudget">+ Set a budget</button>
+              <form v-if="budgetEditing" class="xp-budget-form" @submit.prevent="saveBudget">
+                <label for="xp-budget" class="visually-hidden">Budget in {{ home }}</label>
+                <input id="xp-budget" ref="budget" v-model.number="budgetInput" type="number" min="0" class="form-control form-control-sm" :placeholder="'Budget in ' + home">
+                <button type="submit" class="btn btn-sm xp-mini">Save</button>
+              </form>
             </div>
           </div>
-          <div class="xp-filters">
-            <CustomDropdown v-model="filterCat" :options="categoryOptions" size="sm" header-text="Category" aria-label="Filter by category" />
-          </div>
 
-          <p v-if="!feed.length" class="xp-muted text-center py-4 mb-0">Nothing matches. <button type="button" class="xp-link" @click="search = ''; filterCat = ''">Clear filters</button></p>
-
-          <div v-for="day in feed" :key="day.date" class="xp-day">
-            <div class="xp-day-head">
-              <span><strong>{{ day.label }}</strong> · {{ longDate(day.date) }}</span>
-              <span class="xp-num">{{ money(day.total, home) }}</span>
+          <!-- The other cards peek out of leather slots -->
+          <div class="xp-slots">
+            <div class="xp-slot">
+              <div class="xp-slot-card amber">
+                <span class="xp-slot-icon" aria-hidden="true">⚖️</span>
+                <span class="xp-slot-text">
+                  <span class="xp-k">Your balance</span>
+                  <span class="xp-slot-v xp-num" :class="myBalance > 0.009 ? 'pos' : myBalance < -0.009 ? 'neg' : ''">
+                    {{ myBalance > 0.009 ? '+ ' : myBalance < -0.009 ? '− ' : '' }}{{ money(Math.abs(myBalance), home) }}
+                  </span>
+                  <span class="xp-slot-sub">{{ myBalance > 0.009 ? 'The group owes you' : myBalance < -0.009 ? 'You owe the group' : "You're all settled" }}</span>
+                </span>
+                <span class="xp-stamp" :class="myBalance > 0.009 ? 'owed' : myBalance < -0.009 ? 'owe' : 'ok'">
+                  {{ myBalance > 0.009 ? 'Owed' : myBalance < -0.009 ? 'You owe' : 'Settled' }}
+                </span>
+              </div>
+              <span class="xp-slot-lip" aria-hidden="true"></span>
             </div>
-            <ul class="xp-list">
-              <li v-for="e in day.items" :key="e.id">
-                <button type="button" class="xp-row" @click="openForm(e)" :aria-label="'Edit ' + e.title">
-                  <span class="xp-icon" :style="{ background: categoryOf(e.category).color + '22' }" aria-hidden="true">{{ categoryOf(e.category).icon }}</span>
-                  <span class="xp-row-main">
-                    <span class="xp-row-title">{{ e.title }}</span>
-                    <span class="xp-row-sub">
-                      {{ e.paidBy === me ? 'You' : e.paidBy }} paid · {{ splitText(e) }}
-                      <template v-if="e.addedBy && e.addedBy !== me && e.addedBy !== e.paidBy"> · added by {{ e.addedBy }}</template>
-                    </span>
-                  </span>
-                  <span class="xp-row-right">
-                    <span class="xp-num xp-row-amount">{{ money(e.amount, e.currency) }}</span>
-                    <span v-if="e.unconverted" class="xp-row-conv xp-unconv">not in totals yet (no {{ e.currency }} rate)</span>
-                    <span v-else-if="e.currency !== home" class="xp-row-conv xp-num">≈ {{ money(e.home, home) }}</span>
-                    <span v-if="!e.unconverted" class="xp-effect" :class="e.effect > 0.009 ? 'pos' : e.effect < -0.009 ? 'neg' : ''">
-                      {{ e.effect > 0.009 ? 'you lent ' + money(e.effect, home) : e.effect < -0.009 ? 'you owe ' + money(-e.effect, home) : 'not involved' }}
-                    </span>
-                  </span>
-                </button>
+            <div class="xp-slot">
+              <div class="xp-slot-card teal">
+                <span class="xp-slot-icon" aria-hidden="true">🧾</span>
+                <span class="xp-slot-text">
+                  <span class="xp-k">Your share</span>
+                  <span class="xp-slot-v xp-num">{{ money(myShare, home) }}</span>
+                  <span class="xp-slot-sub">What you've used of the group's spending</span>
+                </span>
+              </div>
+              <span class="xp-slot-lip" aria-hidden="true"></span>
+            </div>
+            <div class="xp-slot">
+              <div class="xp-slot-card peach">
+                <span class="xp-slot-icon" aria-hidden="true">📅</span>
+                <span class="xp-slot-text">
+                  <span class="xp-k">Per day</span>
+                  <span class="xp-slot-v xp-num">{{ money(perDay, home) }}</span>
+                  <span class="xp-slot-sub">Group average over {{ dayCount }} day{{ dayCount === 1 ? '' : 's' }}</span>
+                </span>
+              </div>
+              <span class="xp-slot-lip" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="xp-spine" aria-hidden="true"></div>
+
+        <!-- ===== Receipts: one receipt per day ===== -->
+        <div class="xp-side-r" aria-labelledby="xp-feed-title">
+          <h3 id="xp-feed-title" class="xp-pocket-label">Receipts <span class="xp-count">{{ state.items.length }}</span></h3>
+          <div class="xp-pocket">
+            <span class="xp-pocket-lip" aria-hidden="true"></span>
+            <div class="xp-pocket-tools">
+              <div class="xp-search">
+                <AppIcon name="search" :size="16" />
+                <label for="xp-search" class="visually-hidden">Search expenses</label>
+                <input id="xp-search" v-model="search" type="search" placeholder="Search receipts">
+              </div>
+              <div class="xp-filters">
+                <CustomDropdown v-model="filterCat" :options="categoryOptions" size="sm" header-text="Category" aria-label="Filter by category" />
+              </div>
+            </div>
+
+            <div class="xp-receipts">
+              <p v-if="!feed.length" class="xp-receipt xp-nothing">Nothing matches. <button type="button" class="xp-link" @click="search = ''; filterCat = ''">Clear filters</button></p>
+
+              <article v-for="day in feed" :key="day.date" class="xp-receipt">
+                <div class="xp-r-head">
+                  <span class="xp-r-day">{{ day.label }}<small>{{ longDate(day.date) }}</small></span>
+                  <span class="xp-r-count">{{ day.items.length }} item{{ day.items.length === 1 ? '' : 's' }}</span>
+                </div>
+                <ul class="xp-list">
+                  <li v-for="e in day.items" :key="e.id">
+                    <button type="button" class="xp-row" @click="openForm(e)" :aria-label="'Edit ' + e.title">
+                      <span class="xp-coin" :style="{ '--c': categoryOf(e.category).color }" aria-hidden="true">{{ categoryOf(e.category).icon }}</span>
+                      <span class="xp-row-main">
+                        <span class="xp-row-title">{{ e.title }}</span>
+                        <span class="xp-row-sub">
+                          {{ e.paidBy === me ? 'You' : e.paidBy }} paid · {{ splitText(e) }}
+                          <template v-if="e.addedBy && e.addedBy !== me && e.addedBy !== e.paidBy"> · added by {{ e.addedBy }}</template>
+                        </span>
+                      </span>
+                      <span class="xp-leader" aria-hidden="true"></span>
+                      <span class="xp-row-right">
+                        <span class="xp-num xp-row-amount">{{ money(e.amount, e.currency) }}</span>
+                        <span v-if="e.unconverted" class="xp-row-conv xp-unconv">not in totals yet (no {{ e.currency }} rate)</span>
+                        <span v-else-if="e.currency !== home" class="xp-row-conv xp-num">≈ {{ money(e.home, home) }}</span>
+                        <span v-if="!e.unconverted" class="xp-effect" :class="e.effect > 0.009 ? 'pos' : e.effect < -0.009 ? 'neg' : ''">
+                          {{ e.effect > 0.009 ? 'you lent ' + money(e.effect, home) : e.effect < -0.009 ? 'you owe ' + money(-e.effect, home) : e.mine > 0.009 ? 'your own share' : 'not involved' }}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+                <div class="xp-r-total"><span>Total</span><span class="xp-num">{{ money(day.total, home) }}</span></div>
+                <span class="xp-barcode" aria-hidden="true"></span>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="xp-lower">
+        <!-- ===== Who owes whom: banknotes, IOUs, and the zipped purse ===== -->
+        <section class="xp-card" aria-labelledby="xp-bal-title">
+          <h3 id="xp-bal-title" class="xp-h">Who owes whom <small>{{ travellers.length }} traveller{{ travellers.length === 1 ? '' : 's' }}</small></h3>
+          <ul class="xp-bal">
+            <li v-for="b in balanceList" :key="b.name" class="xp-bal-row" :class="b.amount > 0.009 ? 'pos' : b.amount < -0.009 ? 'neg' : 'zero'">
+              <span class="xp-avatar" :style="{ background: personColor(b.name) }" aria-hidden="true">{{ b.name.charAt(0).toUpperCase() }}</span>
+              <span class="xp-bal-name">
+                {{ b.name }}
+                <span v-if="b.name === me" class="xp-you">You</span>
+              </span>
+              <span class="xp-bal-amt xp-num">
+                <span class="xp-bal-word">{{ b.amount > 0.009 ? 'gets back' : b.amount < -0.009 ? 'owes' : 'settled' }}</span>
+                <template v-if="Math.abs(b.amount) > 0.009"><span class="xp-bal-sign" aria-hidden="true">{{ b.amount > 0 ? '+' : '−' }}</span>{{ money(Math.abs(b.amount), home) }}</template>
+                <template v-else>✓</template>
+              </span>
+            </li>
+          </ul>
+
+          <h4 class="xp-sub-h">Settle up</h4>
+          <div v-if="!payments.length" class="xp-square">
+            <span class="xp-purse" aria-hidden="true"></span>
+            <span class="xp-square-stamp">All square</span>
+            <span class="xp-muted">Nobody owes anything right now.</span>
+          </div>
+          <ul class="xp-pay">
+            <!-- From → to, with the amount on the arrow -->
+            <li v-for="p in payments" :key="p.from + p.to" class="xp-cheque">
+              <span class="xp-pay-who">
+                <span class="xp-avatar sm" :style="{ background: personColor(p.from) }" aria-hidden="true">{{ p.from.charAt(0).toUpperCase() }}</span>
+                <strong>{{ p.from === me ? 'You' : p.from }}</strong>
+              </span>
+              <span class="xp-pay-arrow">
+                <span class="xp-num xp-pay-amt">{{ money(p.amount, home) }}</span>
+                <span class="xp-pay-line" aria-hidden="true"></span>
+                <span class="visually-hidden">{{ p.from === me ? 'pay' : 'pays' }}</span>
+              </span>
+              <span class="xp-pay-who">
+                <span class="xp-avatar sm" :style="{ background: personColor(p.to) }" aria-hidden="true">{{ p.to.charAt(0).toUpperCase() }}</span>
+                <strong>{{ p.to === me ? 'you' : p.to }}</strong>
+              </span>
+              <button type="button" class="btn btn-sm xp-paid" @click="markPaid(p)">Mark paid</button>
+            </li>
+          </ul>
+          <details v-if="state.settlements.length" class="xp-history">
+            <summary>Payments made ({{ state.settlements.length }})</summary>
+            <ul>
+              <li v-for="s in state.settlements" :key="s.id">
+                {{ s.from === me ? 'You' : s.from }} paid {{ s.to === me ? 'you' : s.to }} <span class="xp-num">{{ money(s.amount, home) }}</span>
+                <button type="button" class="xp-link" @click="undoPayment(s.id)">Undo</button>
               </li>
             </ul>
-          </div>
+          </details>
         </section>
 
-        <div class="xp-side">
-          <!-- ===== Balances + settle up ===== -->
-          <section class="xp-card" aria-labelledby="xp-bal-title">
-            <h3 id="xp-bal-title" class="xp-h">Balances</h3>
-            <ul class="xp-bal">
-              <li v-for="b in balanceList" :key="b.name" class="xp-bal-row">
-                <span class="xp-avatar" aria-hidden="true">{{ b.name.charAt(0).toUpperCase() }}</span>
-                <span class="xp-bal-name">{{ b.name }}{{ b.name === me ? ' (you)' : '' }}</span>
-                <!-- Diverging bar: left = owes, right = gets back -->
-                <span class="xp-bal-track" aria-hidden="true">
-                  <span class="xp-bal-mid"></span>
-                  <span class="xp-bal-bar" :class="b.amount >= 0 ? 'pos' : 'neg'"
-                    :style="{ width: (Math.abs(b.amount) / maxBalance * 50) + '%', [b.amount >= 0 ? 'left' : 'right']: '50%' }"></span>
-                </span>
-                <span class="xp-bal-amt xp-num" :class="b.amount > 0.009 ? 'pos' : b.amount < -0.009 ? 'neg' : ''">
-                  {{ b.amount > 0.009 ? 'gets ' + money(b.amount, home) : b.amount < -0.009 ? 'owes ' + money(-b.amount, home) : 'settled' }}
-                </span>
-              </li>
-            </ul>
-
-            <h4 class="xp-sub-h">Settle up</h4>
-            <p v-if="!payments.length" class="xp-muted small mb-0"><AppIcon name="check-circle" :size="15" /> Everyone is square.</p>
-            <ul class="xp-pay">
-              <li v-for="p in payments" :key="p.from + p.to" class="xp-pay-row">
-                <span class="xp-pay-text">
-                  <strong>{{ p.from === me ? 'You' : p.from }}</strong> pay{{ p.from === me ? '' : 's' }}
-                  <strong>{{ p.to === me ? 'you' : p.to }}</strong>
-                  <span class="d-block xp-num xp-pay-amt">{{ money(p.amount, home) }}</span>
-                </span>
-                <button type="button" class="btn btn-sm xp-mini" @click="markPaid(p)">Mark paid</button>
-              </li>
-            </ul>
-            <details v-if="state.settlements.length" class="xp-history">
-              <summary>Payments made ({{ state.settlements.length }})</summary>
-              <ul>
-                <li v-for="s in state.settlements" :key="s.id">
-                  {{ s.from === me ? 'You' : s.from }} paid {{ s.to === me ? 'you' : s.to }} <span class="xp-num">{{ money(s.amount, home) }}</span>
-                  <button type="button" class="xp-link" @click="undoPayment(s.id)">Undo</button>
-                </li>
-              </ul>
-            </details>
-          </section>
-
-          <!-- ===== Where the money went ===== -->
+        <div class="xp-lower-side">
+          <!-- ===== Where it went: a coin stack per category ===== -->
           <section class="xp-card" aria-labelledby="xp-cat-title">
-            <h3 id="xp-cat-title" class="xp-h">Where it went</h3>
-            <div class="xp-stack" role="img" :aria-label="categoryAria">
-              <span v-for="c in byCategory" :key="c.key" class="xp-stack-seg" :style="{ width: c.pct + '%', background: c.color }"
-                @mouseenter="tip = c.label + ': ' + money(c.amount, home)" @mouseleave="tip = ''"></span>
+            <div class="xp-cat-head">
+              <h3 id="xp-cat-title" class="xp-h">Where it went</h3>
+              <!-- Same filter as the receipts: picking a category here filters them too -->
+              <div class="xp-filters">
+                <CustomDropdown v-model="filterCat" :options="categoryOptions" size="sm" header-text="Category" aria-label="Filter receipts by category" />
+              </div>
             </div>
-            <p class="xp-tip" aria-hidden="true">{{ tip || ' ' }}</p>
-            <!-- Legend + table view: the colours always come with a name and a number -->
-            <ul class="xp-legend">
+            <!-- One row per category: coin, name, amount, and a bar (tap a row to filter the receipts) -->
+            <ul class="xp-cats" :aria-label="categoryAria">
               <li v-for="c in byCategory" :key="c.key">
-                <button type="button" class="xp-legend-row" :class="{ on: filterCat === c.key }" @click="filterCat = filterCat === c.key ? '' : c.key">
-                  <span class="xp-dot" :style="{ background: c.color }" aria-hidden="true"></span>
-                  <span class="flex-grow-1 text-start">{{ c.icon }} {{ c.label }}</span>
-                  <span class="xp-num">{{ money(c.amount, home) }}</span>
-                  <span class="xp-pct xp-num">{{ Math.round(c.pct) }}%</span>
+                <button type="button" class="xp-cat" :class="{ on: filterCat === c.key }" :style="{ '--c': c.color }"
+                  :aria-pressed="filterCat === c.key" @click="filterCat = filterCat === c.key ? '' : c.key">
+                  <span class="xp-coin" aria-hidden="true">{{ c.icon }}</span>
+                  <span class="xp-cat-main">
+                    <span class="xp-cat-top">
+                      <span class="xp-cat-name">{{ c.label }}</span>
+                      <span class="xp-cat-amt xp-num">{{ money(c.amount, home) }}</span>
+                    </span>
+                    <span class="xp-cat-track" aria-hidden="true">
+                      <span class="xp-cat-fill" :style="{ width: Math.max(c.pct, 3) + '%' }"></span>
+                    </span>
+                  </span>
+                  <span class="xp-cat-pct xp-num">{{ Math.round(c.pct) }}%</span>
                 </button>
               </li>
             </ul>
@@ -192,18 +269,20 @@
 
           <!-- ===== Spending per day ===== -->
           <section v-if="days.length > 1" class="xp-card" aria-labelledby="xp-day-title">
-            <div class="d-flex justify-content-between align-items-baseline">
-              <h3 id="xp-day-title" class="xp-h">Per day</h3>
-              <span class="xp-muted small xp-num">{{ hoverDay ? longDate(hoverDay.date) + ' · ' + money(hoverDay.amount, home) : 'Highest ' + money(maxDay, home) }}</span>
-            </div>
+            <h3 id="xp-day-title" class="xp-h">Per day
+              <small class="xp-num">{{ hoverDay ? longDate(hoverDay.date) + ' · ' + money(hoverDay.amount, home) : 'Highest ' + money(maxDay, home) }}</small>
+            </h3>
             <div class="xp-bars">
               <button v-for="d in days" :key="d.date" type="button" class="xp-bar-hit" :class="{ active: hoverDay && hoverDay.date === d.date }"
                 :aria-label="longDate(d.date) + ': ' + money(d.amount, home)"
                 @mouseenter="hoverDay = d" @focus="hoverDay = d" @mouseleave="hoverDay = null" @blur="hoverDay = null">
-                <span class="xp-bar" :class="{ zero: !d.amount }" :style="{ height: d.amount && maxDay ? Math.max(d.amount / maxDay * 100, 4) + '%' : '2px' }"></span>
+                <span class="xp-bar" :class="{ zero: !d.amount, top: d.amount && d.amount === maxDay }"
+                  :style="{ height: d.amount && maxDay ? Math.max(d.amount / maxDay * 100, 4) + '%' : '4px' }">
+                  <span v-if="d.amount && d.amount === maxDay" class="xp-bar-tag" aria-hidden="true">Biggest day</span>
+                </span>
               </button>
             </div>
-            <div class="d-flex justify-content-between xp-muted small mt-1">
+            <div class="xp-bar-dates">
               <span>{{ shortDate(days[0].date) }}</span><span>{{ shortDate(days[days.length - 1].date) }}</span>
             </div>
           </section>
@@ -274,7 +353,6 @@ export default {
       editing: null,
       search: '',
       filterCat: '',
-      tip: '',
       hoverDay: null,
       budgetEditing: false,
       budgetInput: null,
@@ -349,6 +427,10 @@ export default {
 
     budgetPct() {
       return this.state.budget ? (this.total / this.state.budget) * 100 : 0
+    },
+    // Budget shown as ten notes: how many are spent
+    spentNotes() {
+      return Math.min(10, Math.round(this.budgetPct / 10))
     },
 
     balanceMap() {
@@ -480,6 +562,12 @@ export default {
   },
 
   methods: {
+    // Each traveller keeps the same avatar colour everywhere on this tab
+    personColor(name) {
+      const colours = ['#ffd36e', '#8fd3dd', '#f9ab9e', '#a9dfbb', '#ffc9a3', '#c9b8f0']
+      const i = this.travellers.indexOf(name)
+      return colours[(i < 0 ? 0 : i) % colours.length]
+    },
     money,
     categoryOf,
 
@@ -664,13 +752,17 @@ export default {
 </script>
 
 <style scoped>
+/* Expenses & split as an open travel wallet (colours and fonts from src/assets/scrapbook.css):
+   cards in the left slots, receipts in the right pocket, banknotes for who owes whom. */
 .xp {
-  --ink: #003d5b;
-  --muted: #5a6b78;
-  --line: #e6dfd2;
-  --soft: #f6f2ea;
-  --pos: #00798c;
-  --neg: #c4472e;
+  --ink: var(--sb-ink);
+  --muted: var(--sb-ink-soft);
+  --pos: #1f7a4d;
+  --neg: #d1495b;
+  --leather: #2f8f9d;
+  --leather-dk: #23707b;
+  --paper-card: #fffdf8;
+  color: var(--sb-ink);
 }
 .xp-muted {
   color: var(--muted);
@@ -679,50 +771,1188 @@ export default {
   font-variant-numeric: tabular-nums;
 }
 .xp-h {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.45rem;
+  letter-spacing: 0.01em;
+  color: var(--sb-ink);
+}
+.xp-h small {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.xp-k {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.xp-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+}
+.xp-link:hover {
+  color: var(--sb-ink);
+  text-decoration-color: var(--sb-ink);
 }
 
-/* Toolbar */
+/* ===== Toolbar ===== */
 .xp-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 .xp-select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--soft);
-  border-radius: 999px;
-  padding: 4px 6px 4px 14px;
-  font-size: 13px;
-  color: var(--muted);
   margin: 0;
+  padding: 3px 4px 3px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--paper-card);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sb-ink);
+}
+.xp-select :deep(.dd-trigger) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: none;
 }
 .xp-live {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: var(--pos);
-  font-weight: 600;
+  padding: 5px 11px;
+  border: 2px dashed rgba(18, 50, 74, 0.35);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
 }
 .xp-live-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--sb-ink);
   border-radius: 50%;
-  background: #edae49;
-  box-shadow: 0 0 0 0 rgba(237, 174, 73, 0.6);
+  background: #4caf7d;
+  box-shadow: 0 0 0 0 rgba(76, 175, 125, 0.6);
   animation: xp-pulse 2s infinite;
 }
 @keyframes xp-pulse {
-  70% { box-shadow: 0 0 0 8px rgba(237, 174, 73, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(237, 174, 73, 0); }
+  70% { box-shadow: 0 0 0 7px rgba(76, 175, 125, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(76, 175, 125, 0); }
 }
+.xp-toolbar :deep(.er-trigger) {
+  padding: 5px 12px;
+  border: 2px dashed rgba(18, 50, 74, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sb-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.xp-toolbar :deep(.er-trigger:hover),
+.xp-toolbar :deep(.er-trigger[aria-expanded='true']) {
+  border-style: solid;
+  border-color: var(--sb-ink);
+  background: var(--paper-card);
+}
+.xp-add {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px 9px 10px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 5px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.xp-add:hover {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--sb-ink);
+}
+.xp-add:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.xp-coin-drop {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-amber-hi);
+  font-size: 14px;
+  transition: transform 0.25s var(--sb-spring);
+}
+.xp-add:hover .xp-coin-drop {
+  transform: translateY(3px) rotate(20deg);
+}
+.xp-add kbd {
+  margin-left: 2px;
+  padding: 1px 6px;
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--paper-card);
+  color: var(--sb-ink);
+  font-size: 11px;
+  box-shadow: none;
+}
+
+/* ===== Empty: an empty wallet ===== */
+.xp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  border: 2.5px dashed rgba(18, 50, 74, 0.3);
+  border-radius: 24px;
+  text-align: center;
+}
+.xp-empty-wallet {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 110px;
+  height: 78px;
+  margin-bottom: 6px;
+  border: 3px solid var(--sb-ink);
+  border-radius: 16px;
+  background: var(--leather);
+  color: var(--paper-card);
+  box-shadow: 0 5px 0 var(--sb-ink);
+  transform: rotate(-4deg);
+}
+.xp-empty-flap {
+  position: absolute;
+  inset: 8px;
+  border: 2px dashed rgba(255, 250, 240, 0.7);
+  border-radius: 10px;
+}
+.xp-empty .xp-add {
+  margin: 10px auto 0;
+}
+
+/* Warning strip */
+.xp-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+  font-size: 13.5px;
+}
+
+/* ===== The wallet ===== */
+.xp-wallet {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) 24px minmax(0, 7fr);
+  padding: 18px;
+  border: 3px solid var(--sb-ink);
+  border-radius: 28px;
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1.6px) 0 0 / 7px 7px,
+    var(--leather);
+  box-shadow: 0 8px 0 var(--sb-ink);
+}
+.xp-wallet::before { /* stitching */
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2px dashed rgba(255, 250, 240, 0.7);
+  border-radius: 21px;
+  pointer-events: none;
+}
+.xp-spine {
+  margin: -18px 0;
+  border-left: 2px solid rgba(18, 50, 74, 0.5);
+  border-right: 2px solid rgba(18, 50, 74, 0.5);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.12) 50%, rgba(0, 0, 0, 0.18));
+}
+.xp-side-l,
+.xp-side-r {
+  position: relative;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--leather-dk);
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.18);
+}
+.xp-pocket-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 4px;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fffaf0;
+  text-shadow: 0 2px 0 var(--sb-ink);
+}
+.xp-count {
+  padding: 0 8px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 0.85rem;
+  text-shadow: none;
+}
+
+/* Left: the cash card behind a clear window */
+.xp-window {
+  position: relative;
+  padding: 10px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.xp-window::after { /* plastic shine */
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border-radius: 12px;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.35) 42%, transparent 52%);
+  pointer-events: none;
+}
+.xp-cash {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 14px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(135deg, rgba(18, 50, 74, 0.04) 0 2px, transparent 2px 9px),
+    var(--paper-card);
+}
+.xp-cash > * {
+  position: relative;
+  z-index: 1; /* above the shine, so buttons and the budget box stay clickable */
+}
+.xp-chip {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  width: 38px;
+  height: 28px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent 45%, rgba(18, 50, 74, 0.4) 45% 55%, transparent 55%),
+    linear-gradient(0deg, transparent 45%, rgba(18, 50, 74, 0.4) 45% 55%, transparent 55%),
+    var(--sb-amber);
+}
+.xp-big {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--sb-display);
+  font-size: 2.3rem;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
+  color: var(--sb-ink);
+}
+.xp-cash-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.xp-cash-foot .xp-link {
+  font-size: 12px;
+}
+.xp-budget-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 12px 0 5px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.xp-budget-row .over {
+  color: var(--neg);
+}
+/* Ten notes: spent ones become dashed outlines */
+.xp-notes {
+  display: flex;
+  gap: 3px;
+  height: 20px;
+}
+.xp-notes i {
+  flex: 1;
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 3px;
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.25) 0 3px, transparent 3.5px),
+    #bfe6c9;
+}
+.xp-notes i.spent {
+  border-style: dashed;
+  border-color: rgba(18, 50, 74, 0.3);
+  background: transparent;
+}
+.xp-notes.over i {
+  border-style: solid;
+  border-color: var(--neg);
+  background: #fde0dc;
+}
+.xp-set-budget {
+  align-self: flex-start;
+  margin-top: 12px;
+  font-size: 13.5px;
+}
+.xp-budget-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.xp-budget-form .form-control {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--paper-card);
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.xp-budget-form .form-control:focus {
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.xp-mini {
+  padding: 5px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--paper-card);
+  color: var(--sb-ink);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.xp-mini:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+
+/* Card slots: each card peeks out of a leather slot */
+.xp-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+.xp-slot {
+  position: relative;
+  padding-top: 4px;
+}
+.xp-slot-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 8px;
+  padding: 12px 14px 26px;
+  border: 2.5px solid var(--sb-ink);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  color: var(--sb-ink);
+  transition: transform 0.2s var(--sb-spring);
+}
+.xp-slot:hover .xp-slot-card {
+  transform: translateY(-6px);
+}
+.xp-slot-card.amber { background: #fff1cf; }
+.xp-slot-card.teal { background: #d6f0f3; }
+.xp-slot-card.peach { background: #ffe1cf; }
+.xp-slot-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--paper-card);
+  font-size: 17px;
+}
+.xp-slot-text {
+  flex: 1;
+  min-width: 0;
+}
+.xp-slot-v {
+  display: block;
+  font-family: var(--sb-display);
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+.xp-slot-v.pos { color: var(--pos); }
+.xp-slot-v.neg { color: var(--neg); }
+.xp-slot-sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.xp-slot-lip {
+  position: relative;
+  display: block;
+  margin-top: -18px;
+  height: 22px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 6px 6px 12px 12px;
+  background: var(--leather);
+  box-shadow: 0 3px 0 rgba(18, 50, 74, 0.35);
+}
+.xp-slot-lip::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 5px;
+  border-top: 2px dashed rgba(255, 250, 240, 0.65);
+}
+.xp-stamp {
+  flex: none;
+  padding: 3px 9px;
+  border: 2.5px solid currentColor;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.6);
+  font-family: var(--sb-display);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+}
+.xp-stamp.owed { color: #1b7f8d; }
+.xp-stamp.owe { color: var(--neg); }
+.xp-stamp.ok { color: var(--pos); }
+
+/* Right: the receipt pocket */
+.xp-pocket {
+  position: relative;
+  padding-top: 26px;
+}
+.xp-pocket-lip {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: -4px;
+  right: -4px;
+  height: 58px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 14px 14px 50% 50% / 14px 14px 26px 26px;
+  background: var(--leather);
+  box-shadow: 0 4px 0 rgba(18, 50, 74, 0.35);
+}
+.xp-pocket-lip::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 9px;
+  height: 18px;
+  border-bottom: 2px dashed rgba(255, 250, 240, 0.7);
+  border-radius: 0 0 50% 50%;
+}
+.xp-pocket-tools {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: -14px;
+  padding: 0 12px;
+}
+.xp-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--paper-card);
+  box-shadow: 0 2px 0 var(--sb-ink);
+  color: var(--sb-ink);
+}
+.xp-search input {
+  width: 150px;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  padding: 6px 0;
+  background: transparent;
+  color: var(--sb-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.xp-search:focus-within {
+  box-shadow: 0 2px 0 var(--sb-ink), 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.xp-filters :deep(.dd-trigger) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--paper-card);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.xp-receipts {
+  position: relative;
+  z-index: 2;
+  margin-top: 4px;
+  padding: 0 6px 6px;
+}
+
+/* A receipt: torn zig-zag edges, a dashed rule, dotted leaders, the total and a barcode */
+.xp-receipt {
+  position: relative;
+  margin: 0 0 28px;
+  padding: 30px 18px 22px;
+  border-left: 2.5px solid var(--sb-ink);
+  border-right: 2.5px solid var(--sb-ink);
+  background: var(--paper-card);
+  filter: drop-shadow(0 4px 0 rgba(18, 50, 74, 0.45));
+}
+.xp-receipt:nth-child(odd) { transform: rotate(-0.5deg); }
+.xp-receipt:nth-child(even) { transform: rotate(0.4deg); }
+.xp-receipt::before,
+.xp-receipt::after {
+  content: '';
+  position: absolute;
+  left: -2.5px;
+  right: -2.5px;
+  height: 10px;
+  background:
+    linear-gradient(135deg, var(--paper-card) 33%, transparent 33%) 0 0 / 12px 10px,
+    linear-gradient(225deg, var(--paper-card) 33%, transparent 33%) 0 0 / 12px 10px;
+}
+.xp-receipt::before { top: -9px; transform: scaleY(-1); }
+.xp-receipt::after { bottom: -9px; }
+.xp-nothing {
+  text-align: center;
+  font-weight: 600;
+  color: var(--muted);
+}
+.xp-r-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.35);
+}
+.xp-r-day {
+  font-family: var(--sb-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.xp-r-day small {
+  margin-left: 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+.xp-r-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.xp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.xp-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 38px minmax(0, auto) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--sb-ink);
+  text-align: left;
+  transition: background 0.15s;
+}
+.xp-row:hover {
+  background: rgba(255, 191, 60, 0.2);
+}
+/* Category coin: the category's own colour, with a rim */
+.xp-coin {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.55) 0 52%, transparent 54%),
+    var(--c, var(--sb-amber));
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.5), 0 2px 0 var(--sb-ink);
+  font-size: 16px;
+}
+.xp-row-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.xp-row-title {
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-row-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.xp-leader {
+  height: 1px;
+  margin-top: 4px;
+  border-bottom: 2.5px dotted rgba(18, 50, 74, 0.35);
+}
+.xp-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.xp-row-amount {
+  font-size: 15px;
+  font-weight: 800;
+}
+.xp-row-conv {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.xp-unconv {
+  color: var(--neg);
+}
+.xp-effect {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.xp-effect.pos { color: var(--pos); }
+.xp-effect.neg { color: var(--neg); }
+.xp-r-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 2px solid var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.xp-barcode {
+  display: block;
+  width: 55%;
+  height: 18px;
+  margin-top: 10px;
+  background: repeating-linear-gradient(90deg, var(--sb-ink) 0 2px, transparent 2px 4px, var(--sb-ink) 4px 5px, transparent 5px 8px, var(--sb-ink) 8px 11px, transparent 11px 13px);
+  opacity: 0.55;
+}
+
+/* ===== Below the wallet ===== */
+.xp-lower {
+  display: grid;
+  align-items: start;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 26px;
+  margin-top: 34px;
+}
+.xp-lower-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.xp-card {
+  padding: 18px 20px 20px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 18px;
+  background: var(--paper-card);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.xp-sub-h {
+  margin: 20px 0 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Balances: one row per person, the amount in a coloured pill */
+.xp-bal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.xp-bal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 8px;
+  border: 2px solid rgba(18, 50, 74, 0.14);
+  border-left: 6px solid rgba(18, 50, 74, 0.2);
+  border-radius: 14px;
+  background: var(--paper-card);
+  transition: transform 0.15s var(--sb-spring);
+}
+.xp-bal-row:hover {
+  transform: translateX(3px);
+}
+.xp-bal-row.pos { border-left-color: #4caf7d; }
+.xp-bal-row.neg { border-left-color: var(--sb-coral); }
+.xp-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 16px;
+  font-weight: 400;
+}
+.xp-avatar.sm {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+}
+.xp-bal-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  font-family: var(--sb-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.xp-you {
+  padding: 1px 8px;
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-4deg);
+}
+.xp-bal-amt {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-cream);
+  color: var(--sb-ink-soft);
+  font-family: var(--sb-display);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.xp-bal-word {
+  font-size: 0.8em;
+  opacity: 0.8;
+}
+.xp-bal-sign {
+  display: none; /* phones only: shown instead of the words */
+}
+.pos .xp-bal-amt { background: #e2f5e8; color: var(--pos); }
+.neg .xp-bal-amt { background: #fde6e1; color: var(--neg); }
+.zero .xp-bal-amt { border-color: rgba(18, 50, 74, 0.3); }
+
+/* Settle up: from → to, the amount riding on a dashed arrow */
+.xp-pay {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.xp-cheque {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fff6df;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.xp-pay-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--sb-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.xp-pay-who strong {
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.xp-pay-arrow {
+  flex: 1;
+  min-width: 70px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.xp-pay-amt {
+  font-family: var(--sb-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: var(--sb-ink);
+}
+.xp-pay-line {
+  position: relative;
+  width: 100%;
+  border-top: 2.5px dashed var(--sb-ink);
+}
+.xp-pay-line::after { /* arrow head */
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -7.5px;
+  width: 11px;
+  height: 11px;
+  border-top: 2.5px solid var(--sb-ink);
+  border-right: 2.5px solid var(--sb-ink);
+  transform: rotate(45deg);
+}
+.xp-paid {
+  flex: none;
+  padding: 6px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.xp-paid:hover {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--sb-ink);
+}
+.xp-paid:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+/* All square: a zipped coin purse */
+.xp-square {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 16px;
+  padding: 12px 16px;
+  border: 2px dashed rgba(18, 50, 74, 0.35);
+  border-radius: 14px;
+}
+.xp-square .xp-muted {
+  font-size: 13px;
+  font-weight: 600;
+}
+.xp-purse {
+  position: relative;
+  flex: none;
+  width: 70px;
+  height: 52px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 10px 10px 26px 26px;
+  background: var(--leather);
+}
+.xp-purse::before { /* zip */
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #fffaf0 0 3px, var(--sb-ink) 3px 5px);
+}
+.xp-purse::after { /* pull */
+  content: '';
+  position: absolute;
+  right: 4px;
+  top: 6px;
+  width: 9px;
+  height: 16px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 4px;
+  background: var(--sb-amber);
+}
+.xp-square-stamp {
+  padding: 4px 12px;
+  border: 3px solid var(--pos);
+  border-radius: 8px;
+  color: var(--pos);
+  font-family: var(--sb-display);
+  font-size: 1.3rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+}
+.xp-history {
+  margin-top: 14px;
+  font-size: 13px;
+}
+.xp-history summary {
+  font-weight: 800;
+  cursor: pointer;
+}
+.xp-history ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.xp-history li {
+  margin-bottom: 4px;
+}
+
+/* Where it went: a row per category with a bar in its colour */
+.xp-cat-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.xp-cat-head .xp-h {
+  margin: 0;
+}
+.xp-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.xp-cat {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--sb-ink);
+  text-align: left;
+  transition: background 0.15s;
+}
+.xp-cat:hover {
+  background: rgba(255, 191, 60, 0.15);
+}
+.xp-cat.on {
+  border-color: var(--sb-ink);
+  background: #fff1cf;
+}
+.xp-cat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.xp-cat-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.xp-cat-name {
+  overflow: hidden;
+  font-family: var(--sb-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-cat-amt {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.xp-cat-track {
+  display: block;
+  height: 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-cream);
+  overflow: hidden;
+}
+.xp-cat-fill {
+  display: block;
+  height: 100%;
+  border-right: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.28) 0 6px, transparent 6px 12px),
+    var(--c, var(--sb-amber));
+}
+.xp-cat-pct {
+  flex: none;
+  width: 58px;
+  padding: 3px 0;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--paper-card);
+  font-family: var(--sb-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+/* Per day: teal bars, the biggest day in amber with a tag */
+.xp-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 150px;
+  margin-top: 30px;
+  padding: 0 2px;
+  border-bottom: 2.5px solid var(--sb-ink);
+}
+.xp-bar-hit {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.xp-bar {
+  position: relative;
+  width: 100%;
+  border: 2px solid var(--sb-ink);
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  background: repeating-linear-gradient(0deg, #8fd3dd 0 9px, #6fc3cf 9px 11px);
+  transition: filter 0.15s;
+}
+.xp-bar.top {
+  background: repeating-linear-gradient(0deg, var(--sb-amber) 0 9px, #f0a91f 9px 11px);
+}
+.xp-bar.zero {
+  border-style: dashed;
+  border-color: rgba(18, 50, 74, 0.35);
+  background: transparent;
+}
+.xp-bar-hit:hover .xp-bar,
+.xp-bar-hit.active .xp-bar {
+  filter: brightness(0.92);
+}
+.xp-bar-tag {
+  position: absolute;
+  z-index: 1;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  padding: 2px 7px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translateX(-50%) rotate(-6deg);
+}
+.xp-bar-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+/* What others just changed */
 .xp-toasts {
   position: fixed;
   right: 20px;
@@ -736,18 +1966,14 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #062c42;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
   padding: 10px 14px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fffdf8;
+  color: var(--sb-ink);
   font-size: 14px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-}
-.xp-avatar.sm {
-  width: 24px;
-  height: 24px;
-  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 4px 0 var(--sb-ink);
 }
 .xp-toast-enter-active,
 .xp-toast-leave-active {
@@ -758,520 +1984,201 @@ export default {
   opacity: 0;
   transform: translateY(10px);
 }
-.xp-rates {
-  font-size: 12px;
-  color: var(--muted);
-}
-.xp-add {
-  margin-left: auto;
-  background: var(--ink);
-  color: #edae49;
-  border-radius: 999px;
-  padding: 9px 18px;
-  font-weight: 600;
-}
-.xp-add:hover {
-  background: var(--pos);
-  color: #fff;
-}
-.xp-add kbd {
-  background: rgba(255, 255, 255, 0.14);
-  color: inherit;
-  font-size: 11px;
-  border-radius: 6px;
-  padding: 1px 6px;
-  margin-left: 6px;
-}
-
-/* Empty */
-.xp-empty {
-  text-align: center;
-  padding: 48px 16px;
-  border: 1.5px dashed var(--line);
-  border-radius: 24px;
-}
-.xp-empty-art {
-  font-size: 48px;
-  margin-bottom: 8px;
-}
-.xp-empty .xp-add {
-  margin: 16px auto 0;
-}
-
-/* Tiles */
-.xp-warn {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid #edae49;
-  background: #fbefd9;
-  color: #6b4a0e;
-  font-size: 14px;
-  line-height: 1.4;
-}
-.xp-warn .app-icon {
-  margin-top: 2px;
-}
-.xp-unconv {
-  color: #6b4a0e;
-  font-style: italic;
-}
-.xp-tiles {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-.xp-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 18px 20px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  background: #fbf5ea;
-}
-.xp-tile-dark {
-  background: #062c42;
-  border-color: #062c42;
-  color: #fff;
-}
-.xp-tile-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.xp-tile-dark .xp-tile-label,
-.xp-tile-dark .xp-tile-sub {
-  color: rgba(255, 255, 255, 0.65);
-}
-.xp-big {
-  font-size: 1.6rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.2;
-}
-.xp-big.pos {
-  color: var(--pos);
-}
-.xp-big.neg {
-  color: var(--neg);
-}
-.xp-tile-sub {
-  font-size: 12px;
-  color: var(--muted);
-}
-.xp-budget {
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  overflow: hidden;
-  margin: 6px 0 2px;
-}
-.xp-budget-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: #f3c26f;
-}
-.xp-budget-fill.over {
-  background: #ff8a70;
-}
-.xp-budget-form {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-.xp-link-light {
-  border: 0;
-  background: none;
-  color: #f3c26f;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 0 0 0 4px;
-  text-align: left;
-}
-.xp-link {
-  border: 0;
-  background: none;
-  color: var(--pos);
-  font-weight: 600;
-  padding: 0 4px;
-}
-.xp-mini {
-  background: var(--ink);
-  color: #edae49;
-  border-radius: 999px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.xp-mini:hover {
-  background: var(--pos);
-  color: #fff;
-}
-
-/* Layout */
-.xp-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-.xp-side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.xp-card {
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 18px 20px;
-  background: #fbf5ea;
-}
-.xp-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.xp-count {
-  font-family: var(--font-body);
-  font-size: 12px;
-  background: var(--soft);
-  border-radius: 999px;
-  padding: 2px 8px;
-  vertical-align: middle;
-}
-.xp-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--soft);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-}
-.xp-search input {
-  border: 0;
-  background: transparent;
-  outline: none;
-  width: 120px;
-}
-.xp-filters {
-  margin-bottom: 8px;
-}
-
-/* Feed */
-.xp-day {
-  margin-top: 10px;
-}
-.xp-day-head {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--muted);
-  padding: 6px 4px;
-  border-bottom: 1px solid var(--line);
-}
-.xp-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.xp-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 0;
-  background: none;
-  text-align: left;
-  padding: 10px 6px;
-  border-radius: 14px;
-  transition: background 0.15s;
-}
-.xp-row:hover {
-  background: var(--soft);
-}
-.xp-icon {
-  width: 42px;
-  height: 42px;
-  flex-shrink: 0;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-.xp-row-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.xp-row-title {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.xp-row-sub {
-  font-size: 13px;
-  color: var(--muted);
-}
-.xp-row-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  flex-shrink: 0;
-}
-.xp-row-amount {
-  font-weight: 700;
-}
-.xp-row-conv {
-  font-size: 12px;
-  color: var(--muted);
-}
-.xp-effect {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.xp-effect.pos,
-.xp-bal-amt.pos {
-  color: var(--pos);
-}
-.xp-effect.neg,
-.xp-bal-amt.neg {
-  color: var(--neg);
-}
-
-/* Balances */
-.xp-bal {
-  list-style: none;
-  padding: 0;
-  margin: 12px 0 0;
-}
-.xp-bal-row {
-  display: grid;
-  grid-template-columns: 30px minmax(50px, 90px) minmax(70px, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
-}
-.xp-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #00798c;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.xp-bal-name {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.xp-bal-track {
-  position: relative;
-  height: 10px;
-}
-.xp-bal-mid {
-  position: absolute;
-  left: 50%;
-  top: -3px;
-  bottom: -3px;
-  width: 1px;
-  background: #d2c8b6;
-}
-.xp-bal-bar {
-  position: absolute;
-  top: 0;
-  height: 100%;
-}
-.xp-bal-bar.pos {
-  background: var(--pos);
-  border-radius: 0 4px 4px 0;
-}
-.xp-bal-bar.neg {
-  background: var(--neg);
-  border-radius: 4px 0 0 4px;
-}
-.xp-bal-amt {
-  font-size: 13px;
-  font-weight: 600;
-  text-align: right;
-  white-space: nowrap;
-}
-.xp-sub-h {
-  font-size: 14px;
-  font-weight: 700;
-  margin: 16px 0 8px;
-}
-.xp-pay {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.xp-pay-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--soft);
-  border-radius: 14px;
-  margin-bottom: 6px;
-}
-.xp-pay-amt {
-  font-weight: 700;
-}
-.xp-history {
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--muted);
-}
-.xp-history ul {
-  padding-left: 18px;
-  margin: 6px 0 0;
-}
-
-/* Category stacked bar: 2px surface gap between segments, rounded ends */
-.xp-stack {
-  display: flex;
-  gap: 2px;
-  height: 14px;
-  margin-top: 14px;
-}
-.xp-stack-seg:first-child {
-  border-radius: 4px 0 0 4px;
-}
-.xp-stack-seg:last-child {
-  border-radius: 0 4px 4px 0;
-}
-.xp-stack-seg:only-child {
-  border-radius: 4px;
-}
-.xp-tip {
-  font-size: 12px;
-  color: var(--muted);
-  min-height: 18px;
-  margin: 4px 0 0;
-}
-.xp-legend {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.xp-legend-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 0;
-  background: none;
-  padding: 6px 4px;
-  border-radius: 10px;
-  font-size: 14px;
-}
-.xp-legend-row:hover,
-.xp-legend-row.on {
-  background: var(--soft);
-}
-.xp-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-.xp-pct {
-  width: 40px;
-  text-align: right;
-  color: var(--muted);
-}
-
-/* Per-day bars: hit area is the full column, bar has a 4px rounded top */
-.xp-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 110px;
-  margin-top: 12px;
-  border-bottom: 1px solid var(--line);
-}
-.xp-bar-hit {
-  flex: 1;
-  height: 100%;
-  display: flex;
-  align-items: flex-end;
-  border: 0;
-  background: none;
-  padding: 0;
-  border-radius: 6px 6px 0 0;
-}
-.xp-bar-hit:hover,
-.xp-bar-hit.active {
-  background: var(--soft);
-}
-.xp-bar {
-  width: 100%;
-  background: #00798c;
-  border-radius: 4px 4px 0 0;
-}
-.xp-bar.zero {
-  background: #dcd3c4;
-}
-.xp-bar-hit.active .xp-bar {
-  background: #0a5f47;
-}
 
 /* Keyboard focus */
 .xp-row:focus-visible,
-.xp-legend-row:focus-visible,
+.xp-cat:focus-visible,
 .xp-bar-hit:focus-visible,
 .xp-add:focus-visible,
-.xp-mini:focus-visible {
-  outline: 3px solid rgba(0, 121, 140, 0.45);
+.xp-mini:focus-visible,
+.xp-paid:focus-visible,
+.xp-link:focus-visible {
+  outline: 3px solid var(--sb-teal);
   outline-offset: 2px;
 }
 
+/* Tablets and phones: the wallet opens top-to-bottom */
 @media (max-width: 991px) {
-  .xp-tiles {
-    grid-template-columns: 1fr 1fr;
+  .xp-wallet {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px;
   }
-  .xp-grid {
-    grid-template-columns: 1fr;
+  .xp-spine {
+    height: 22px;
+    margin: 0 -14px;
+    border: 0;
+    border-top: 2px solid rgba(18, 50, 74, 0.5);
+    border-bottom: 2px solid rgba(18, 50, 74, 0.5);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(255, 255, 255, 0.12) 50%, rgba(0, 0, 0, 0.18));
+  }
+  .xp-lower {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
-@media (max-width: 480px) {
-  .xp-tiles {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 560px) {
   .xp-add {
+    margin-left: 0;
+  }
+  .xp-big {
+    font-size: 2rem;
+  }
+  .xp-side-l,
+  .xp-side-r {
+    padding: 10px;
+    overflow: hidden;
+  }
+  .xp-pocket-tools {
+    padding: 0 6px;
+  }
+  .xp-search {
+    flex: 1;
+  }
+  .xp-search input {
     width: 100%;
+  }
+  .xp-receipt {
+    padding: 28px 12px 20px;
+  }
+  .xp-row {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+  }
+  .xp-row-title {
+    white-space: normal;
+  }
+  .xp-leader {
+    display: none;
+  }
+  .xp-coin {
+    width: 32px;
+    height: 32px;
+  }
+  .xp-slot-v {
+    font-size: 1.25rem;
+  }
+  .xp-slot-card {
+    padding-right: 10px;
+  }
+  .xp-slot-card .xp-stamp {
+    position: absolute;
+    top: -8px;
+    right: 6px;
+    font-size: 0.7rem;
+    background: #fffdf8;
+  }
+  .xp-cheque {
+    flex-wrap: wrap;
+  }
+  .xp-paid {
+    width: 100%;
+  }
+  .xp-bal-word {
+    display: none;
+  }
+  .xp-cat {
+    gap: 8px;
+    padding: 8px 4px;
+  }
+  .xp-cat-pct {
+    width: 46px;
+    font-size: 0.85rem;
+  }
+  .xp-cat-amt {
+    font-size: 12px;
+  }
+  .xp-bal-sign {
+    display: inline;
+    margin-right: -2px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .xp-row { transition: none; }
+  .xp-row,
+  .xp-add,
+  .xp-coin-drop,
+  .xp-slot-card,
+  .xp-bal-row,
+  .xp-paid,
+  .xp-bar { transition: none; }
   .xp-live-dot { animation: none; }
 }
 
 /* Phones and touch screens: every control is at least 40px to tap (WCAG / Apple guidance) */
 @media (pointer: coarse), (max-width: 560px) {
-  .xp-link-light {
+  .xp-mini,
+  .xp-paid,
+  .xp-link {
     min-height: 40px;
-    padding: 0 10px;
   }
-  .xp-mini {
-    min-height: 40px;
+  .xp-search input {
+    min-height: 36px;
+  }
+}
+/* ===== A little wiggle on hover, for everything on the page =====
+   Uses the separate `rotate` property, so it adds to each item's own tilt or lift instead of replacing it.
+   Big things wiggle less (--wig), small things a bit more. */
+@keyframes xp-wiggle {
+  0%, 100% { rotate: 0deg; }
+  25% { rotate: calc(var(--wig, 1.5deg) * -1); }
+  50% { rotate: var(--wig, 1.5deg); }
+  75% { rotate: calc(var(--wig, 1.5deg) * -0.5); }
+}
+.xp-wallet { --wig: 0.25deg; }
+.xp-card,
+.xp-receipt,
+.xp-window { --wig: 0.5deg; }
+.xp-slot-card,
+.xp-bal-row,
+.xp-cheque,
+.xp-cat,
+.xp-row,
+.xp-empty { --wig: 0.8deg; }
+.xp-coin,
+.xp-avatar,
+.xp-chip,
+.xp-stamp,
+.xp-you,
+.xp-purse,
+.xp-square-stamp,
+.xp-coin-drop,
+.xp-slot-icon,
+.xp-cat-pct { --wig: 6deg; }
+
+.xp-add:hover,
+.xp-select:hover,
+.xp-live:hover,
+.xp-toolbar :deep(.er:hover),
+.xp-wallet:hover,
+.xp-window:hover,
+.xp-slot:hover .xp-slot-card,
+.xp-search:hover,
+.xp-filters:hover,
+.xp-receipt:hover,
+.xp-row:hover,
+.xp-row:hover .xp-coin,
+.xp-card:hover,
+.xp-bal-row:hover,
+.xp-bal-row:hover .xp-avatar,
+.xp-cheque:hover,
+.xp-cheque:hover .xp-avatar,
+.xp-paid:hover,
+.xp-mini:hover,
+.xp-cat:hover,
+.xp-cat:hover .xp-coin,
+.xp-cat:hover .xp-cat-pct,
+.xp-bar-hit:hover .xp-bar,
+.xp-square:hover .xp-purse,
+.xp-square:hover .xp-square-stamp,
+.xp-slot:hover .xp-stamp,
+.xp-slot:hover .xp-slot-icon,
+.xp-cash:hover .xp-chip,
+.xp-empty:hover,
+.xp-empty-wallet:hover {
+  animation: xp-wiggle 0.45s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .xp *,
+  .xp *:hover,
+  .xp :deep(*) {
+    animation: none !important;
   }
 }
 </style>

@@ -310,4 +310,146 @@ function apply() {
 @media (prefers-reduced-motion: reduce) {
   .os { animation: none; }
 }
+/* =====================================================================
+   Travel journal look for this side panel (colours from src/assets/scrapbook.css).
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.os-overlay {
+  background: rgba(18, 50, 74, 0.4);
+}
+.os {
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.06) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    var(--sb-paper);
+  color: var(--sb-ink);
+  border-left: 3px solid var(--sb-ink);
+  box-shadow: -6px 0 0 rgba(18, 50, 74, 0.18);
+}
+.os-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+  padding-bottom: 14px;
+}
+.os-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--sb-ink);
+}
+.os-sub {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.os-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 9px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.os-x {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.os-x:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+}
+.os-x:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+@media (max-width: 640px) {
+  .os {
+    border-left: 0;
+    border-top: 3px solid var(--sb-ink);
+    box-shadow: 0 -6px 0 rgba(18, 50, 74, 0.18);
+  }
+}
+.os-noroom {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+}
+.os-row {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.os-thumb {
+  border: 2px solid var(--sb-ink);
+}
+.os-name {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.os-dur {
+  color: var(--sb-ink-soft);
+}
+.os-warn {
+  color: var(--sb-red);
+  font-weight: 700;
+}
+.os-foot {
+  border-top: 2px dashed rgba(18, 50, 74, 0.25);
+  background: var(--sb-paper);
+}
+.os-cta {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.os-cta:hover:not(:disabled) {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.os-cta:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.os-cta:disabled {
+  background: #efe6d2;
+  color: rgba(18, 50, 74, 0.5);
+  border-color: rgba(18, 50, 74, 0.35);
+  box-shadow: none;
+  opacity: 1;
+}
+.os-outline {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.os-outline:hover:not(:disabled) {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
 </style>

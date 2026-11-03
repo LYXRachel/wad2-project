@@ -4,7 +4,7 @@
   <Teleport to="body">
     <transition name="as-fade">
       <div v-if="open" class="as-overlay" @click.self="askClose" @keydown.esc.stop="askClose">
-        <section ref="panel" class="as" role="dialog" aria-modal="true" aria-labelledby="as-title" tabindex="-1">
+        <section ref="panel" class="as" :class="{ wide }" role="dialog" aria-modal="true" aria-labelledby="as-title" tabindex="-1">
           <!-- ===== Header: title, tier + XP, close ===== -->
           <header class="as-head">
             <div class="as-title-wrap">
@@ -55,8 +55,28 @@
           <div class="as-body">
             <!-- ===== Left: the 3D stage ===== -->
             <div class="as-stage" data-tour="avatar-stage">
-              <AvatarStage ref="stage" :look="comparing ? savedLook : draft" :focus="focus" :countries="P.countries.length" @ready="onReady" />
+              <!-- A little photo booth: curtain on top, the 3D twin, then the camera buttons underneath (not over the platform) -->
+              <span class="as-curtain" aria-hidden="true"></span>
+              <div class="as-booth">
+                <!-- The dressing room behind the twin: striped wallpaper, a mirror with bulbs, drapes, a door sign, a wooden floor -->
+                <div class="as-room" aria-hidden="true">
+                  <span class="as-mirror"><span class="as-glass"></span></span>
+                  <span class="as-drape left"></span>
+                  <span class="as-drape right"></span>
+                  <span class="as-plaque">Fitting room</span>
+                  <span class="as-floor"></span>
+                </div>
+                <AvatarStage ref="stage" :look="comparing ? savedLook : draft" :focus="focus" :countries="P.countries.length" @ready="onReady" />
+              </div>
               <span v-if="comparing" class="as-comparing">Your saved look</span>
+              <!-- Full view: hide the wardrobe and give the whole window to the twin -->
+              <button type="button" class="as-expand" :aria-pressed="wide" @click="wide = !wide">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path v-if="!wide" d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                  <path v-else d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />
+                </svg>
+                {{ wide ? 'Back to wardrobe' : 'Full view' }}
+              </button>
               <div class="as-views" role="group" aria-label="Camera">
                 <button v-for="v in VIEW_BUTTONS" :key="v.key" type="button" class="as-view" :class="{ on: focus === v.key }"
                   :aria-pressed="focus === v.key" @click="focus = v.key">{{ v.label }}</button>
@@ -159,7 +179,7 @@
                       @click="pick(s, it)">
                       <span class="as-thumb">
                         <AppIcon v-if="it.icon" :name="it.icon" :size="26" :stroke="1.8" />
-                        <svg v-else viewBox="0 0 48 48" width="44" height="44" aria-hidden="true" v-html="thumb(s.key, it)"></svg>
+                        <svg v-else :viewBox="s.key === 'hair' || s.key === 'face' ? '7 4 34 40' : '0 0 48 48'" width="50" height="50" aria-hidden="true" v-html="thumb(s.key, it)"></svg>
                       </span>
                       <span class="as-card-name">{{ it.name }}</span>
                       <span v-if="!isUnlocked(it)" class="as-lock">
@@ -187,7 +207,7 @@
               <button type="button" class="as-ghost danger" @click="close">Discard</button>
             </template>
             <template v-else>
-              <button type="button" class="as-ghost" @click="surprise"><AppIcon name="sparkles" :size="15" /> Surprise me</button>
+              <button type="button" class="as-ghost as-surprise" @click="surprise"><span class="as-dice" aria-hidden="true"><i></i><i></i><i></i></span> Surprise me</button>
               <button type="button" class="as-ghost" :disabled="!dirty" @click="undo"><AppIcon name="refresh" :size="15" /> Undo changes</button>
               <span v-if="error" class="as-err" role="alert">{{ error }}</span>
               <span v-else-if="savedFlash" class="as-saved" role="status"><AppIcon name="check" :size="14" :stroke="3" /> Saved</span>
@@ -239,6 +259,7 @@ const confirmClose = ref(false)
 const lockNote = ref(null) // { slot, name, text } after tapping a locked item
 const xpOpen = ref(false)
 const comparing = ref(false)
+const wide = ref(false) // Full view: the twin takes the whole window
 const fresh = ref([])      // items unlocked since last time (shown in the banner)
 const myTrips = ref([])
 const tripsLoading = ref(false)
@@ -251,6 +272,7 @@ const savedLook = computed(() => cleanLook(avatar.look))
 watch(() => props.open, async (open) => {
   if (!open) return
   draft.value = cleanLook(avatar.look)
+  wide.value = false
   tab.value = 'appearance'
   focus.value = 'full'
   error.value = ''
@@ -481,7 +503,9 @@ function thumb(slot, it) {
   const top = itemOf('topColor', draft.value.topColor).color
   const p = (d, fill) => '<path d="' + d + '" fill="' + fill + '"/>'
   if (slot === 'hair') {
-    const face = '<circle cx="24" cy="27" r="11" fill="' + skin + '"/><circle cx="20" cy="28" r="1.3" fill="#1b1b22"/><circle cx="28" cy="28" r="1.3" fill="#1b1b22"/>'
+    const face = '<path d="M14 48c1-7 5-10 10-10s9 3 10 10z" fill="' + top + '" stroke="#12324a" stroke-width="1.2"/>' +
+      '<circle cx="24" cy="27" r="11" fill="' + skin + '" stroke="#12324a" stroke-width="1.2"/><circle cx="20" cy="28" r="1.3" fill="#1b1b22"/><circle cx="28" cy="28" r="1.3" fill="#1b1b22"/>' +
+      '<path d="M21 32q3 2.4 6 0" fill="none" stroke="#7a3b33" stroke-width="1.2" stroke-linecap="round"/>'
     const fringe = p('M12.5 27a11.5 11.5 0 0 1 23 0c-2-4-5-6-8-6-4 3-9 4-15 6z', hair)
     if (it.id === 'buzz') return face + p('M13 25a11 11 0 0 1 22 0c-3-4-7-6-11-6s-8 2-11 6z', hair)
     if (it.id === 'short') return face + fringe
@@ -1407,6 +1431,699 @@ function thumb(slot, it) {
 @media (max-width: 860px) {
   .as-xp {
     grid-template-columns: 1fr;
+  }
+}
+/* =====================================================================
+   Travel journal look: a cream "photo booth" dressing room
+   (colours and fonts from src/assets/scrapbook.css). These rules come last,
+   so they replace the older dark styles above.
+   ===================================================================== */
+.as-overlay {
+  background: rgba(18, 50, 74, 0.45);
+}
+.as {
+  --line: rgba(18, 50, 74, 0.18);
+  --text: var(--sb-ink);
+  --muted: var(--sb-ink-soft);
+  --accent: var(--sb-amber);
+  border: 3px solid var(--sb-ink);
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.06) 1.2px, transparent 1.5px) 0 0 / 22px 22px,
+    var(--sb-paper);
+  color: var(--sb-ink);
+  box-shadow: 0 8px 0 var(--sb-ink), 0 30px 60px rgba(18, 50, 74, 0.3);
+}
+
+/* Header */
+.as-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+}
+.as-kicker {
+  display: inline-block;
+  padding: 2px 9px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  transform: rotate(-2deg);
+}
+.as-title {
+  margin-top: 6px;
+  font-family: var(--sb-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--sb-ink);
+}
+/* Tier + XP: a luggage tag */
+.as-tier {
+  padding-right: 30px; /* room for the ? */
+  border: 2px solid var(--sb-ink);
+  border-radius: 8px 14px 14px 8px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring);
+}
+.as-tier:hover {
+  border-color: var(--sb-ink);
+  transform: translateY(-1px) rotate(-1deg);
+}
+.as-tier-badge {
+  border: 2px solid var(--sb-ink);
+  border-radius: 8px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  transform: rotate(-4deg);
+}
+.as-tier-text strong {
+  font-family: var(--sb-display);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--sb-ink);
+}
+.as-tier-text {
+  font-weight: 600;
+}
+.as-bar {
+  height: 10px;
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-cream);
+}
+.as-bar span {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0 5px, transparent 5px 10px),
+    var(--sb-amber);
+}
+.as-tier-q {
+  border: 1.5px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+}
+.as-x {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.as-x:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.as-unlock {
+  border-bottom: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+.as-xp {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+  background: #fff6e4;
+}
+.as-xp h3 {
+  color: var(--sb-ink-soft);
+}
+.as-xp-rules b,
+.as-xp-log b {
+  color: #b06f00;
+}
+
+/* Left: the photo booth */
+.as-stage {
+  display: flex;
+  flex-direction: column;
+  border-right: 2.5px solid var(--sb-ink);
+  background: #f6ead2;
+}
+.as-booth {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+/* Curtain along the top, with a scalloped hem */
+.as-curtain {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  border-bottom: 2.5px solid var(--sb-ink);
+  background: repeating-linear-gradient(90deg, #f2786b 0 18px, #e0675a 18px 22px, #f2786b 22px 40px);
+  pointer-events: none;
+}
+.as-curtain::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 10px;
+  background: radial-gradient(circle at 11px 0, #e0675a 0 9px, var(--sb-ink) 9px 11px, transparent 11.5px) 0 0 / 22px 10px repeat-x;
+}
+.as-hint {
+  top: 50px;
+  padding: 3px 10px;
+  border: 1.5px dashed rgba(18, 50, 74, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.8);
+  color: var(--sb-ink-soft);
+  font-weight: 700;
+}
+.as-compare {
+  top: 48px;
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.as-compare:active {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.as-comparing {
+  top: 90px;
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+/* Camera buttons: under the booth, so they never cover the rug */
+.as-views {
+  position: static;
+  align-self: center;
+  margin: 10px auto 14px;
+  transform: none;
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.as-view {
+  color: var(--sb-ink-soft);
+}
+.as-view:hover {
+  color: var(--sb-ink);
+  background: var(--sb-cream);
+}
+.as-view.on {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: inset 0 0 0 2px var(--sb-ink);
+}
+
+/* Right: the wardrobe, with suitcase-divider tabs */
+.as-wardrobe {
+  background: #fffaf0;
+}
+.as-tabs {
+  gap: 6px;
+  padding: 14px 16px 0;
+  border-bottom: 2.5px solid var(--sb-ink);
+}
+.as-tab {
+  margin-bottom: -2.5px;
+  padding: 9px 14px 10px;
+  border: 2px solid var(--sb-ink);
+  border-bottom: 0;
+  border-radius: 12px 12px 0 0;
+  background: var(--sb-cream);
+  color: var(--sb-ink-soft);
+  transition: transform 0.15s var(--sb-spring), background 0.15s;
+}
+.as-tab:hover {
+  color: var(--sb-ink);
+  transform: translateY(-2px);
+}
+.as-tab.on {
+  border-bottom-color: transparent;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: translateY(-3px);
+  padding-bottom: 13px;
+}
+.as-slot + .as-slot {
+  border-top: 2px dashed rgba(18, 50, 74, 0.2);
+}
+.as-slot-title {
+  color: var(--sb-ink-soft);
+  font-weight: 800;
+}
+.as-slot-pick {
+  font-family: var(--sb-display);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--sb-ink);
+}
+
+/* Colour dots: stickers with a navy rim; the picked one pops up with an amber ring */
+.as-swatch {
+  border: 2.5px solid var(--sb-ink);
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.15), 0 3px 0 var(--sb-ink);
+}
+.as-swatch.on {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.15), 0 3px 0 var(--sb-ink), 0 0 0 4px var(--sb-amber);
+}
+.as-swatch.locked {
+  border-style: dashed;
+  box-shadow: none;
+}
+.as-new-dot {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-coral);
+}
+
+/* Item cards */
+.as-grid {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 12px;
+}
+.as-card {
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.as-card:hover:not(.locked) {
+  border-color: var(--sb-ink);
+  background: #fffdf8;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.as-card.on {
+  border-color: var(--sb-ink);
+  background: #fff1cf;
+  transform: rotate(-2deg);
+  box-shadow: 0 3px 0 var(--sb-ink), 0 0 0 3px var(--sb-amber);
+}
+.as-card.locked {
+  border-style: dashed;
+  box-shadow: none;
+  background: rgba(255, 253, 248, 0.6);
+}
+.as-thumb {
+  width: 62px;
+  height: 62px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 35%, #fffaf0, #f3e5c8);
+  color: var(--sb-ink);
+  overflow: hidden;
+}
+.as-card.on .as-thumb {
+  background: radial-gradient(circle at 50% 35%, #fffaf0, #ffd36e);
+}
+.as-card-name {
+  font-weight: 800;
+  color: var(--sb-ink);
+}
+.as-check {
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.as-lock {
+  border: 1.5px solid rgba(18, 50, 74, 0.35);
+  background: var(--sb-cream);
+  color: var(--sb-ink-soft);
+}
+.as-new {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-coral);
+  color: var(--sb-ink);
+}
+.as-souvenir {
+  border: 1.5px solid var(--sb-ink);
+  background: #d6f0f3;
+  color: var(--sb-ink);
+}
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-ink);
+  color: #fffaf0;
+  box-shadow: 0 3px 0 rgba(18, 50, 74, 0.35);
+}
+.as-locknote {
+  border: 2px solid var(--sb-ink);
+  background: #fff1cf;
+  color: var(--sb-ink);
+}
+
+/* My outfits + trip outfits */
+.as-outfit {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.as-outfit.empty {
+  border: 2px dashed rgba(18, 50, 74, 0.35);
+  box-shadow: none;
+}
+.as-outfit-pic {
+  border: 2.5px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.as-outfit-add:hover:not(:disabled) {
+  color: var(--sb-ink);
+  background: rgba(255, 191, 60, 0.15);
+}
+.as-trip {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.as-mini {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.as-mini:hover {
+  background: var(--sb-cream);
+}
+.as-mini.primary {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+
+/* Footer */
+.as-foot {
+  border-top: 2px dashed rgba(18, 50, 74, 0.25);
+  background: var(--sb-paper);
+}
+.as-ghost {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  font-weight: 800;
+}
+.as-ghost:hover:not(:disabled) {
+  background: var(--sb-cream);
+}
+.as-ghost:disabled {
+  opacity: 1;
+  border-style: dashed;
+  border-color: rgba(18, 50, 74, 0.35);
+  box-shadow: none;
+  color: rgba(18, 50, 74, 0.45);
+}
+.as-ghost.danger {
+  border-color: var(--sb-red);
+  color: var(--sb-red);
+}
+.as-err {
+  color: var(--sb-red);
+  font-weight: 700;
+}
+.as-saved {
+  color: #1f7a4d;
+}
+/* Surprise me: a little die */
+.as-dice {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 5px;
+  background: var(--sb-amber);
+  transform: rotate(-10deg);
+  transition: transform 0.35s var(--sb-spring);
+}
+.as-dice i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--sb-ink);
+}
+.as-dice i:nth-child(1) { top: 2px; left: 2px; }
+.as-dice i:nth-child(2) { top: 6px; left: 6px; }
+.as-dice i:nth-child(3) { bottom: 2px; right: 2px; }
+.as-surprise:hover .as-dice {
+  transform: rotate(200deg);
+}
+/* Save: bright amber when there's something to save, clearly faded when there isn't */
+.as-save {
+  border: 2.5px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.as-save:hover:not(:disabled) {
+  background: var(--sb-amber-hi);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--sb-ink);
+}
+.as-save:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.as-save:disabled {
+  opacity: 1;
+  border: 2.5px dashed rgba(18, 50, 74, 0.35);
+  background: #efe6d2;
+  color: rgba(18, 50, 74, 0.5);
+  box-shadow: none;
+}
+.as button:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  .as {
+    border: 0;
+    box-shadow: none;
+  }
+  .as-stage {
+    border-right: 0;
+    border-bottom: 2.5px solid var(--sb-ink);
+  }
+  .as-views {
+    margin: 6px auto 8px;
+  }
+  .as-tabs {
+    padding: 10px 10px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .as-tab,
+  .as-tier,
+  .as-dice {
+    transition: none;
+  }
+}
+/* =====================================================================
+   The dressing room behind the twin (the 3D canvas is see-through)
+   ===================================================================== */
+.as-overlay {
+  background: rgba(250, 246, 238, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.as-booth :deep(.av-stage) {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+.as-room {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Striped wallpaper with a warm spotlight */
+  background:
+    radial-gradient(45% 40% at 50% 42%, rgba(255, 214, 120, 0.45), transparent 70%),
+    repeating-linear-gradient(90deg, #fbe9d2 0 22px, #f6dcbd 22px 26px, #fbe9d2 26px 48px);
+}
+/* Mirror: wooden frame, a navy outline and bulbs down both sides */
+.as-mirror {
+  position: absolute;
+  left: 24%;
+  right: 24%;
+  top: 13%;
+  bottom: 33%;
+  border: 9px solid #c98a4b;
+  border-radius: 999px 999px 10px 10px;
+  box-shadow: 0 0 0 2.5px var(--sb-ink), inset 0 0 0 2.5px var(--sb-ink), 0 6px 0 rgba(18, 50, 74, 0.25);
+}
+.as-glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px 999px 4px 4px;
+  background:
+    linear-gradient(120deg, transparent 22%, rgba(255, 255, 255, 0.65) 24%, transparent 30%, transparent 36%, rgba(255, 255, 255, 0.45) 37%, transparent 41%),
+    linear-gradient(180deg, #e3f1f1, #c9e3e6);
+}
+.as-mirror::before,
+.as-mirror::after { /* the bulbs */
+  content: '';
+  position: absolute;
+  top: 18%;
+  bottom: 4%;
+  width: 18px;
+  background: radial-gradient(circle, #fff7d6 0 4px, var(--sb-amber) 4.5px 6px, var(--sb-ink) 6.5px 8px, transparent 8.5px) center top / 18px 30px repeat-y;
+  filter: drop-shadow(0 0 6px rgba(255, 191, 60, 0.7));
+}
+.as-mirror::before { left: -30px; }
+.as-mirror::after { right: -30px; }
+/* Drapes, tied back at each side */
+.as-drape {
+  position: absolute;
+  top: 0;
+  width: 15%;
+  height: 72%;
+  background: repeating-linear-gradient(90deg, #f2786b 0 14px, #e0675a 14px 18px, #f2786b 18px 30px);
+  filter: drop-shadow(2.5px 0 0 var(--sb-ink)) drop-shadow(-2.5px 0 0 var(--sb-ink)) drop-shadow(0 2.5px 0 var(--sb-ink));
+}
+.as-drape.left {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 45% 52%, 75% 100%, 0 100%);
+}
+.as-drape.right {
+  right: 0;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 25% 100%, 55% 52%);
+}
+.as-drape::after { /* the tie-back */
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: var(--sb-amber);
+  box-shadow: inset 0 -2.5px 0 var(--sb-ink), inset 0 2.5px 0 var(--sb-ink);
+}
+/* A little door sign */
+.as-plaque {
+  position: absolute;
+  top: 46px;
+  right: 17%;
+  padding: 4px 10px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 8px;
+  background: #fffdf8;
+  font-family: var(--sb-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transform: rotate(3deg);
+}
+/* Wooden floor with a cream skirting board */
+.as-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 34%;
+  border-top: 2.5px solid var(--sb-ink);
+  background:
+    linear-gradient(180deg, #fffdf8 0 10px, var(--sb-ink) 10px 12.5px, transparent 12.5px),
+    repeating-linear-gradient(90deg, rgba(18, 50, 74, 0.18) 0 2px, transparent 2px 64px),
+    repeating-linear-gradient(180deg, transparent 0 30px, rgba(18, 50, 74, 0.1) 30px 32px),
+    linear-gradient(180deg, #dcae74, #c78f55);
+}
+/* The old top curtain becomes the pelmet over the drapes */
+.as-curtain {
+  z-index: 3;
+}
+.as-hint,
+.as-compare,
+.as-comparing {
+  z-index: 3;
+}
+.as-stage {
+  background: #c78f55; /* floor colour under the camera buttons */
+}
+.as-views {
+  position: relative;
+  left: auto;
+  z-index: 3;
+}
+@media (max-width: 860px) {
+  .as-mirror {
+    left: 22%;
+    right: 22%;
+    top: 16%;
+  }
+  .as-plaque {
+    display: none;
+  }
+  .as-drape {
+    width: 12%;
+  }
+}
+/* Full view: the twin gets the whole window, the wardrobe tucks away */
+.as-expand {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: 70px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+  cursor: pointer;
+  transition: transform 0.15s var(--sb-spring);
+}
+.as-expand:hover {
+  background: var(--sb-amber);
+  transform: translateY(-1px);
+}
+.as.wide .as-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+.as.wide .as-wardrobe {
+  display: none;
+}
+.as.wide .as-stage {
+  border-right: 0;
+}
+.as.wide .as-expand {
+  background: var(--sb-amber);
+}
+.as.wide .as-mirror {
+  left: 34%;
+  right: 34%;
+}
+.as.wide .as-drape {
+  width: 18%;
+}
+@media (max-width: 860px) {
+  .as.wide .as-body {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .as-expand {
+    bottom: 58px;
   }
 }
 </style>

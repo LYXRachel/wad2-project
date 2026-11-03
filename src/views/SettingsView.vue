@@ -59,8 +59,16 @@
       <!-- Header + auto-save status -->
       <header class="st-head">
         <div>
+          <p class="st-kicker">Explorer's dossier</p>
           <h1 id="st-title" class="st-title">Settings</h1>
-          <p class="st-sub">Changes save automatically.</p>
+          <!-- Pip the paper plane, with a little note -->
+          <p class="st-sub">
+            <svg class="st-plane" viewBox="0 0 48 40" aria-hidden="true">
+              <path d="M3 18 45 3 33 37 22 25Z" fill="#fffaf0" stroke="#0b2233" stroke-width="2.6" stroke-linejoin="round" />
+              <path d="M45 3 22 25l-3 11 6-8" fill="#ffbf3c" stroke="#0b2233" stroke-width="2.6" stroke-linejoin="round" />
+            </svg>
+            <span class="st-bubble">Changes save automatically!</span>
+          </p>
         </div>
         <span class="st-status" :class="status" role="status" aria-live="polite">
           <span class="st-status-dot" aria-hidden="true"></span>
@@ -89,7 +97,7 @@
         <!-- Left column on wide screens -->
         <div class="st-col">
         <!-- ===== Travel Twin (3D avatar; new clothes and gear unlock as trips are finished) ===== -->
-        <h2 id="avatar" class="st-group-title"><span class="st-num">01</span>Travel Twin</h2>
+        <h2 id="avatar" class="st-group-title"><span class="st-num">01</span>Travel Twin<span class="st-gicon" aria-hidden="true"><AppIcon name="sparkles" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group st-pass">
           <button type="button" class="st-twin" @click="studioOpen = true">
             <span class="st-twin-pic">
@@ -110,7 +118,7 @@
         </div>
 
         <!-- ===== My information ===== -->
-        <h2 class="st-group-title"><span class="st-num">02</span>My Information</h2>
+        <h2 class="st-group-title"><span class="st-num">02</span>My Information<span class="st-gicon" aria-hidden="true"><AppIcon name="book" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group" :class="{ 'st-spot': welcome }">
           <div class="st-row">
             <label class="st-row-label" for="st-email">Email</label>
@@ -129,7 +137,7 @@
         </div>
 
         <!-- ===== Session & account ===== -->
-        <h2 class="st-group-title"><span class="st-num">03</span>Session &amp; Account</h2>
+        <h2 class="st-group-title"><span class="st-num">03</span>Session &amp; Account<span class="st-gicon" aria-hidden="true"><AppIcon name="lock" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group">
           <div class="st-row">
             <span class="st-who">
@@ -170,7 +178,7 @@
         </div>
 
         <!-- ===== Delete account (asks for the password first) ===== -->
-        <h2 class="st-group-title"><span class="st-num">04</span>Delete Account</h2>
+        <h2 class="st-group-title"><span class="st-num">04</span>Delete Account<span class="st-gicon" aria-hidden="true"><AppIcon name="trash" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group">
           <div class="st-row">
             <span class="st-row-text">
@@ -200,7 +208,7 @@
         <!-- Right column on wide screens -->
         <div class="st-col">
         <!-- ===== Trip preferences ===== -->
-        <h2 class="st-group-title"><span class="st-num">05</span>Trip Preferences</h2>
+        <h2 class="st-group-title"><span class="st-num">05</span>Trip Preferences<span class="st-gicon" aria-hidden="true"><AppIcon name="luggage" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group">
           <div class="st-row">
             <span class="st-row-text">
@@ -224,7 +232,7 @@
         </div>
 
         <!-- ===== Pacing: how the itinerary planner times your days ===== -->
-        <h2 id="pacing" class="st-group-title"><span class="st-num">06</span>Trip Pacing</h2>
+        <h2 id="pacing" class="st-group-title"><span class="st-num">06</span>Trip Pacing<span class="st-gicon" aria-hidden="true"><AppIcon name="clock" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group">
           <div class="st-row">
             <span class="st-row-text">
@@ -258,7 +266,7 @@
         </div>
 
         <!-- ===== Transport: how the itinerary suggests travelling between stops ===== -->
-        <h2 id="getting-around" class="st-group-title"><span class="st-num">07</span>Transport</h2>
+        <h2 id="getting-around" class="st-group-title"><span class="st-num">07</span>Transport<span class="st-gicon" aria-hidden="true"><AppIcon name="bus" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group">
           <div class="st-row stack">
             <span class="st-row-text">
@@ -296,7 +304,7 @@
         </div>
 
         <!-- ===== Safety & notifications ===== -->
-        <h2 class="st-group-title"><span class="st-num">08</span>Safety &amp; Notifications</h2>
+        <h2 class="st-group-title"><span class="st-num">08</span>Safety &amp; Notifications<span class="st-gicon" aria-hidden="true"><AppIcon name="alert" :size="16" :stroke="2.2" /></span></h2>
         <div class="st-group">
           <div class="st-row">
             <span class="st-row-text">
@@ -637,7 +645,7 @@ async function deleteAccount() {
 
 <style scoped>
 /* ===== Explorer's Field Guide, night edition =====
-   A deep navy-slate card on the cream page. One clean font throughout. */
+   A deep navy-slate card on the cream page. Hand lettering only for the page title; everything you read or type is in the clean sans-serif. */
 .st-page {
   position: relative;
   max-width: 1152px; /* about max-w-6xl */
@@ -656,9 +664,10 @@ async function deleteAccount() {
   --teal: #2f8f94;
   --teal-dark: #1f5f63;
   --teal-hi: #5fbfc4;
-  --amber: #e0a43a;
-  --amber-dark: #8a5a17;
+  --amber: #f59e0b; /* amber-500 */
+  --amber-dark: #b45309; /* amber-700 */
   --on-amber: #1a1408;
+  --hand: 'Caveat', 'Segoe Script', cursive;
   --oxblood: #f87171;
   color: #1f2f3d;
 }
@@ -753,7 +762,7 @@ async function deleteAccount() {
     linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px) 0 0 / 24px 24px,
     var(--paper);
   color: var(--ink);
-  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.25), 0 8px 10px -6px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.45); /* shadow-2xl */
 }
 .st-motif {
   position: absolute;
@@ -823,11 +832,10 @@ async function deleteAccount() {
 }
 .st-title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+  font-family: var(--hand);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
   color: var(--ink);
 }
 .st-sub {
@@ -892,14 +900,14 @@ async function deleteAccount() {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.14em;
-  color: var(--brass);
+  color: var(--amber);
 }
 
 /* Each group: a subsection card with a fine inner margin */
 .st-group {
   position: relative;
   background: var(--slip);
-  border: 1px solid var(--ink-2);
+  border: 1px solid rgba(30, 41, 59, 0.8); /* slate-800/80 */
   border-radius: 8px;
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
@@ -1109,7 +1117,7 @@ async function deleteAccount() {
   left: 3px;
   width: calc(50% - 3px);
   border-radius: 4px;
-  background: linear-gradient(180deg, #e8b24f, var(--amber));
+  background: linear-gradient(180deg, #fbbf24, var(--amber));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 0 var(--amber-dark);
   transition: transform 0.25s cubic-bezier(0.3, 1.2, 0.5, 1);
 }
@@ -1209,12 +1217,13 @@ async function deleteAccount() {
 }
 .st-logout.amber {
   border-color: var(--amber-dark);
-  background: linear-gradient(180deg, #e8b24f, var(--amber));
+  background: linear-gradient(180deg, #fbbf24, var(--amber));
   color: var(--on-amber);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 3px 0 var(--amber-dark);
 }
 .st-logout:hover {
   transform: translateY(-1px);
+  filter: brightness(1.08);
 }
 .st-logout:active {
   transform: translateY(3px);
@@ -1362,13 +1371,14 @@ async function deleteAccount() {
 }
 .st-primary {
   border: 1.5px solid var(--amber-dark);
-  background: linear-gradient(180deg, #e8b24f, var(--amber));
+  background: linear-gradient(180deg, #fbbf24, var(--amber));
   color: var(--on-amber);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 0 var(--amber-dark);
 }
 .st-primary:hover:not(:disabled),
 .st-danger.solid:hover:not(:disabled) {
   transform: translateY(-1px);
+  filter: brightness(1.08);
 }
 .st-primary:active:not(:disabled) {
   transform: translateY(4px);
@@ -1547,7 +1557,7 @@ async function deleteAccount() {
   padding: 6px 12px;
   border: 1.5px solid var(--amber-dark);
   border-radius: 6px;
-  background: linear-gradient(180deg, #e8b24f, var(--amber));
+  background: linear-gradient(180deg, #fbbf24, var(--amber));
   font-size: 13px;
   font-weight: 800;
   color: var(--on-amber);
@@ -1601,47 +1611,568 @@ async function deleteAccount() {
     inset: -9px -4px;
   }
 }
+/* Same fonts as the rest of the app: Lilita One for the title, headings, labels, values and buttons,
+   Plus Jakarta Sans for hints and what you type. These rules come last, so they win. */
+.st-page {
+  font-family: var(--font-body);
+}
+.st-title {
+  font-family: var(--sb-display);
+  font-size: 3rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.st-sub,
+.st-row-hint,
+.st-twin-text small {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.st-status {
+  font-family: var(--sb-display);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+.st-group-title {
+  font-family: var(--sb-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.st-num {
+  font-family: var(--sb-display);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.st-row-label {
+  font-family: var(--sb-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.st-pass-kicker {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+.st-twin-text strong {
+  font-family: var(--sb-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.st-twin-new {
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.st-twin-cta,
+.st-primary,
+.st-logout,
+.st-danger,
+.st-mode,
+.st-seg button {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+.st-input,
+.st-field input,
+.st-field textarea {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.st-page :deep(.dd-trigger) {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+/* =====================================================================
+   Night scrapbook: the navy stays, with the app's chunky outlines, hard shadows,
+   stickers, cream boxes and amber (same look as the Friends sidebar).
+   These rules come last, so they win.
+   ===================================================================== */
+.st-page {
+  --edge: #0b2233; /* outline for things on the navy */
+  --card: #183f5c; /* section cards, a step lighter than the page */
+}
+.st {
+  padding: 26px;
+  border: 3px solid var(--edge);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle, rgba(255, 250, 240, 0.07) 1.2px, transparent 1.5px) 0 0 / 22px 22px,
+    var(--sb-ink);
+  box-shadow: 0 8px 0 var(--edge);
+}
+.st::before { /* stitching */
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border: 2px dashed rgba(255, 250, 240, 0.16);
+  border-radius: 15px;
+  pointer-events: none;
+}
+.st-back {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+
+/* Header: a stamp, the title, and Pip with a note */
+.st-head {
+  border-bottom: 2px dashed rgba(255, 250, 240, 0.2);
+  box-shadow: none;
+}
+.st-kicker {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 2px 9px;
+  border: 2px solid var(--edge);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.st-title {
+  color: #fffaf0;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+.st-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.st-plane {
+  flex: none;
+  width: 40px;
+  height: 34px;
+  transform: rotate(-8deg);
+  animation: st-fly 3s ease-in-out infinite;
+}
+@keyframes st-fly {
+  50% { transform: rotate(-3deg) translateY(-4px); }
+}
+.st-bubble {
+  position: relative;
+  padding: 5px 12px;
+  border: 2px solid var(--edge);
+  border-radius: 12px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+.st-bubble::before { /* the bubble's tail, pointing at Pip */
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-left: 2px solid var(--edge);
+  border-bottom: 2px solid var(--edge);
+  background: #fffaf0;
+  transform: rotate(45deg);
+}
+.st-status {
+  border-width: 2px;
+  background: rgba(255, 250, 240, 0.06);
+}
+
+/* Section headings: an amber number sticker, the name, a doodle sticker */
+.st-group-title {
+  margin-top: 32px;
+  margin-bottom: 14px;
+  color: #fffaf0;
+}
+.st-group-title::after {
+  border-bottom: 2px dashed rgba(255, 250, 240, 0.18);
+}
+.st-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 36px;
+  height: 36px;
+  border: 2.5px solid var(--edge);
+  border-radius: 50%;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(-8deg);
+}
+.st-group-title:nth-of-type(even) .st-num {
+  transform: rotate(6deg);
+}
+.st-gicon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--edge);
+  border-radius: 9px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  transform: rotate(5deg);
+}
+
+/* Section cards: outlined, a hard shadow, stitched inside */
+.st-group {
+  border: 2.5px solid var(--edge);
+  border-radius: 16px;
+  background: var(--card);
+  box-shadow: 0 5px 0 var(--edge);
+}
+.st-group::before {
+  inset: 6px;
+  border: 2px dashed rgba(255, 250, 240, 0.14);
+  border-radius: 11px;
+}
+.st-row {
+  border-bottom: 2px dashed rgba(255, 250, 240, 0.1);
+}
+
+/* Inputs and dropdowns: cream paper boxes */
+.st-input {
+  border: 2.5px solid var(--edge);
+  border-radius: 12px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  color-scheme: light;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.st-input:focus {
+  border-color: var(--edge);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 0 4px rgba(255, 191, 60, 0.5);
+}
+.st-page .st :deep(.dd-trigger) {
+  height: 38px;
+  padding: 0 12px 0 14px;
+  border: 2.5px solid var(--edge);
+  border-radius: 999px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.st-page .st :deep(.dd-trigger:hover:not(:disabled)) {
+  background: #fff1cf;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+.st-page .st :deep(.dd.open .dd-trigger),
+.st-page .st :deep(.dd-trigger:focus-visible) {
+  border-color: var(--edge);
+  background: var(--sb-amber);
+}
+.st-page .st :deep(.dd-chevron),
+.st-page .st :deep(.dd.open .dd-chevron) {
+  color: var(--sb-ink);
+}
+.st-page .st :deep(.dd-value.placeholder) {
+  color: rgba(18, 50, 74, 0.55);
+}
+.st-page .st :deep(.dt),
+.st-page .st :deep(.pi) {
+  border: 2.5px solid var(--edge);
+  border-radius: 12px;
+  background: #fffaf0;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.st-page .st :deep(.dt.focus),
+.st-page .st :deep(.pi:focus-within) {
+  border-color: var(--edge);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35), 0 0 0 4px rgba(255, 191, 60, 0.5);
+}
+.st-page .st :deep(.dt-input),
+.st-page .st :deep(.pi-number) {
+  color: var(--sb-ink);
+  color-scheme: light;
+}
+.st-page .st :deep(.dt-input::placeholder),
+.st-page .st :deep(.pi-number::placeholder) {
+  color: rgba(18, 50, 74, 0.5);
+}
+.st-page .st :deep(.dt-tag) {
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #d6f0f3;
+  color: var(--sb-ink);
+}
+.st-page .st :deep(.dt-tag.allergy) {
+  border-color: var(--sb-ink);
+  background: #fde0dc;
+  color: var(--sb-red);
+}
+.st-page .st :deep(.dt-x:hover),
+.st-page .st :deep(.dt-x:focus-visible) {
+  background: rgba(18, 50, 74, 0.12);
+}
+.st-page .st :deep(.dt-menu) {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.st-page .st :deep(.dt-menu li.active) {
+  background: #fff1cf;
+  color: var(--sb-ink);
+}
+.st-page .st :deep(.dt-hint) {
+  color: rgba(18, 50, 74, 0.6);
+}
+.st-page .st :deep(.pi-code .dd-trigger) {
+  border: 0;
+  border-right: 2.5px solid var(--edge);
+  border-radius: 0;
+  background: #fff1cf;
+  box-shadow: none;
+}
+
+/* Explorer pass: a cream passport page */
+.st-pass {
+  padding: 0;
+  background: none;
+}
+.st-twin {
+  border: 2.5px solid var(--edge);
+  border-radius: 16px;
+  background:
+    repeating-linear-gradient(135deg, rgba(18, 50, 74, 0.035) 0 2px, transparent 2px 9px),
+    #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 5px 0 var(--edge);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.st-twin:hover {
+  transform: translateY(-2px) rotate(-0.4deg);
+  box-shadow: 0 7px 0 var(--edge);
+}
+.st-twin-pic { /* a tilted polaroid */
+  width: 72px;
+  height: 80px;
+  border: 5px solid #fff;
+  border-bottom-width: 14px;
+  border-radius: 3px;
+  outline: 2px solid var(--sb-ink);
+  outline-offset: 0;
+  background: #f6ead2;
+  color: var(--sb-ink);
+  box-shadow: 0 4px 0 rgba(18, 50, 74, 0.25);
+  transform: rotate(-5deg);
+}
+.st-pass-kicker {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 0.75rem;
+  transform: rotate(-2deg);
+}
+.st-twin-text strong {
+  color: var(--sb-ink);
+}
+.st-twin-text small {
+  color: var(--sb-ink-soft);
+}
+.st-twin-bar {
+  height: 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-cream);
+}
+.st-twin-bar span {
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0 5px, transparent 5px 10px),
+    var(--sb-amber);
+}
+.st-twin-new {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-coral);
+  color: var(--sb-ink);
+}
+.st-twin-cta {
+  padding: 9px 16px;
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 1.05rem;
+  box-shadow: 0 4px 0 var(--sb-ink);
+}
+.st-twin:hover .st-twin-cta {
+  background: var(--sb-amber-hi);
+}
+.st-twin:active .st-twin-cta {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+
+/* Account badge */
+.st-avatar {
+  border: 2.5px solid var(--edge);
+  outline: 0;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* km / mi switch */
+.st-seg {
+  border: 2.5px solid var(--edge);
+  border-radius: 999px;
+  background: #fffaf0;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.st-seg-thumb {
+  border-radius: 999px;
+  background: var(--sb-amber);
+  box-shadow: inset 0 0 0 2px var(--sb-ink);
+}
+.st-seg button {
+  color: var(--sb-ink-soft);
+}
+.st-seg button.on {
+  color: var(--sb-ink);
+}
+
+/* On/off switches */
+.st-switch {
+  border: 2.5px solid var(--edge);
+  background: #fffaf0;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+.st-knob {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+}
+.st-switch[aria-checked='true'] {
+  border-color: var(--edge);
+  background: var(--sb-amber);
+}
+
+/* Travel modes and priorities: ticket chips, the picked ones amber */
+.st-mode {
+  --tk: #fffaf0;
+  --tk-edge: var(--edge);
+  color: var(--sb-ink-soft);
+  text-transform: none;
+  letter-spacing: 0.03em;
+  font-size: 0.95rem;
+}
+.st-mode.on {
+  --tk: var(--sb-amber);
+  --tk-edge: var(--edge);
+  color: var(--sb-ink);
+}
+
+/* Buttons */
+.st-logout {
+  border: 2.5px solid var(--edge);
+  border-radius: 999px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.st-logout:hover {
+  background: #fff1cf;
+}
+.st-logout.amber,
+.st-primary {
+  border: 2.5px solid var(--edge);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+.st-danger {
+  border: 2.5px solid var(--sb-red);
+  border-radius: 999px;
+  background: #fffaf0;
+  color: var(--sb-red);
+  box-shadow: 0 3px 0 #7f1d1d;
+}
+.st-danger:hover:not(:disabled) {
+  background: #fde0dc;
+}
+.st-danger.solid {
+  border-color: var(--edge);
+  background: var(--sb-red);
+  color: #fffaf0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-plane {
+    animation: none;
+  }
+  .st-twin {
+    transition: none;
+  }
+}
 </style>
 
-<!-- The dropdown menus open on <body>; while Settings is open they match the dark card -->
+<!-- The dropdown menus open on <body>; while Settings is open they match the cream dropdown buttons -->
 <style>
 body.st-paper .dd-menu.dd-menu {
-  border: 1px solid #334155;
-  border-radius: 6px;
-  background: #0b131d;
+  border: 2.5px solid #12324a;
+  border-radius: 14px;
+  background: #fffaf0;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow: 0 18px 34px -14px rgba(0, 0, 0, 0.6);
-  color: #f8fafc;
+  box-shadow: 0 5px 0 #12324a;
+  color: #12324a;
 }
 body.st-paper .dd-menu.dd-menu .dd-header {
-  color: #c9a46a;
+  color: #b06f00;
 }
 body.st-paper .dd-menu.dd-menu .dd-search {
-  border: 1px solid #334155;
-  border-radius: 4px;
-  background: #132238;
-  color: #94a3b8;
+  border: 2px solid #12324a;
+  border-radius: 10px;
+  background: #fffdf8;
+  color: #3d5568;
 }
 body.st-paper .dd-menu.dd-menu .dd-search input {
-  color: #f8fafc;
+  color: #12324a;
 }
 body.st-paper .dd-menu.dd-menu .dd-list li.active {
-  background: #1e293b;
+  background: #fff1cf;
 }
 body.st-paper .dd-menu.dd-menu .dd-list li.selected {
-  color: #f2c16b;
+  color: #12324a;
   font-weight: 800;
 }
 body.st-paper .dd-menu.dd-menu .dd-list li.selected.active {
-  background: #1e293b;
+  background: #fff1cf;
 }
 body.st-paper .dd-menu.dd-menu .dd-desc,
 body.st-paper .dd-menu.dd-menu .dd-empty {
-  color: #94a3b8;
+  color: #3d5568;
 }
 body.st-paper .dd-menu.dd-menu .dd-check {
-  color: #e0a43a;
+  color: #e09a12;
   filter: none;
 }
 </style>

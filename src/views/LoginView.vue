@@ -1,5 +1,5 @@
 <template>
-  <AuthShell title="Welcome back!" :subtitle="invited ? 'Sign in to join the trip you were invited to.' : 'Sign in to see your trips.'"
+  <AuthShell title="Welcome back!" :subtitle="invited ? 'Sign in to join the trip you were invited to.' : 'Trip planning made easy!'"
     :switch-to="{ path: '/signup', query: $route.query.redirect ? { redirect: $route.query.redirect } : {} }" switch-label="Sign Up">
     <p v-if="$route.query.registered" class="as-success" data-testid="login-registered">Account created! Sign in to start planning.</p>
     <p v-if="$route.query.reset" class="as-success" role="status">Password updated! Sign in with your new password.</p>

@@ -619,4 +619,230 @@ watch(() => [props.start, props.stop.name, props.stop.address, props.stop.outdoo
   font-size: 11.5px;
   font-weight: 700;
 }
+/* =====================================================================
+   Travel journal look for this side panel (colours from src/assets/scrapbook.css).
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.ss-overlay {
+  background: rgba(18, 50, 74, 0.4);
+}
+.ss {
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.06) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    var(--sb-paper);
+  color: var(--sb-ink);
+  border-left: 3px solid var(--sb-ink);
+  box-shadow: -6px 0 0 rgba(18, 50, 74, 0.18);
+}
+.ss-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+  padding-bottom: 14px;
+}
+.ss-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--sb-ink);
+}
+.ss-sub {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.ss-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 9px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.ss-x {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.ss-x:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+}
+.ss-x:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.ss-tabs {
+  padding: 4px;
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ss-tabs button {
+  color: var(--sb-ink-soft);
+  font-weight: 700;
+}
+.ss-tabs button.on {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: inset 0 0 0 2px var(--sb-ink);
+}
+.ss-count {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.ss-dot {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-coral);
+}
+.ss-badge {
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  font-weight: 800;
+}
+.ss-badge.ok { background: #d9f2e4; color: #17603f; }
+.ss-badge.mid { background: #fff1cf; color: #7a4d00; }
+.ss-badge.bad { background: #fde0dc; color: #a3262a; }
+.ss-h {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.ss-pick {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ss-pick:hover {
+  border-color: var(--sb-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ss-pick small {
+  color: var(--sb-ink-soft);
+}
+.ss-pick:hover {
+  background: var(--sb-cream);
+}
+.ss-hours li {
+  border: 2px solid rgba(18, 50, 74, 0.2);
+  background: #fffdf8;
+  color: var(--sb-ink);
+}
+.ss-hours li.here {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ss-hours li.here.wet {
+  background: #cdeef3;
+}
+.ss-callout {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+}
+.ss-note,
+.ss-muted {
+  color: var(--sb-ink-soft);
+}
+.ss-link {
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+}
+.ss-label {
+  color: var(--sb-ink);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.ss-input {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+.ss-input:focus {
+  outline: none;
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.ss-seg {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+}
+.ss-seg button {
+  color: var(--sb-ink-soft);
+  font-weight: 700;
+}
+.ss-seg button.on {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: inset 0 0 0 2px var(--sb-ink);
+}
+.ss-btn.primary {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.ss-btn.primary:hover:not(:disabled) {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ss-btn.primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.ss-btn.primary:disabled {
+  background: #efe6d2;
+  color: rgba(18, 50, 74, 0.5);
+  border-color: rgba(18, 50, 74, 0.35);
+  box-shadow: none;
+  opacity: 1;
+}
+.ss-btn:not(.primary) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ss-btn:not(.primary):hover:not(:disabled) {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.ss-sim-tag {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
 </style>

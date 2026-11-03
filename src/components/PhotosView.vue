@@ -98,7 +98,7 @@
 
     <!-- ===== Masonry grid ===== -->
     <div v-else class="ph-grid" data-testid="photo-grid">
-      <figure v-for="(p, i) in shown" :key="p.id" class="ph-tile" :style="{ aspectRatio: p.width && p.height ? p.width + ' / ' + p.height : '4 / 3' }">
+      <figure v-for="(p, i) in shown" :key="p.id" class="ph-tile" :style="{ '--ratio': p.width && p.height ? p.width + ' / ' + p.height : '4 / 3' }">
         <img v-if="thumbs[p.id]" :src="thumbs[p.id]" :alt="'Photo by ' + p.uploadedBy" loading="lazy">
         <span v-else class="ph-tile-skel" aria-hidden="true"></span>
 
@@ -1256,5 +1256,498 @@ export default {
   .ph-by-name { transition: none; }
   .ph-dropzone-card,
   .ph-tile-skel { animation: none; }
+}
+
+/* =====================================================================
+   Scrapbook look (matches Home and Login; colours from src/assets/scrapbook.css).
+   The roll is a photo album: divider tabs for the albums, and every photo is a polaroid
+   stuck on with washi tape. The full-screen viewer stays dark so photos look their best.
+   These rules come last, so they replace the dark styles above.
+   ===================================================================== */
+.ph {
+  --text: var(--sb-ink);
+  --muted: var(--sb-muted);
+  --glass: rgba(18, 50, 74, 0.2);
+  border: var(--sb-line);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.07) 1px, transparent 1.3px) 0 0 / 20px 20px,
+    var(--sb-card);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop);
+}
+.ph-title {
+  font-family: var(--sb-display);
+  font-size: 1.9rem;
+  color: var(--sb-ink);
+}
+.ph-sub,
+.ph-small {
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+
+/* Buttons: amber for adding, cream for the rest */
+.ph-primary,
+.ph-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.ph-primary {
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+.ph-ghost {
+  background: var(--sb-cream);
+  font-size: 14px;
+}
+.ph-primary:hover:not(:disabled),
+.ph-ghost:hover:not(:disabled),
+.ph-empty:hover .ph-primary {
+  background-color: var(--sb-cream);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ph-primary:hover:not(:disabled),
+.ph-empty:hover .ph-primary {
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+}
+.ph-primary:active:not(:disabled),
+.ph-ghost:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.ph-ghost.danger {
+  color: var(--sb-red);
+}
+.ph-link {
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
+}
+.ph-input {
+  min-height: 44px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+.ph-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.4);
+}
+
+/* Albums: divider tabs sticking up from the top edge of the pages */
+.ph-rail {
+  gap: 6px;
+  margin: 0 -22px;
+  padding: 10px 22px 0;
+  border-bottom: var(--sb-line);
+  overflow-y: hidden;
+}
+.ph-pill {
+  position: relative;
+  top: 2.5px; /* sits on the line, covering it */
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 16px 10px;
+  border: var(--sb-line);
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--sb-peach);
+  color: var(--sb-ink);
+  font-weight: 800;
+  transform: translateY(6px);
+  transition: transform 0.2s var(--sb-spring), background 0.15s;
+}
+.ph-rail > .ph-pill:nth-child(3n + 2) { background: var(--sb-teal-soft); }
+.ph-rail > .ph-pill:nth-child(3n) { background: #e4ecff; }
+.ph-pill:hover {
+  transform: translateY(2px);
+}
+.ph-pill.on,
+.ph-rail > .ph-pill.on {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: translateY(0);
+  z-index: 1;
+}
+.ph-n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-cream);
+  opacity: 1;
+  font-size: 11px;
+  font-weight: 800;
+}
+.ph-add-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+}
+.ph-pill-add,
+.ph-rail .ph-pill-add {
+  border-style: dashed;
+  background: transparent;
+  color: var(--sb-ink-soft);
+}
+/* suggestions in the new-album form are plain chips, not tabs */
+.ph-newalbum .ph-pill {
+  top: 0;
+  padding: 6px 12px;
+  border-bottom: 2px solid var(--sb-ink);
+  border-width: 2px;
+  border-radius: 12px;
+  background: var(--sb-cream);
+  box-shadow: var(--sb-pop-sm);
+  transform: none;
+}
+.ph-newalbum {
+  margin-top: 16px;
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 18px;
+  background: var(--sb-cream);
+}
+
+/* Who added them: little cream tags */
+.ph-people {
+  margin-top: 18px;
+}
+.ph-chip {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 700;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ph-chip:hover {
+  color: var(--sb-ink);
+  background: rgba(255, 191, 60, 0.2);
+}
+.ph-chip.on {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.ph-chip .ph-n {
+  background: var(--sb-card);
+}
+.ph-av {
+  border: 2px solid var(--sb-ink);
+  font-weight: 800;
+}
+
+/* Uploading: a tray of prints still developing */
+.ph-tray {
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 18px;
+  background: var(--sb-cream);
+}
+.ph-tray-item {
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-cream);
+}
+.ph-tray-bar {
+  height: 6px;
+  background: var(--sb-amber);
+  border-top: 1.5px solid var(--sb-ink);
+}
+.ph-tray-badge {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ph-tray-badge.err {
+  background: var(--sb-red);
+  color: #fff;
+}
+.ph-err {
+  color: #b3263a;
+  font-weight: 700;
+}
+
+/* Nothing yet: three empty polaroid frames waiting for photos */
+.ph-empty {
+  margin-top: 22px;
+  gap: 8px;
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--sb-ink);
+}
+.ph-empty:hover {
+  border-color: var(--sb-amber-lo);
+  background: rgba(255, 191, 60, 0.08);
+}
+.ph-empty-stack {
+  margin-bottom: 14px;
+}
+.ph-empty-stack span {
+  width: 84px;
+  height: 100px;
+  align-items: flex-start;
+  padding-top: 20px;
+  border: 2.5px dashed var(--sb-ink);
+  border-bottom-width: 22px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--sb-cream);
+  border-radius: 6px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  box-shadow: 0 0 0 2.5px transparent, var(--sb-pop-sm);
+}
+.ph-empty-stack span:nth-child(1) { transform: rotate(-9deg) translateX(14px); background: var(--sb-peach); }
+.ph-empty-stack span:nth-child(2) { transform: translateY(-8px); background: var(--sb-teal-soft); }
+.ph-empty-stack span:nth-child(3) { transform: rotate(9deg) translateX(-14px); background: #e4ecff; }
+.ph-empty-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.8rem;
+}
+.ph-empty-text {
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+.ph-empty .ph-primary {
+  min-height: 50px;
+  padding: 0 26px;
+  font-size: 1.15rem;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 6px 0 var(--sb-ink);
+}
+
+/* ----- The photos: taped polaroids ----- */
+/* a scrapbook grid instead of tight columns, so the tape on each photo always shows */
+.ph-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-items: start;
+  columns: auto;
+  gap: 30px 22px;
+  margin-top: 26px;
+}
+.ph-tile {
+  overflow: visible;
+  margin: 0;
+  padding: 9px 9px 46px; /* the white strip at the bottom holds the reactions */
+  border: var(--sb-line);
+  border-radius: 6px;
+  background: var(--sb-cream);
+  box-shadow: var(--sb-pop);
+  transform: rotate(-1.4deg);
+  transition: transform 0.3s var(--sb-spring), box-shadow 0.15s;
+}
+.ph-tile:nth-child(3n + 2) { transform: rotate(1.1deg); }
+.ph-tile:nth-child(3n) { transform: rotate(-0.4deg); }
+.ph-tile:hover,
+.ph-tile:focus-within {
+  z-index: 3;
+  transform: translateY(-4px) rotate(0deg);
+  box-shadow: 0 9px 0 var(--sb-ink);
+}
+.ph-tile img {
+  height: auto;
+  aspect-ratio: var(--ratio); /* the photo's own shape (set on the tile) */
+  border: 2px solid var(--sb-ink);
+  border-radius: 3px;
+  /* a new print "develops": it starts pale and warm, then the colours come through */
+  animation: ph-develop 1.4s ease-out;
+}
+.ph-tile:hover img {
+  transform: none;
+}
+@keyframes ph-develop {
+  from { opacity: 0.35; filter: sepia(0.8) brightness(1.5) blur(2px); }
+  to { opacity: 1; filter: none; }
+}
+.ph-tile-skel {
+  position: static;
+  display: block;
+  aspect-ratio: var(--ratio);
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 3px;
+  background: linear-gradient(90deg, #f1e7d5, #fbf5ea, #f1e7d5);
+  background-size: 200% 100%;
+}
+/* washi tape on the top edge (amber, or teal on every other photo) */
+.ph-tile::after {
+  inset: auto;
+  top: -12px;
+  left: 50%;
+  width: 78px;
+  height: 24px;
+  margin-left: -39px;
+  background: rgba(255, 191, 60, 0.7);
+  border-left: 2px dashed rgba(255, 255, 255, 0.7);
+  border-right: 2px dashed rgba(255, 255, 255, 0.7);
+  opacity: 1;
+  transform: rotate(-3deg);
+  z-index: 2;
+}
+.ph-tile:nth-child(even)::after {
+  background: rgba(47, 167, 184, 0.55);
+  transform: rotate(4deg);
+}
+/* the uploader: a round sticker on the photo's corner */
+.ph-by {
+  top: 16px;
+  left: 16px;
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ph-by .ph-av {
+  border-width: 1.5px;
+}
+.ph-expand {
+  top: 16px;
+  right: 16px;
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+/* reactions: little stickers along the bottom strip */
+.ph-reacts {
+  left: 10px;
+  right: 10px;
+  bottom: 9px;
+}
+.ph-react {
+  border: 1.5px solid var(--sb-ink);
+  background: #fbf5ea;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ph-react.mine {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+}
+
+/* Dragging photos over the page */
+.ph-dropzone {
+  background: rgba(18, 50, 74, 0.55);
+}
+.ph-dropzone-card {
+  border: 3px dashed var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  box-shadow: var(--sb-pop);
+}
+.ph-dropzone-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: var(--sb-line);
+  border-radius: 18px;
+  background: var(--sb-amber);
+  box-shadow: var(--sb-pop-sm);
+  transform: rotate(-5deg);
+}
+@keyframes ph-pulse {
+  50% { border-color: var(--sb-amber-lo); }
+}
+
+/* Full-screen viewer: stays dark, but the photo is a polaroid and the panel is cream */
+.ph-lb {
+  background: rgba(13, 32, 48, 0.94);
+}
+.ph-lb-img {
+  border: 12px solid var(--sb-cream);
+  border-bottom-width: 40px;
+  border-radius: 6px;
+  outline: var(--sb-line);
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.35), 0 30px 60px rgba(0, 0, 0, 0.5);
+  max-height: 84vh;
+}
+.ph-lb-close,
+.ph-lb-nav {
+  border: var(--sb-line);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: var(--sb-pop-sm);
+}
+.ph-lb-info {
+  border-left: var(--sb-line);
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.07) 1px, transparent 1.3px) 0 0 / 20px 20px,
+    var(--sb-cream);
+  color: var(--sb-ink);
+}
+.ph-lb-info .ph-small {
+  color: var(--sb-muted);
+}
+.ph-lb-info :deep(.dd-trigger) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-weight: 700;
+  box-shadow: var(--sb-pop-sm);
+}
+.ph-lb-info :deep(.dd-chevron) {
+  color: var(--sb-ink);
+}
+
+.ph-pill:focus-visible,
+.ph-chip:focus-visible,
+.ph-primary:focus-visible,
+.ph-ghost:focus-visible,
+.ph-react:focus-visible,
+.ph-empty:focus-visible,
+.ph-expand:focus-visible,
+.ph-lb-nav:focus-visible,
+.ph-lb-close:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 3px;
+}
+
+@media (max-width: 768px) {
+  .ph-rail { margin: 0 -16px; padding: 10px 16px 0; }
+  .ph-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 14px; }
+  .ph-tile { padding: 6px 6px 40px; }
+  .ph-by { top: 11px; left: 11px; }
+  .ph-expand { top: 11px; right: 11px; }
+  .ph-lb-info { border-left: 0; border-top: var(--sb-line); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ph-tile, .ph-pill, .ph-primary, .ph-ghost { transition: none; }
+  .ph-tile img { animation: none; }
+  .ph-tile:hover, .ph-tile:focus-within { transform: none; }
 }
 </style>

@@ -107,69 +107,80 @@
         title="Add a tour or activity you booked, e.g. on GetYourGuide" @click="tourOpen ? (tourOpen = false) : openTour()"><AppIcon name="ticket" :size="16" /> Add a tour</button>
     </form>
 
-    <!-- A tour or activity that isn't on the map (eagle hunting, a GetYourGuide day trip...) -->
-    <transition name="fade">
-      <form v-if="tourOpen" class="wl-tour" @submit.prevent="saveTour" aria-labelledby="wl-tour-title">
-        <div class="wl-tour-head">
-          <strong id="wl-tour-title"><AppIcon name="ticket" :size="17" /> Add a tour or activity</strong>
-          <button type="button" class="wl-tour-x" aria-label="Close" @click="tourOpen = false"><AppIcon name="x" :size="16" /></button>
+    <!-- A tour or activity that isn't on the map (eagle hunting, a GetYourGuide day trip...):
+         the same travel-notebook pop-up as "Plan a new trip", with Pip giving tips as you go -->
+    <NotebookModal :open="tourOpen" title="Add a tour or activity" :tip="tourTip" @close="tourOpen = false">
+      <template #kicker>Booking diary</template>
+      <form class="nbf" novalidate aria-label="Add a tour or activity" @submit.prevent="saveTour" @focusin="onTourFocus">
+        <div class="nbf-row">
+          <label for="wl-tour-name" class="nbf-label"><DoodleIcon name="ticket" :size="24" anim="" /> What is it?</label>
+          <input id="wl-tour-name" ref="tourName" v-model="tour.name" class="nbf-input" maxlength="120"
+            placeholder="e.g. Eagle hunting show at Bokonbaevo" data-tip="name" required>
         </div>
 
-        <label for="wl-tour-name" class="wl-tour-label">What is it?</label>
-        <input id="wl-tour-name" ref="tourName" v-model="tour.name" class="form-control wl-input" maxlength="120"
-          placeholder="e.g. Eagle hunting show at Bokonbaevo" required>
-
-        <div class="wl-tour-row">
-          <div>
-            <span class="wl-tour-label">Booked on</span>
-            <CustomDropdown v-model="tour.bookedVia" :options="providerOptions" block aria-label="Booked on" />
+        <div class="nbf-pair">
+          <div class="nbf-row" data-tip="booked">
+            <span class="nbf-label"><DoodleIcon name="wallet" :size="24" anim="" /> Booked on</span>
+            <CustomDropdown v-model="tour.bookedVia" :options="providerOptions" block aria-label="Booked on" class="nbf-dd" />
           </div>
-          <div>
-            <label for="wl-tour-link" class="wl-tour-label">Booking link <span class="wl-opt">optional</span></label>
-            <input id="wl-tour-link" v-model="tour.link" type="url" class="form-control wl-input" maxlength="500"
-              placeholder="Paste the confirmation or tour page" @input="guessProvider">
-          </div>
-        </div>
-
-        <label for="wl-tour-where" class="wl-tour-label">Meeting point <span class="wl-opt">optional</span></label>
-        <input id="wl-tour-where" v-model="tour.address" class="form-control wl-input" maxlength="200" placeholder="Hotel pickup, or an address">
-
-        <span class="wl-tour-label">How long?</span>
-        <div class="wl-seg" role="group" aria-label="How long">
-          <button v-for="d in lengthOptions" :key="d.value" type="button" :class="{ on: tour.duration === d.value }"
-            :aria-pressed="tour.duration === d.value" @click="tour.duration = d.value">{{ d.label }}</button>
-        </div>
-
-        <span class="wl-tour-label">Mostly</span>
-        <div class="wl-seg" role="group" aria-label="Indoor or outdoor">
-          <button type="button" :class="{ on: tour.outdoor }" :aria-pressed="tour.outdoor" @click="tour.outdoor = true"><AppIcon name="trees" :size="15" /> Outdoor</button>
-          <button type="button" :class="{ on: !tour.outdoor }" :aria-pressed="!tour.outdoor" @click="tour.outdoor = false"><AppIcon name="landmark" :size="15" /> Indoor</button>
-        </div>
-
-        <div v-if="tripDays.length" class="wl-tour-row">
-          <div>
-            <span class="wl-tour-label">Already have a date? <span class="wl-opt">optional</span></span>
-            <CustomDropdown v-model="tour.date" :options="dayOptions" block aria-label="Day" />
-          </div>
-          <div>
-            <label for="wl-tour-time" class="wl-tour-label">Starts at</label>
-            <input id="wl-tour-time" v-model="tour.time" type="time" class="form-control wl-input" :disabled="!tour.date">
+          <div class="nbf-row">
+            <label for="wl-tour-link" class="nbf-label"><DoodleIcon name="chat" :size="24" anim="" /> Booking link <small>(optional)</small></label>
+            <input id="wl-tour-link" v-model="tour.link" type="url" class="nbf-input" maxlength="500"
+              placeholder="Paste the confirmation or tour page" data-tip="booked" @input="guessProvider">
           </div>
         </div>
-        <p class="wl-tour-note">
+
+        <div class="nbf-row">
+          <label for="wl-tour-where" class="nbf-label"><DoodleIcon name="pin" :size="24" anim="" /> Meeting point <small>(optional)</small></label>
+          <input id="wl-tour-where" v-model="tour.address" class="nbf-input" maxlength="200" placeholder="Hotel pickup, or an address" data-tip="where">
+        </div>
+
+        <div class="nbf-row">
+          <span class="nbf-label" id="wl-tour-len"><DoodleIcon name="boot" :size="24" anim="" /> How long?</span>
+          <div class="nbf-choices" role="group" aria-labelledby="wl-tour-len">
+            <button v-for="d in lengthOptions" :key="d.value" type="button" class="nbf-choice" :class="{ on: tour.duration === d.value }"
+              :aria-pressed="tour.duration === d.value" data-tip="length" @click="tour.duration = d.value">{{ d.label }}</button>
+          </div>
+        </div>
+
+        <div class="nbf-row">
+          <span class="nbf-label" id="wl-tour-mostly"><DoodleIcon name="compass" :size="24" anim="" /> Mostly</span>
+          <div class="nbf-vibes two" role="group" aria-labelledby="wl-tour-mostly">
+            <button type="button" class="nbf-vibe" :class="{ on: tour.outdoor }" :aria-pressed="tour.outdoor" data-tip="mostly" @click="tour.outdoor = true">
+              <DoodleIcon name="mountain" :size="38" anim="bounce" /><span>Outdoor</span>
+            </button>
+            <button type="button" class="nbf-vibe" :class="{ on: !tour.outdoor }" :aria-pressed="!tour.outdoor" data-tip="mostly" @click="tour.outdoor = false">
+              <DoodleIcon name="pillar" :size="38" anim="bounce" /><span>Indoor</span>
+            </button>
+          </div>
+        </div>
+
+        <div v-if="tripDays.length" class="nbf-pair">
+          <div class="nbf-row" data-tip="date">
+            <span class="nbf-label"><DoodleIcon name="calendar" :size="24" anim="" /> Already have a date? <small>(optional)</small></span>
+            <CustomDropdown v-model="tour.date" :options="dayOptions" block aria-label="Day" class="nbf-dd" />
+          </div>
+          <div class="nbf-row">
+            <label for="wl-tour-time" class="nbf-label"><DoodleIcon name="sun" :size="24" anim="" /> Starts at</label>
+            <input id="wl-tour-time" v-model="tour.time" type="time" class="nbf-input" :disabled="!tour.date" data-tip="date">
+          </div>
+        </div>
+
+        <p class="nbf-note">
           <template v-if="tour.date && tour.time">It goes straight into your itinerary as a fixed booking, so the optimizer plans around it.</template>
           <template v-else>It goes into your wishlist, ready to drop into any day.</template>
         </p>
-        <p v-if="tourError" class="text-danger small mb-2" role="alert">{{ tourError }}</p>
+        <p v-if="tourError" class="nbf-msg is-error" role="alert">{{ tourError }}</p>
 
-        <div class="d-flex gap-2 justify-content-end">
-          <button type="button" class="btn btn-outline-secondary wl-pill-btn" @click="tourOpen = false">Cancel</button>
-          <button type="submit" class="btn btn-primary wl-pill-btn" :disabled="!tour.name.trim()">
+        <div class="nbf-actions">
+          <button type="button" class="nbf-later" @click="tourOpen = false">Maybe later</button>
+          <button type="submit" class="nbf-go" :disabled="!tour.name.trim()">
+            <DoodleIcon name="ticket" :size="24" tint="cream" anim="" />
             {{ tour.date && tour.time ? 'Add to Day ' + dayNumber(tour.date) : 'Add to wishlist' }}
           </button>
         </div>
       </form>
-    </transition>
+    </NotebookModal>
 
     <!-- ===== Popular places: one section per destination ===== -->
     <section v-for="sec in sections" :key="sec.dest" class="mt-5" :aria-label="'Popular in ' + sec.city">
@@ -240,6 +251,8 @@ import { codeForDestination, flagEmoji } from '../destinations.js'
 import { placeStyle } from '../placeStyle.js'
 import CustomDropdown from './CustomDropdown.vue'
 import AppIcon from './AppIcon.vue'
+import DoodleIcon from './DoodleIcon.vue'
+import NotebookModal from './NotebookModal.vue'
 
 // ---------- search matching ----------
 // One letter without its accent, lower case: "É" -> "e" (so "cafe" finds "Café")
@@ -277,7 +290,7 @@ function emptyTour() {
 }
 
 export default {
-  components: { AppIcon, CustomDropdown },
+  components: { AppIcon, CustomDropdown, DoodleIcon, NotebookModal },
   props: {
     // All of the trip's destinations, e.g. ['Tokyo, Japan', 'Kyoto, Japan']
     destinations: { type: Array, default: () => [] },
@@ -312,6 +325,7 @@ export default {
       tourOpen: false,
       tour: emptyTour(),
       tourError: '',
+      tourFocus: '', // which part of the tour form you're on, for Pip's tip
       providerOptions: [
         { value: '', label: 'Not booked yet' },
         { value: 'GetYourGuide', label: 'GetYourGuide' },
@@ -354,6 +368,17 @@ export default {
   },
 
   computed: {
+    // What Pip says in the "Add a tour" notebook, for the part you're filling in
+    tourTip() {
+      const t = this.tourFocus
+      if (t === 'name') return 'Ooh, something fun! What are we doing?'
+      if (t === 'booked') return 'Booked it already? Paste the link and I\'ll spot the site!'
+      if (t === 'where') return 'Where do we meet? A hotel pickup works too.'
+      if (t === 'length') return 'How long will the fun last?'
+      if (t === 'mostly') return 'Outdoors? Then I\'ll keep an eye on the weather for you!'
+      if (t === 'date') return this.tour.date ? 'Add a start time and it locks into that day.' : 'Got a date? Pick it and it goes straight into the plan.'
+      return 'Booked a tour or activity? Let\'s jot it down!'
+    },
     // Every date of the trip, e.g. ['2026-10-12', '2026-10-13', ...]
     tripDays() {
       const days = []
@@ -500,10 +525,16 @@ export default {
 
     openTour() {
       this.tour = emptyTour()
+      this.tourFocus = ''
       this.tour.name = this.form.name.trim() // carry over whatever was typed in "Find a place"
       this.tourError = ''
       this.tourOpen = true
       this.$nextTick(() => this.$refs.tourName && this.$refs.tourName.focus())
+    },
+    // Pip's tip follows the part of the form you're on
+    onTourFocus(e) {
+      const el = e.target.closest('[data-tip]')
+      if (el) this.tourFocus = el.dataset.tip
     },
     // Pasting a GetYourGuide / Klook... link picks the site for you
     guessProvider() {
@@ -1386,85 +1417,7 @@ export default {
   background: #003d5b;
   color: #fff;
 }
-.wl-tour {
-  margin-top: 16px;
-  background: #fbf5ea;
-  border: 1px solid #e2dacb;
-  border-radius: 22px;
-  padding: 18px 20px;
-  max-width: 720px;
-  box-shadow: 0 10px 28px rgba(0, 40, 62, 0.08);
-}
-.wl-tour-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-  font-size: 1.05rem;
-}
-.wl-tour-x {
-  border: 0;
-  background: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  color: #5a6b78;
-}
-.wl-tour-x:hover {
-  background: #f1f4f3;
-}
-.wl-tour-label {
-  display: block;
-  margin: 14px 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #003d5b;
-}
-.wl-opt {
-  font-weight: 400;
-  color: #5a6b78;
-}
-.wl-tour-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.wl-seg {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px;
-  background: #f1f4f3;
-  border-radius: 999px;
-}
-.wl-seg button {
-  border: 0;
-  background: transparent;
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #5a6b78;
-  transition: background 0.15s, color 0.15s;
-}
-.wl-seg button.on {
-  background: #003d5b;
-  color: #fff;
-}
-.wl-tour-note {
-  margin: 14px 0 12px;
-  font-size: 13px;
-  color: #5a6b78;
-}
-.wl-tour-x:focus-visible,
-.wl-seg button:focus-visible {
-  outline: 3px solid rgba(0, 121, 140, 0.45);
-  outline-offset: 2px;
-}
-
 @media (max-width: 576px) {
-  .wl-tour-row { grid-template-columns: 1fr; gap: 0; }
-  .wl-tour { padding: 16px; }
   .wl-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .wl-name { font-size: 0.95rem; }
 }
@@ -1477,5 +1430,369 @@ export default {
   .wl-card:hover, .wl-card:hover .wl-photo { transform: none; }
   .wl-photo, .wl-photo.loading, .wl-tap .wl-heart.filled { transition: none; animation: none; }
   .skeleton { animation: none; }
+}
+
+/* =====================================================================
+   Scrapbook look (matches Home and Login; colours from src/assets/scrapbook.css).
+   Place cards become polaroids: the photo in a cream frame, the name written underneath.
+   These rules come last, so they replace the dark card styles above.
+   ===================================================================== */
+/* All / Indoor / Outdoor: little tags; the picked one is amber */
+.wl-filters {
+  gap: 10px;
+}
+.wl-chip {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  font-weight: 700;
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
+}
+.wl-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.wl-chip.active {
+  background: var(--sb-amber);
+  border-color: var(--sb-ink);
+  color: var(--sb-ink);
+  font-weight: 800;
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+
+.wl-heading {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.7rem;
+  color: var(--sb-ink);
+}
+.wl-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 1rem;
+  transform: rotate(-6deg);
+}
+.wl-empty {
+  border: 2px dashed var(--sb-stitch);
+  background: var(--sb-card);
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+
+/* ----- Polaroid cards ----- */
+.wl-grid {
+  gap: 22px 18px;
+}
+.wl-card {
+  aspect-ratio: auto;
+  overflow: visible;
+  padding: 9px 9px 0;
+  border: var(--sb-line);
+  border-radius: 10px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop);
+  transition: transform 0.3s var(--sb-spring), box-shadow 0.15s;
+}
+/* every other card leans a little, like photos stuck in a scrapbook */
+.wl-grid > .wl-card:nth-child(odd) { transform: rotate(-1deg); }
+.wl-grid > .wl-card:nth-child(even) { transform: rotate(0.8deg); }
+.wl-grid > .wl-card:hover {
+  transform: translateY(-5px) rotate(0deg);
+  box-shadow: 0 9px 0 var(--sb-ink);
+}
+.wl-card::after {
+  display: none; /* no dark shading: the name sits on the cream strip */
+}
+.wl-photo {
+  position: relative;
+  inset: auto;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 2px solid var(--sb-ink);
+  border-radius: 5px;
+  /* no photo: a soft wash in the place's colour behind its icon */
+  background-color: color-mix(in srgb, var(--tint) 22%, var(--sb-card));
+  background-position: center;
+  background-size: cover;
+}
+.wl-card:hover .wl-photo {
+  transform: none;
+}
+.wl-ph-icon {
+  margin-bottom: 0;
+  padding: 16px;
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+}
+.wl-photo.loading {
+  background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.5) 50%, transparent 70%);
+}
+/* the kind of place: a little stamp on the photo */
+.wl-type {
+  top: 16px;
+  left: 16px;
+  padding: 3px 8px;
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-cream);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--sb-ink);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transform: rotate(-3deg);
+}
+.wl-card.mine .wl-type {
+  max-width: calc(100% - 116px); /* clear of the edit and heart buttons */
+}
+.wl-info {
+  position: static;
+  padding: 10px 4px 12px;
+}
+.wl-name {
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
+}
+.wl-sub {
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+.wl-votes {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+/* heart and edit: chunky round buttons that press down */
+.wl-actions {
+  top: 15px;
+  right: 15px;
+}
+.wl-heart,
+.wl-round {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.12s;
+}
+.wl-round {
+  color: var(--sb-ink);
+}
+.wl-heart:hover,
+.wl-round:hover {
+  transform: translateY(-2px) scale(1.06);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.wl-heart:active,
+.wl-round:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.wl-tap .wl-heart {
+  top: 15px;
+  right: 15px;
+  color: var(--sb-muted);
+}
+.wl-heart.filled,
+.wl-tap .wl-heart.filled {
+  background: #ffe1e5;
+  color: var(--sb-red);
+}
+/* saved popular places: the frame turns amber */
+.wl-card.saved {
+  background: linear-gradient(180deg, #ffe7ad, var(--sb-amber));
+  box-shadow: var(--sb-pop);
+}
+.wl-card.saved .wl-sub {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.wl-card.editing {
+  outline: 3px dashed var(--sb-amber-lo);
+  outline-offset: 5px;
+}
+.wl-tap:active {
+  transform: translateY(3px);
+}
+.wl-tap:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 4px;
+}
+.wl-card.skeleton {
+  border-color: var(--sb-stitch);
+  border-style: dashed;
+  box-shadow: none;
+  min-height: 250px;
+}
+.wl-heart:focus-visible,
+.wl-round:focus-visible,
+.wl-chip:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 2px;
+}
+
+/* ----- "Show [All places]" ----- */
+.wl-kinds-label {
+  color: var(--sb-ink-soft);
+  font-weight: 800;
+}
+.wl-kinds :deep(.dd-trigger) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: var(--sb-pop-sm);
+}
+.wl-kinds :deep(.dd-chevron) {
+  color: var(--sb-ink);
+}
+
+/* ----- Fields and buttons, like the login page ----- */
+.wl-input {
+  height: 48px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  font-weight: 600;
+  box-shadow: inset 0 2px 0 rgba(18, 50, 74, 0.06);
+}
+.wl-input::placeholder {
+  color: #8a99a5;
+}
+.wl-input:focus {
+  border-color: var(--sb-ink);
+  background: #fbf5ea;
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.wl-pill-btn,
+.btn-sm.wl-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 48px;
+  padding: 0 20px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.btn-sm.wl-pill-btn {
+  height: 38px;
+  font-size: 0.95rem;
+}
+.wl-pill-btn.btn-primary,
+.wl-pill-btn.btn-primary:disabled {
+  border-color: var(--sb-ink);
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+  color: var(--sb-ink);
+}
+.wl-pill-btn.btn-outline-secondary,
+.wl-tour-btn {
+  border-color: var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.wl-pill-btn:hover:not(:disabled),
+.wl-tour-btn:hover {
+  border-color: var(--sb-ink);
+  color: var(--sb-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.wl-pill-btn.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+}
+.wl-pill-btn.btn-outline-secondary:hover,
+.wl-tour-btn:hover {
+  background: var(--sb-cream);
+}
+.wl-pill-btn:active:not(:disabled),
+.wl-tour-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.wl-tour-btn.on {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+
+/* ----- Panels and the search list ----- */
+.wl-panel {
+  border: var(--sb-line);
+  border-radius: 20px;
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop);
+}
+.wl-suggest,
+.wl-search-msg {
+  border: 2px solid var(--sb-ink);
+  border-radius: 16px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop);
+}
+.wl-suggest li.active {
+  background: rgba(255, 191, 60, 0.25);
+}
+.wl-suggest li.wl-row-own {
+  border-top: 2px dashed var(--sb-stitch);
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.wl-search-retry {
+  border: 2px solid var(--sb-ink);
+  color: var(--sb-ink);
+}
+.wl-search-retry:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.wl-partial {
+  border: 2px dashed var(--sb-amber-lo);
+  background: #fff4dc;
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+.wl-partial-btn {
+  color: var(--sb-ink);
+}
+
+@media (max-width: 576px) {
+  .wl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .wl-card { padding: 7px 7px 0; }
+  .wl-type { top: 12px; left: 12px; }
+  .wl-actions, .wl-tap .wl-heart { top: 11px; right: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wl-grid > .wl-card:hover { transform: none; }
+  .wl-chip, .wl-heart, .wl-round, .wl-pill-btn { transition: none; }
 }
 </style>

@@ -554,4 +554,247 @@ function saveFlight() {
 @media (prefers-reduced-motion: reduce) {
   .ad { animation: none; }
 }
+/* =====================================================================
+   Travel journal look for this side panel (colours from src/assets/scrapbook.css).
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.ad-overlay {
+  background: rgba(18, 50, 74, 0.4);
+}
+.ad {
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.06) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    var(--sb-paper);
+  color: var(--sb-ink);
+  border-left: 3px solid var(--sb-ink);
+  box-shadow: -6px 0 0 rgba(18, 50, 74, 0.18);
+}
+.ad-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+  padding-bottom: 14px;
+}
+.ad-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--sb-ink);
+}
+.ad-sub {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.ad-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 9px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.ad-x {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.ad-x:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+}
+.ad-x:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+@media (max-width: 640px) {
+  .ad {
+    border-left: 0;
+    border-top: 3px solid var(--sb-ink);
+    box-shadow: 0 -6px 0 rgba(18, 50, 74, 0.18);
+  }
+}
+.ad-tile {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ad-tile:hover {
+  border-color: var(--sb-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ad-tile small,
+.ad-item-text small {
+  color: var(--sb-ink-soft);
+}
+.ad-tile strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+}
+.ad-tile-icon,
+.ad-item-icon {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ad-tile-icon.sun {
+  background: var(--sb-peach);
+}
+.ad-tile:nth-child(odd) .ad-tile-icon {
+  transform: rotate(-6deg);
+}
+.ad-tile:nth-child(even) .ad-tile-icon {
+  transform: rotate(5deg);
+}
+.ad-h {
+  color: var(--sb-ink-soft);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.ad-item {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ad-item:hover {
+  border-color: var(--sb-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ad-item-icon {
+  background: var(--sb-cream);
+}
+.ad-plus {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ad-item:hover .ad-plus {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+}
+.ad-empty,
+.ad-hint {
+  color: var(--sb-ink-soft);
+}
+.ad-hint.err {
+  color: var(--sb-red);
+  font-weight: 700;
+}
+.ad-label {
+  color: var(--sb-ink);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.ad-input {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+.ad-input:focus {
+  outline: none;
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.ad-picked {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+}
+.ad-picked small,
+.ad-result small {
+  color: var(--sb-ink-soft);
+}
+.ad-clear {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+}
+.ad-results {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ad-result:hover {
+  background: var(--sb-cream);
+}
+.ad-chip {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.ad-chip:hover {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.ad-chip.on {
+  background: var(--sb-amber);
+  border-color: var(--sb-ink);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ad-btn.primary {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.ad-btn.primary:hover:not(:disabled) {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ad-btn.primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.ad-btn.primary:disabled {
+  background: #efe6d2;
+  color: rgba(18, 50, 74, 0.5);
+  border-color: rgba(18, 50, 74, 0.35);
+  box-shadow: none;
+  opacity: 1;
+}
+.ad-btn:not(.primary) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ad-btn:not(.primary):hover:not(:disabled) {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
 </style>
