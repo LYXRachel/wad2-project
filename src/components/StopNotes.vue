@@ -218,7 +218,7 @@ watch(() => props.stopId, () => {
   min-width: 0;
   padding: 10px 14px;
   border-radius: 4px 18px 18px 18px;
-  background: #fff;
+  background: #fbf5ea;
   border: 1px solid #ece4d6;
   box-shadow: 0 2px 8px rgba(0, 40, 62, 0.05);
 }
@@ -272,7 +272,7 @@ watch(() => props.stopId, () => {
   min-height: 52px;
   border: 1.5px solid #e6dfd2;
   border-radius: 14px;
-  background: #fff;
+  background: #fbf5ea;
   padding: 10px 12px;
   font: inherit;
   font-size: 14px;
@@ -311,7 +311,7 @@ watch(() => props.stopId, () => {
 .sn-btn {
   border: 1.5px solid #e6dfd2;
   border-radius: 999px;
-  background: #fff;
+  background: #fbf5ea;
   color: #003d5b;
   padding: 6px 16px;
   font-size: 13px;
@@ -358,5 +358,114 @@ watch(() => props.stopId, () => {
   .sn-btn {
     transition: none;
   }
+}
+/* =====================================================================
+   Travel journal look: notes are little paper slips.
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.sn-empty {
+  color: var(--sb-ink-soft);
+}
+.sn-avatar {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.sn-note.mine .sn-avatar {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.sn-bubble {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.sn-note.mine .sn-bubble {
+  background: #fff1cf;
+}
+.sn-meta {
+  color: var(--sb-ink-soft);
+}
+.sn-meta strong {
+  color: var(--sb-ink);
+}
+.sn-tool {
+  color: var(--sb-ink-soft);
+  font-weight: 700;
+}
+.sn-tool:hover {
+  color: var(--sb-ink);
+  background: var(--sb-cream);
+}
+.sn-input {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+.sn-input:focus {
+  outline: none;
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.sn-new-foot small {
+  color: var(--sb-ink-soft);
+}
+.sn-new-foot small.warn,
+.sn-error {
+  color: var(--sb-red);
+  font-weight: 700;
+}
+.sn-link {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.sn-btn.primary {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.sn-btn.primary:hover:not(:disabled) {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.sn-btn.primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.sn-btn.primary:disabled {
+  background: #efe6d2;
+  color: rgba(18, 50, 74, 0.5);
+  border-color: rgba(18, 50, 74, 0.35);
+  box-shadow: none;
+  opacity: 1;
+}
+.sn-btn:not(.primary):not(.danger) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.sn-btn:not(.primary):not(.danger):hover:not(:disabled) {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.sn-btn.danger {
+  color: var(--sb-red);
+  font-weight: 800;
 }
 </style>

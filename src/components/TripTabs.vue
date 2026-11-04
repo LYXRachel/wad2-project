@@ -309,4 +309,73 @@ onBeforeUnmount(() => {
     transform: none;
   }
 }
+
+/* ===== Scrapbook look (matches Home and Login; colours from src/assets/scrapbook.css) =====
+   The tabs sit on the cream top bar: plain ink labels, and the open tab is an amber sticker pressed in. */
+.tt {
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 0;
+}
+.tt-track {
+  gap: 4px;
+  overflow: visible;
+}
+.tt-more :deep(.dd-trigger) {
+  background: transparent;
+  box-shadow: none;
+}
+.tt-tab,
+.tt-more :deep(.dd-trigger) {
+  min-height: 40px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: var(--sb-ink-soft);
+  font-weight: 700;
+}
+.tt-tab:hover,
+.tt-more :deep(.dd-trigger:hover) {
+  color: var(--sb-ink);
+  background: rgba(255, 191, 60, 0.18);
+}
+.tt-tab.active {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: var(--sb-pop-sm);
+  transform: rotate(-1.5deg);
+}
+.tt-tab:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 2px;
+}
+.tt-dot {
+  border: 1.5px solid var(--sb-ink);
+  background: var(--sb-red);
+  box-shadow: none;
+}
+/* Phones: one cream menu button */
+.tt-menu :deep(.dd-trigger) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--sb-pop-sm);
+}
+.tt-burger {
+  color: var(--sb-ink);
+}
+.tt-menu-current {
+  border: 2px solid var(--sb-ink);
+  border-radius: 9px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
 </style>

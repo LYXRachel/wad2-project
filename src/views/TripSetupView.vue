@@ -385,49 +385,6 @@ export default {
   font-size: 2rem;
   margin: 0;
 }
-.setup-steps {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 0;
-  margin: 0 0 16px;
-}
-.setup-steps li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--app-muted, #5a6b78);
-  background: #fbf5ea;
-  border: 1px solid #e2dacb;
-  border-radius: 999px;
-  padding: 6px 14px 6px 6px;
-}
-.setup-steps .dot {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #efe9df;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-}
-.setup-steps li.current {
-  color: #003d5b;
-  font-weight: 600;
-  border-color: #003d5b;
-}
-.setup-steps li.current .dot {
-  background: #003d5b;
-  color: #edae49;
-}
-.setup-steps li.done .dot {
-  background: #00798c;
-  color: #fff;
-}
 .setup-lead {
   color: #4a6274;
   font-size: 1.02rem;

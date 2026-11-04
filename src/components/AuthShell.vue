@@ -140,20 +140,24 @@ const bubbleText = computed(() => {
   letter-spacing: 0.01em;
 }
 .as-switch {
-  padding: 10px 20px;
-  border: 2.5px solid var(--ink);
-  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 58px;
+  padding: 12px 32px;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
   background: var(--cream);
   color: var(--ink);
+  font-size: 1.35rem;
   font-weight: 800;
   text-decoration: none;
-  box-shadow: 0 4px 0 var(--ink);
+  box-shadow: 0 5px 0 var(--ink);
   transition: transform 0.12s, box-shadow 0.12s;
 }
 .as-switch:hover {
   color: var(--ink);
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--ink);
+  box-shadow: 0 7px 0 var(--ink);
 }
 .as-switch:active {
   transform: translateY(3px);
@@ -303,7 +307,7 @@ const bubbleText = computed(() => {
 }
 @media (max-width: 480px) {
   .as-logo-mark { width: 40px; height: 40px; border-radius: 12px; }
-  .as-switch { padding: 8px 14px; }
+  .as-switch { min-height: 48px; padding: 10px 20px; font-size: 1.1rem; }
   .as-bubble { max-width: 170px; font-size: 13px; }
   .as-pip { left: -8px; }
 }

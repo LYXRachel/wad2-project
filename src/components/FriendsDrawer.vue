@@ -7,6 +7,7 @@
         <aside ref="panelEl" class="fd" role="dialog" aria-modal="true" aria-labelledby="fd-title" @keydown="onKey">
           <header class="fd-head">
             <div class="fd-head-text">
+              <p class="fd-kicker">Your crew</p>
               <h2 id="fd-title" class="fd-title">Friends</h2>
               <p class="fd-sub">
                 {{ list.length }} friend{{ list.length === 1 ? '' : 's' }}<template v-if="onlineCount"> · <span class="fd-green">{{ onlineCount }} online</span></template>
@@ -84,7 +85,7 @@
                       <button type="button" class="fd-btn" @click="removing = null">No</button>
                     </template>
                     <template v-else>
-                      <button type="button" class="fd-btn" :class="{ on: invitingFor === f.id }" :aria-expanded="invitingFor === f.id"
+                      <button type="button" class="fd-btn invite" :class="{ on: invitingFor === f.id }" :aria-expanded="invitingFor === f.id"
                         :aria-label="'Invite ' + f.name + ' to a trip'" @click="toggleInvite(f)">
                         <AppIcon name="plane" :size="15" />Invite
                       </button>
@@ -152,8 +153,10 @@
 
           <!-- My username, to share -->
           <footer class="fd-foot">
-            <span class="fd-muted">Your username</span>
-            <code class="fd-handle">@{{ myUsername }}</code>
+            <span class="fd-id">
+              <span class="fd-muted">Your username</span>
+              <code class="fd-handle">@{{ myUsername }}</code>
+            </span>
             <button type="button" class="fd-btn" :class="{ done: copied }" @click="copyMine">
               <AppIcon :name="copied ? 'check' : 'copy'" :size="15" />{{ copied ? 'Copied' : 'Copy' }}
             </button>
@@ -897,6 +900,425 @@ onBeforeUnmount(() => {
   .fd-fade-leave-active,
   .fd-fade-enter-active .fd,
   .fd-fade-leave-active .fd {
+    transition: none;
+  }
+}
+/* Same fonts as the rest of the app (the navy stays): Lilita One for headings, names, tabs and buttons,
+   Plus Jakarta Sans for the smaller reading text */
+.fd {
+  font-family: var(--font-body);
+}
+.fd-title {
+  font-family: var(--sb-display);
+  font-size: 1.7rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.fd-label,
+.fd-group {
+  font-family: var(--sb-display);
+  font-size: 0.95rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+.fd-input {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.fd-tab {
+  font-family: var(--sb-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+.fd-count {
+  font-family: var(--sb-display);
+  font-weight: 400;
+}
+.fd-name {
+  font-family: var(--sb-display);
+  font-size: 1.15rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.fd-avatar {
+  font-family: var(--sb-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+.fd-avatar.sm {
+  font-size: 0.85rem;
+}
+.fd-muted,
+.fd-sub,
+.fd-hint,
+.fd-msg {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.fd-btn {
+  font-family: var(--sb-display);
+  font-size: 0.98rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+.fd-confirm {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.fd-handle {
+  font-family: var(--sb-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+/* =====================================================================
+   Night scrapbook: the navy stays, with the app's cream, amber, outlines and hard shadows.
+   Friends are cream luggage tags on the navy. These rules come last, so they win.
+   ===================================================================== */
+.fd-backdrop {
+  --fd-line: rgba(255, 250, 240, 0.16);
+  --fd-text: #fffaf0;
+  --fd-muted: #b9cad6;
+  --fd-accent: var(--sb-amber);
+  --fd-green: #7ee2a8;
+  --fd-danger: #ff9a8a;
+  --fd-edge: #0b2233; /* outline for cream things on the navy */
+  background: rgba(18, 50, 74, 0.45);
+}
+.fd {
+  position: relative;
+  background:
+    radial-gradient(circle, rgba(255, 250, 240, 0.07) 1.2px, transparent 1.5px) 0 0 / 22px 22px,
+    var(--sb-ink);
+  border-left: 5px solid var(--sb-amber);
+  box-shadow: -8px 0 0 rgba(18, 50, 74, 0.35);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.fd::before { /* stitching */
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2px dashed rgba(255, 250, 240, 0.16);
+  border-radius: 14px;
+  pointer-events: none;
+}
+.fd-head {
+  border-bottom: 2px dashed rgba(255, 250, 240, 0.18);
+}
+.fd-kicker {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 2px 9px;
+  border: 2px solid var(--fd-edge);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.fd-title {
+  font-size: 2rem;
+  color: #fffaf0;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+.fd-close {
+  border: 2px solid var(--fd-edge);
+  background: #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.fd-close:hover,
+.fd-close:focus-visible {
+  border-color: var(--fd-edge);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.fd-label {
+  color: var(--sb-amber);
+  text-transform: none;
+}
+
+/* Search: a cream paper box */
+.fd-input {
+  height: 48px;
+  border: 2.5px solid var(--fd-edge);
+  border-radius: 14px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+.fd-input::placeholder {
+  color: rgba(18, 50, 74, 0.55);
+}
+.fd-input:focus {
+  border-color: var(--fd-edge);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 0 4px rgba(255, 191, 60, 0.55);
+}
+.fd-search-icon {
+  z-index: 1;
+  color: var(--sb-ink);
+}
+.fd-results {
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+/* Tabs: a cream pill switch, the open one amber */
+.fd-tabs {
+  padding: 4px;
+  border: 2.5px solid var(--fd-edge);
+  border-radius: 999px;
+  background: #fffaf0;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+.fd-tab {
+  border-radius: 999px;
+  color: var(--sb-ink-soft);
+}
+.fd-tab:hover {
+  color: var(--sb-ink);
+}
+.fd-tab.on {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: inset 0 0 0 2px var(--sb-ink);
+}
+.fd-count {
+  border: 1.5px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+}
+.fd-count.hot {
+  background: var(--sb-coral);
+  color: var(--sb-ink);
+}
+
+/* Each person: a cream luggage tag with a punched hole */
+.fd-friend,
+.fd-list > .fd-row {
+  --fd-text: var(--sb-ink);
+  --fd-muted: var(--sb-ink-soft);
+  --fd-green: #1f7a4d;
+  --fd-danger: var(--sb-red);
+  --fd-line: rgba(18, 50, 74, 0.15);
+  position: relative;
+  margin-bottom: 12px;
+  padding: 10px 12px 10px 26px;
+  border: 2.5px solid var(--fd-edge);
+  border-radius: 8px 16px 16px 8px;
+  background: #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s var(--sb-spring);
+}
+.fd-friend:hover,
+.fd-list > .fd-row:hover {
+  transform: translateY(-2px) rotate(-0.4deg);
+}
+.fd-friend::before,
+.fd-list > .fd-row::before { /* the hole */
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-ink);
+}
+.fd-friend > .fd-row {
+  padding: 0;
+  border: 0;
+}
+.fd-results > .fd-row:last-child {
+  border-bottom: 2.5px solid var(--fd-edge);
+}
+.fd-avatar {
+  border: 2.5px solid var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+  text-shadow: 0 1.5px 0 rgba(18, 50, 74, 0.6);
+}
+.fd-dot {
+  border: 2px solid var(--sb-ink);
+  background: #4caf7d;
+}
+.fd-name {
+  color: var(--sb-ink);
+}
+.fd-group {
+  margin: 18px 0 10px;
+  color: var(--sb-amber);
+  text-transform: none;
+}
+
+/* Buttons: chunky, outlined, with a hard shadow */
+.fd-btn {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s, background 0.15s;
+}
+.fd-btn:hover:not(:disabled),
+.fd-btn:focus-visible {
+  border-color: var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+}
+.fd-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.fd-btn.primary,
+.fd-btn.invite {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.fd-btn.primary:hover:not(:disabled),
+.fd-btn.primary:focus-visible,
+.fd-btn.invite:hover:not(:disabled),
+.fd-btn.invite:focus-visible {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  box-shadow: 0 4px 0 var(--sb-ink);
+}
+.fd-btn.on,
+.fd-btn.invite.on {
+  background: var(--sb-ink);
+  color: #fffaf0;
+}
+.fd-btn.danger {
+  border-color: var(--sb-ink);
+  background: #fde0dc;
+  color: var(--sb-red);
+}
+.fd-btn.danger:hover:not(:disabled),
+.fd-btn.danger:focus-visible {
+  border-color: var(--sb-ink);
+  background: #fbc9c2;
+  color: var(--sb-red);
+}
+.fd-btn.done {
+  border-color: var(--sb-ink);
+  background: #d9f2e4;
+  color: #1f7a4d;
+}
+.fd-icon-btn {
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.fd-icon-btn:hover,
+.fd-icon-btn:focus-visible {
+  border-color: var(--sb-ink);
+  background: #fde0dc;
+  color: var(--sb-red);
+}
+.fd-tag {
+  border: 1.5px solid var(--sb-ink);
+  background: #d6f0f3;
+  color: var(--sb-ink);
+}
+.fd-confirm {
+  color: var(--sb-red);
+}
+
+/* Invite to a trip: a dashed note inside the tag */
+.fd-trips {
+  margin: 12px 0 2px;
+  border: 2px dashed rgba(18, 50, 74, 0.35);
+  background: #fff1cf;
+}
+.fd-trip-text strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Empty states and messages on the navy */
+.fd-empty {
+  color: var(--fd-muted);
+}
+.fd-empty strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+}
+.fd-empty svg {
+  width: 52px;
+  height: 52px;
+  padding: 11px;
+  border: 2.5px solid var(--fd-edge);
+  border-radius: 50%;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* My username: a little ID card */
+.fd-foot {
+  margin: 0 16px 16px;
+  padding: 12px 14px 12px 22px;
+  border: 2.5px solid var(--fd-edge);
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, var(--sb-amber) 0 10px, transparent 10px),
+    #fffaf0;
+  color: var(--sb-ink);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+}
+.fd-id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fd-foot .fd-muted {
+  color: var(--sb-ink-soft);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.fd-handle {
+  overflow: hidden;
+  color: var(--sb-ink);
+  font-size: 1.25rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fd-foot .fd-btn {
+  background: var(--sb-amber);
+}
+.fd-foot .fd-btn.done {
+  background: #d9f2e4;
+}
+@media (max-width: 480px) {
+  .fd-foot {
+    margin: 0 12px 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fd-friend,
+  .fd-list > .fd-row,
+  .fd-btn {
     transition: none;
   }
 }

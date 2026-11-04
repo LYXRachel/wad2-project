@@ -8,8 +8,8 @@
     </div>
 
     <template v-else>
-      <!-- Dark header with the trip photo glowing behind it -->
-      <div class="trip-stage" :style="stageStyle" aria-hidden="true"></div>
+      <!-- The destination photo as a taped polaroid, captioned with the first city -->
+      <div class="trip-stage" :style="stageStyle" :data-caption="(itineraryInfo.destinations[0] || '').split(', ')[0]" aria-hidden="true"></div>
 
       <!-- Top bar: back, trip name, every section of the trip. Stays on screen while scrolling. -->
       <!-- One line: back, trip name, then the tabs. As the window narrows, tabs move into "More" one by one;
@@ -241,7 +241,6 @@ import TripRecap from '../components/TripRecap.vue'
 import TripEditModal from '../components/TripEditModal.vue'
 import { notify } from '../notify.js'
 
-
 export default {
   components: { LoadingSkeleton, TripRecap, TripEditModal, AppIcon, ItineraryView, WishlistView, PlacesVoting, GroupVoting, PackingView, PhotosView, ExpensesView, SafetyLayer, FlightDelayWidget, OtherJourneys, TripShare, CrewView, TripTabs, TabIcon },
   props: { id: { type: String, default: 'seoul' } }, // from the route /trip/:id
@@ -257,7 +256,7 @@ export default {
         { key: 'itinerary', icon: '🗓', label: 'Itinerary', title: 'Itinerary', desc: 'Your day-by-day plan, with crowd tips and the forecast.' },
         { key: 'places', icon: '📍', label: 'Places', title: 'Places', desc: 'Save places you like, then vote on them together.', testid: 'places-tab' },
         { key: 'packing', icon: '🎒', label: 'Packing', title: 'Packing list', desc: 'Built from your activities, the weather and how long you are away.' },
-        { key: 'expenses', icon: '💸', label: 'Expenses', title: 'Expenses & split', desc: 'Log what the group spends and see who owes whom. Press N to add an expense.' },
+        { key: 'expenses', icon: '💸', label: 'Expenses', title: 'Expenses & Split', desc: 'Log what the group spends and see who owes whom. Press N to add an expense.' },
         { key: 'photos', icon: '📷', label: 'Photos', title: 'Photos', desc: "The group's trip photos in one place." },
         { key: 'safety', icon: '🛡', label: 'Safety', title: 'Safety', desc: 'Live alerts and risk levels near you.', testid: 'safety-tab' },
         { key: 'crew', icon: '👥', label: 'Crew', title: 'Trip crew', desc: '' },
@@ -275,9 +274,8 @@ export default {
       showEdit: false, // Edit trip dialog
       editRev: 0,      // goes up after each edit, to reload the itinerary
       photoWho: { name: '', at: 0 }, // set when "Photos" is clicked on a crew card
-      stagePhoto: '', // photo of the first destination (Wikipedia); plain dark header until it loads
-      photoPage: '',
-      stageHeight: 0 // small screens: the dark header ends just above the white panel
+      stagePhoto: '', // photo of the first destination (Wikipedia) for the polaroid; a pastel fill until it loads
+      photoPage: ''
     }
   },
   computed: {
@@ -393,19 +391,10 @@ export default {
     stageStyle() {
       const style = {}
       if (this.stagePhoto) style['--trip-photo'] = 'url(' + this.stagePhoto + ')'
-      if (this.stageHeight) style.height = this.stageHeight + 'px'
       return style
     },
     headerTitle() {
       return this.isDemo ? 'Seoul, South Korea' : this.trip.name
-    },
-    headerSubtitle() {
-      if (this.isDemo) return '12 Oct – 17 Oct | Travellers: Sarah, John, Amy'
-      const t = this.trip
-      const fmt = (s) => new Date(s + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-      const dates = t.startDate ? (t.endDate ? fmt(t.startDate) + ' – ' + fmt(t.endDate) : 'From ' + fmt(t.startDate)) : 'Dates not set'
-      const places = t.destinations && t.destinations.length ? t.destinations.join(' → ') : t.destination
-      return places + ' | ' + dates + ' | Travellers: ' + t.travellers.join(', ')
     }
   },
   watch: {
@@ -427,23 +416,12 @@ export default {
     }
     this.loading = false
     this.loadPhoto()
-    window.addEventListener('resize', this.fitStage)
-    this.$nextTick(this.fitStage)
+    document.body.classList.add('sb-page') // dropdown menus (opened on <body>) take the scrapbook look
   },
   beforeUnmount() {
-    window.removeEventListener('resize', this.fitStage)
+    document.body.classList.remove('sb-page')
   },
   methods: {
-    // On small screens the header is shorter than 610px, so stop the dark background
-    // 16px above the white panel instead of letting the two overlap
-    fitStage() {
-      const panel = this.$refs.panel
-      if (!panel || window.innerWidth > 900) {
-        this.stageHeight = 0
-        return
-      }
-      this.stageHeight = Math.max(200, panel.offsetTop - 16)
-    },
     // Planner added or removed a day (or undid that): save the trip's new end date
     async setEndDate(endDate) {
       if (this.isDemo || !this.trip.startDate || !endDate) return
@@ -604,10 +582,6 @@ export default {
   text-align: center;
   padding-top: 160px;
 }
-.skeleton-bar {
-  height: 62px;
-  opacity: 0.6;
-}
 
 /* Top bar */
 .trip-nav {
@@ -666,7 +640,6 @@ export default {
   margin-left: auto;
   flex: 0 0 auto;
 }
-
 
 /* Title */
 .trip-head {
@@ -1144,5 +1117,394 @@ export default {
   .trip-card,
   .places-switch button { transition: none; }
   .trip-card:hover { transform: none; }
+}
+
+/* =====================================================================
+   Scrapbook look (matches Home and Login). Colours come from src/assets/scrapbook.css.
+   These rules come last, so they replace the dark header styles above.
+   ===================================================================== */
+.trip-page {
+  color: var(--sb-ink);
+}
+/* The destination photo: a taped polaroid on the right of the header, captioned in handwriting */
+.trip-stage {
+  top: 96px;
+  left: auto;
+  right: clamp(16px, 5vw, 72px);
+  width: clamp(220px, 22vw, 300px);
+  height: auto;
+  aspect-ratio: 5 / 4;
+  margin-left: 0;
+  padding: 0;
+  overflow: visible;
+  border: 12px solid var(--sb-cream);
+  border-bottom-width: 52px;
+  border-radius: 6px;
+  outline: var(--sb-line);
+  background:
+    var(--trip-photo, none) center 40% / cover no-repeat,
+    linear-gradient(160deg, var(--sb-peach), var(--sb-teal-soft));
+  box-shadow: 0 8px 0 var(--sb-ink), 0 24px 40px -20px rgba(18, 50, 74, 0.45);
+  transform: rotate(3deg);
+}
+/* washi tape across the top */
+.trip-stage::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  width: 96px;
+  height: 28px;
+  margin-left: -48px;
+  background: rgba(255, 191, 60, 0.75);
+  border-left: 2px dashed rgba(255, 255, 255, 0.7);
+  border-right: 2px dashed rgba(255, 255, 255, 0.7);
+  transform: rotate(-4deg);
+}
+.trip-stage::after {
+  content: attr(data-caption);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -46px;
+  text-align: center;
+  font-family: 'Caveat', 'Segoe Script', cursive;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--sb-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Top bar: a cream strip with a navy outline that stays on screen */
+.trip-nav {
+  background: var(--sb-cream);
+  border: var(--sb-line);
+  border-radius: 20px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--sb-pop);
+}
+.trip-back {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.trip-back:hover {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.trip-back:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.trip-nav-name {
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 1.3rem;
+}
+
+/* Title block on the page, left of the polaroid */
+.trip-head {
+  color: var(--sb-ink);
+  min-height: 300px; /* the summary cards always start below the polaroid */
+  padding-top: 64px;
+  padding-right: clamp(16px, 34vw, 440px); /* clear of the polaroid */
+}
+.trip-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6vw, 4.2rem);
+  letter-spacing: 0.005em;
+  line-height: 1;
+  text-shadow: none;
+}
+.trip-route {
+  color: var(--sb-ink);
+}
+.trip-route-stop + .trip-route-stop::before {
+  background-image: radial-gradient(circle, var(--sb-ink) 1.5px, transparent 1.8px);
+}
+.trip-route-dot {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  box-shadow: none;
+}
+.trip-toggle {
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.trip-toggle-item,
+.trip-toggle-item.on {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 700;
+  box-shadow: var(--sb-pop-sm);
+}
+.trip-face {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-teal);
+  color: #fff;
+  font-weight: 800;
+}
+.trip-face.guest {
+  border: 2px dashed var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-muted);
+}
+.trip-face.more {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.trip-invite,
+.trip-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: var(--sb-line);
+  border-radius: 12px;
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.trip-invite {
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+}
+.trip-edit {
+  background: var(--sb-cream);
+}
+.trip-invite:hover,
+.trip-edit:hover {
+  border-color: var(--sb-ink);
+  background-color: var(--sb-cream);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.trip-invite:active,
+.trip-edit:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.trip-invite:focus-visible,
+.trip-edit:focus-visible {
+  outline: 3px solid var(--sb-teal);
+}
+
+/* Summary cards: cream stickers; the open one turns amber and tilts up */
+.trip-cards {
+  gap: 18px;
+  margin-top: 40px;
+  align-items: stretch;
+}
+.trip-card {
+  padding: 20px 22px;
+  border: var(--sb-line);
+  border-radius: 22px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop);
+  transition: transform 0.3s var(--sb-spring), box-shadow 0.15s, background 0.2s;
+}
+.trip-card:hover {
+  border-color: var(--sb-ink);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 0 var(--sb-ink);
+}
+.trip-card:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.trip-card.selected,
+.trip-card.selected:hover {
+  background: linear-gradient(180deg, #ffe3a3, var(--sb-amber));
+  border-color: var(--sb-ink);
+  transform: translateY(-6px) rotate(-1.5deg);
+  box-shadow: 0 8px 0 var(--sb-ink);
+}
+.trip-card-badge {
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 900;
+  box-shadow: var(--sb-pop-sm);
+}
+.trip-card-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
+}
+.trip-card-big {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 2.8rem;
+  line-height: 1;
+}
+.trip-card-big small,
+.trip-card-sub {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--sb-ink-soft);
+}
+
+/* The open section: a big cream card with stitching round the inside edge */
+.trip-panel {
+  margin-top: 40px;
+  border: var(--sb-line);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.06) 1px, transparent 1.3px) 0 0 / 22px 22px,
+    var(--sb-cream);
+  box-shadow: 0 6px 0 var(--sb-ink), 0 30px 50px -30px rgba(18, 50, 74, 0.35);
+}
+.trip-panel::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 20px;
+  pointer-events: none;
+}
+.trip-panel-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 2rem;
+  color: var(--sb-ink);
+}
+.trip-panel-icon {
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+  transform: rotate(-4deg);
+}
+
+/* Wishlist | Group decisions */
+.places-switch {
+  gap: 6px;
+  padding: 5px;
+  border: var(--sb-line);
+  border-radius: 16px;
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop-sm);
+}
+.places-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 2px solid transparent;
+  border-radius: 11px;
+  color: var(--sb-ink-soft);
+  font-weight: 800;
+}
+.places-switch button:hover {
+  color: var(--sb-ink);
+  background: rgba(255, 191, 60, 0.18);
+}
+.places-switch button.active {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+
+/* "Back to Day 2" bar */
+.places-return {
+  border: var(--sb-line);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop), 0 18px 36px -12px rgba(18, 50, 74, 0.35);
+}
+.places-return-btn {
+  border: 2px solid var(--sb-ink);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.places-return-btn:hover {
+  background: rgba(255, 191, 60, 0.2);
+}
+.places-return-btn.ready {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+}
+
+/* First-trip guide */
+.guide {
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 18px;
+  background: var(--sb-card);
+  box-shadow: none;
+}
+
+.trip-back:focus-visible,
+.trip-card:focus-visible,
+.places-switch button:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 3px;
+}
+
+/* Tablets: the polaroid gets small and sits beside the title */
+@media (max-width: 900px) {
+  .trip-stage {
+    top: 84px;
+    width: 150px;
+    border-width: 7px;
+    border-bottom-width: 30px;
+  }
+  .trip-stage::before { width: 60px; height: 20px; margin-left: -30px; top: -20px; }
+  .trip-stage::after { bottom: -28px; font-size: 1.15rem; }
+  .trip-head { min-height: 0; padding-top: 40px; padding-right: 180px; }
+  .trip-cards { gap: 8px; margin-top: 28px; }
+  .trip-card,
+  .trip-card.selected { padding: 12px; border-radius: 16px; }
+  .trip-card.selected,
+  .trip-card.selected:hover { transform: translateY(-4px) rotate(-1.5deg); }
+  .trip-card-big { font-size: 1.9rem; }
+  .trip-panel { border-radius: 22px; }
+  .trip-panel::before { inset: 7px; border-radius: 16px; }
+  .trip-panel-title { font-size: 1.5rem; }
+}
+/* Phones: no polaroid, the title gets the full width */
+@media (max-width: 560px) {
+  .trip-stage { display: none; }
+  .trip-head { padding-right: 18px; }
+  .trip-title { font-size: 2.4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-card, .trip-back, .trip-invite, .trip-edit { transition: none; }
 }
 </style>

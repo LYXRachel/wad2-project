@@ -25,8 +25,9 @@
   --bs-primary-bg-subtle: #e7e3ef;
   --bs-primary-text-emphasis: #211f39;
 
-  --font-display: 'Trebuchet MS', 'Avenir Next', Avenir, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-body: 'Trebuchet MS', 'Avenir Next', Avenir, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* The app's reading font: Plus Jakarta Sans (titles and buttons use Lilita One, var(--sb-display)) */
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --photo-shade: linear-gradient(180deg, rgba(28, 26, 48, 0) 35%, rgba(28, 26, 48, 0.84) 100%);
 }
 

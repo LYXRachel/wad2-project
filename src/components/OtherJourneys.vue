@@ -1,86 +1,86 @@
 <template>
-  <!-- Transport > Other journeys: trips that aren't between two stops on the plan
-       (airport to hotel, a day trip to another city). Between-stop travel lives in the itinerary. -->
-  <section class="mb-4" aria-labelledby="oj-title">
-    <h2 id="oj-title" class="h4 mb-3">Plan Journeys</h2>
- 
+  <!-- Transport → Other journeys: trips that aren't between two stops on the plan
+       (airport → hotel, a day trip to another city). Between-stop travel lives in the itinerary. -->
+  <section class="oj" aria-labelledby="oj-title">
+    <header class="oj-head">
+      <h2 id="oj-title" class="oj-title">Plan journeys</h2>
+    </header>
+
     <!-- Plan a journey (or change a saved one) -->
-    <div v-if="editing" class="alert alert-warning d-flex align-items-center py-2" role="status">
-      <AppIcon name="pencil" :size="15" class="me-2" />
-      <span>Changing <strong>{{ editing.from }} → {{ editing.to }}</strong></span>
-      <button type="button" class="btn btn-link btn-sm ms-auto p-0" @click="cancelEdit">Cancel</button>
-    </div>
- 
-    <form ref="formEl" class="card card-body mb-3" :class="{ 'border-warning': !!editing }" @submit.prevent="findWays">
-      <div class="row g-2 align-items-end">
-        <div class="col-12 col-md">
+    <p v-if="editing" class="oj-editing" role="status">
+      <AppIcon name="pencil" :size="15" /> Changing <strong>{{ editing.from }} → {{ editing.to }}</strong>
+      <button type="button" class="oj-link" @click="cancelEdit">Cancel</button>
+    </p>
+    <!-- The planner is a ticket: From and To on the main part, the day and "Find ways" on the tear-off stub -->
+    <form ref="formEl" class="oj-form oj-ticket" :class="{ editing: !!editing }" @submit.prevent="findWays">
+      <div class="oj-ticket-main">
+        <p class="oj-ticket-kicker" aria-hidden="true"><AppIcon name="plane" :size="14" /> {{ editing ? 'Changing a journey' : 'Plan a journey' }}</p>
+        <div class="oj-route">
           <PlaceInput id="oj-from" v-model="fromText" label="From" :placeholder="fromHint" :groups="placeGroups" />
-        </div>
-        <div class="col-auto">
-          <button type="button" class="btn btn-outline-secondary" aria-label="Swap from and to" title="Swap" @click="swap">
-            <AppIcon name="swap" :size="16" />
-          </button>
-        </div>
-        <div class="col-12 col-md">
+          <!-- the swap button sits on the dotted flight path between the two places -->
+          <div class="oj-path">
+            <button type="button" class="oj-swap" aria-label="Swap from and to" title="Swap" @click="swap"><AppIcon name="swap" :size="16" /></button>
+          </div>
           <PlaceInput id="oj-to" v-model="toText" label="To" :placeholder="toHint" :groups="placeGroups" />
         </div>
-        <div v-if="dayOptions.length" class="col-12 col-md-3">
-          <label for="oj-day" class="form-label mb-1">Day</label>
+      </div>
+      <div class="oj-ticket-stub">
+        <div v-if="dayOptions.length" class="oj-field small">
+          <label for="oj-day">Day</label>
           <CustomDropdown id="oj-day" v-model="day" :options="[{ value: '', label: 'Any day' }].concat(dayOptions)" block aria-label="Day" />
         </div>
-        <div class="col-12 col-md-auto">
-          <button type="submit" class="btn btn-primary w-100" :disabled="busy || !fromText.trim() || !toText.trim()">
-            {{ busy ? 'Finding…' : 'Find ways' }}
-          </button>
-        </div>
+        <button type="submit" class="oj-go" :disabled="busy || !fromText.trim() || !toText.trim()">{{ busy ? 'Finding…' : 'Find ways' }} <span aria-hidden="true">→</span></button>
       </div>
     </form>
- 
-    <div v-if="error" class="alert alert-danger py-2" role="alert">{{ error }}</div>
- 
+
+    <p v-if="error" class="oj-error" role="alert">{{ error }}</p>
+
     <!-- Ways to make this journey -->
-    <div v-if="result" class="mb-4">
-      <div class="alert alert-info">
+    <div v-if="result" class="oj-result">
+      <p class="oj-why">
         <strong>{{ result.fromName }} → {{ result.toName }}</strong><br>
         We suggest <strong>{{ label(result.recommended) }}</strong>: {{ result.reason }}.
         <span v-if="result.checking"> Checking live routes…</span>
-      </div>
+      </p>
       <TravelChoices :options="result.options" :recommended="result.recommended" :group="group" :maps-url="mapsUrl"
         :chosen="editing ? editing.mode : ''" :chosen-by="editing ? editing.by : ''"
         action-label="Save" :mark-in-use="false" @choose="saveJourney" />
-      <p class="form-text mt-2">{{ editing ? 'Save replaces the saved journey.' : 'Save the way you\'ll go, so everyone on the trip can see it.' }}</p>
+      <p class="oj-note">{{ editing ? 'Save replaces the saved journey.' : 'Save the way you\'ll go, so everyone on the trip can see it.' }}</p>
     </div>
- 
+
     <!-- Flights between cities, added on itinerary days (read-only here: change them on their day) -->
     <template v-if="flights.length">
-      <h3 class="h5 mt-4">Flights on the plan <span class="badge bg-secondary">{{ flights.length }}</span></h3>
-      <ul class="list-group mb-3">
-        <li v-for="f in flights" :key="f.id" class="list-group-item d-flex align-items-center">
-          <AppIcon name="plane" :size="18" class="me-3" />
-          <div>
-            <strong>{{ shortAirport(f.from.name) }} → {{ shortAirport(f.to.name) }}</strong><br>
-            <small class="text-muted">{{ dayLabel(f.date) }}, takes off {{ f.dep }}, lands {{ f.arr }}<template v-if="f.number">, flight {{ f.number }}</template>. Edit it on the itinerary.</small>
-          </div>
+      <h3 class="oj-h">Flights on the plan <span class="oj-count">{{ flights.length }}</span></h3>
+      <ul class="oj-list">
+        <li v-for="f in flights" :key="f.id" class="oj-item">
+          <span class="oj-item-icon sun" aria-hidden="true"><AppIcon name="plane" :size="18" /></span>
+          <span class="oj-item-main">
+            <strong>{{ shortAirport(f.from.name) }} → {{ shortAirport(f.to.name) }}</strong>
+            <small>{{ dayLabel(f.date) }} · takes off {{ f.dep }} · lands {{ f.arr }}<template v-if="f.number"> · {{ f.number }}</template> · on the itinerary</small>
+          </span>
         </li>
       </ul>
     </template>
- 
+
     <!-- Saved journeys -->
-    <h3 class="h5 mt-4">Saved Journeys <span class="badge bg-secondary">{{ journeys.length }}</span></h3>
-    <p v-if="!journeys.length" class="text-muted">Nothing saved yet. Airport transfers and day trips you plan above appear here.</p>
-    <ul v-else class="list-group">
-      <li v-for="j in journeys" :key="j.id" class="list-group-item d-flex align-items-center" :class="{ 'list-group-item-warning': editing && editing.id === j.id }">
-        <AppIcon :name="MODES[j.mode].icon" :size="18" class="me-3" />
-        <div class="flex-grow-1">
-          <strong>{{ j.from }} → {{ j.to }}</strong><br>
-          <small class="text-muted">{{ MODES[j.mode].label }}, {{ durationText(j.min) }}<template v-if="j.date">, {{ dayLabel(j.date) }}</template><template v-if="j.by">, added by {{ j.by }}</template></small>
-        </div>
-        <button type="button" class="btn btn-outline-primary btn-sm me-2" :aria-label="'Change ' + j.from + ' to ' + j.to" @click="editJourney(j)">
-          <AppIcon name="pencil" :size="16" /> Change
+    <h3 class="oj-h">Saved journeys <span class="oj-count">{{ journeys.length }}</span></h3>
+    <!-- Nothing saved: a blank ticket saying so -->
+    <div v-if="!journeys.length" class="oj-empty">
+      <strong class="oj-empty-title">No journeys yet</strong>
+      <p>Nothing saved yet. Airport transfers and day trips you plan above appear here.</p>
+    </div>
+    <ul v-else class="oj-list">
+      <li v-for="j in journeys" :key="j.id" class="oj-item" :class="{ editing: editing && editing.id === j.id }">
+        <!-- Tap a saved journey to change it (it opens in the form above) -->
+        <button type="button" class="oj-item-open" :aria-label="'Change ' + j.from + ' to ' + j.to" @click="editJourney(j)">
+          <span class="oj-item-icon" aria-hidden="true"><AppIcon :name="MODES[j.mode].icon" :size="18" /></span>
+          <span class="oj-item-main">
+            <strong>{{ j.from }} → {{ j.to }}</strong>
+            <small>{{ MODES[j.mode].label }} · {{ durationText(j.min) }}<template v-if="j.date"> · {{ dayLabel(j.date) }}</template><template v-if="j.by"> · added by {{ j.by }}</template></small>
+          </span>
+          <span class="oj-item-edit" aria-hidden="true"><AppIcon name="pencil" :size="14" /> Change</span>
         </button>
-        <button type="button" class="btn btn-outline-danger btn-sm" :aria-label="'Delete ' + j.from + ' to ' + j.to" @click="removeJourney(j)">
-          <AppIcon name="trash" :size="16" /> Delete
-        </button>
+        <button type="button" class="oj-del" :aria-label="'Delete ' + j.from + ' to ' + j.to" @click="removeJourney(j)"><AppIcon name="trash" :size="16" /></button>
       </li>
     </ul>
   </section>
@@ -161,7 +161,7 @@ const placeGroups = computed(() => {
     }
   }
   if (wishlistItems.length) {
-    groups.push({ label: 'Wishlist', icon: 'bookmark', items: wishlistItems })
+    groups.push({ label: 'Wishlist', icon: 'heart', items: wishlistItems })
   }
   // plan stops
   const stops = []
@@ -358,7 +358,486 @@ function removeJourney(j) {
 </script>
 
 <style scoped>
-.oj-open {
+/* ===== Transport → Other journeys, as travel tickets (scrapbook look; colours from src/assets/scrapbook.css) =====
+   The planner is a ticket with a tear-off stub; each saved journey is a ticket stub. */
+.oj {
+  color: var(--sb-ink);
+}
+.oj-title {
+  margin: 0 0 12px;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.7rem;
+  color: var(--sb-ink);
+}
+
+/* ----- The planner ticket ----- */
+.oj-ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  border: var(--sb-line);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle, rgba(18, 50, 74, 0.06) 1px, transparent 1.3px) 0 0 / 18px 18px,
+    var(--sb-card);
+  box-shadow: var(--sb-pop);
+}
+.oj-ticket.editing {
+  box-shadow: var(--sb-pop), 0 0 0 5px rgba(255, 191, 60, 0.45);
+}
+.oj-ticket-main {
   min-width: 0;
+  padding: 16px 22px 20px;
+}
+.oj-ticket-kicker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
+}
+.oj-ticket-kicker::after {
+  content: '';
+  flex: 1;
+  border-bottom: 2px dotted var(--sb-stitch);
+}
+/* From — swap — To */
+.oj-route {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.oj-field {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.oj-field label,
+.oj-route :deep(.pi-label) {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sb-ink-soft);
+}
+/* (PlaceInput's own root can't take our class, so it's styled from .oj-route) */
+.oj-route > :deep(.pi) {
+  flex: 1 1 200px;
+  min-width: 0;
+  gap: 6px;
+}
+/* the place fields stay plain white boxes, so it's clear where to type */
+.oj-route :deep(.pi-input) {
+  min-height: 48px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: inset 0 2px 0 rgba(18, 50, 74, 0.06);
+}
+.oj-route :deep(.pi-input:focus) {
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.oj-route :deep(.pi-pin) {
+  z-index: 1;
+  color: var(--sb-amber-lo);
+}
+/* the dotted flight path with the swap button on it */
+.oj-path {
+  position: relative;
+  flex: 0 0 64px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+}
+.oj-path::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 3px dotted var(--sb-ink);
+  opacity: 0.45;
+}
+.oj-swap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.35s var(--sb-spring), box-shadow 0.12s;
+}
+.oj-swap:hover {
+  transform: rotate(180deg);
+}
+.oj-swap:active {
+  transform: rotate(180deg) translateY(-3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+
+/* the tear-off stub: a perforated line with a notch cut out at each end */
+.oj-ticket-stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 18px 20px;
+  border-left: 2.5px dashed var(--sb-ink);
+  border-radius: 0 17px 17px 0;
+  background: #fff1cf;
+}
+.oj-ticket-stub::before,
+.oj-ticket-stub::after {
+  content: '';
+  position: absolute;
+  left: -15px;
+  width: 28px;
+  height: 28px;
+  border: var(--sb-line);
+  border-radius: 50%;
+  background: var(--sb-cream);
+}
+.oj-ticket-stub::before {
+  top: -15px;
+  clip-path: inset(50% 0 0 0); /* only the lower half: a notch bitten out of the top edge */
+}
+.oj-ticket-stub::after {
+  bottom: -15px;
+  clip-path: inset(0 0 50% 0);
+}
+.oj-field.small {
+  flex: none;
+}
+.oj-field.small :deep(.dd-trigger) {
+  min-height: 46px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-weight: 700;
+  box-shadow: none;
+}
+.oj-field.small :deep(.dd-chevron) {
+  color: var(--sb-ink);
+}
+.oj-go {
+  min-height: 50px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), var(--sb-pop-sm);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.oj-go:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 5px 0 var(--sb-ink);
+}
+.oj-go:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.oj-go:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* "Changing Airport → Hotel" note above the ticket */
+.oj-editing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border: 2px dashed var(--sb-amber-lo);
+  border-radius: 14px;
+  background: #fff4dc;
+  color: var(--sb-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.oj-link {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
+}
+.oj-error {
+  margin: 12px 0 0;
+  color: #b3263a;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ----- Ways found ----- */
+.oj-result {
+  margin-top: 18px;
+}
+.oj-why {
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 16px;
+  background: var(--sb-card);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.oj-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sb-muted);
+}
+
+/* ----- Saved journeys and flights: ticket stubs ----- */
+.oj-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 30px 0 12px;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.4rem;
+  color: var(--sb-ink);
+}
+.oj-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 7px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  transform: rotate(-6deg);
+}
+.oj-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.oj-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop-sm);
+  transition: transform 0.2s var(--sb-spring), box-shadow 0.12s;
+}
+.oj-item:hover {
+  transform: translateY(-2px) rotate(-0.4deg);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.oj-item.editing {
+  background: #fff1cf;
+  box-shadow: var(--sb-pop-sm), 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+/* the mode of transport, stamped in an amber square */
+.oj-item-icon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transform: rotate(-4deg);
+}
+.oj-item-icon.sun {
+  background: var(--sb-teal-soft);
+}
+.oj-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.oj-item-main strong {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
+}
+.oj-item-main small {
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+/* the whole stub opens the journey in the ticket above; the bin sits beyond the tear line */
+.oj-item-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -12px 0 -12px -14px;
+  padding: 12px 14px 12px 14px;
+  border: 0;
+  border-right: 2.5px dashed var(--sb-ink);
+  border-radius: 12px 0 0 12px;
+  background: none;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.oj-item-edit {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-cream);
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.oj-item-open:hover .oj-item-edit {
+  background: var(--sb-amber);
+}
+.oj-del {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: var(--sb-cream);
+  color: var(--sb-ink-soft);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.oj-del:hover {
+  background: #ffe1e5;
+  color: var(--sb-red);
+}
+
+/* Nothing saved: a blank ticket */
+.oj-empty {
+  position: relative;
+  padding: 18px 22px;
+  border: 2.5px dashed var(--sb-stitch);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--sb-muted);
+  text-align: center;
+}
+.oj-empty-title {
+  display: block;
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.3rem;
+  color: var(--sb-ink-soft);
+}
+.oj-empty p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.oj-swap:focus-visible,
+.oj-go:focus-visible,
+.oj-del:focus-visible,
+.oj-link:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 3px;
+}
+.oj-item-open:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: -3px;
+}
+
+/* Phones: the stub goes under the ticket, torn along a line across */
+@media (max-width: 760px) {
+  .oj-ticket {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .oj-route {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .oj-route > :deep(.pi) {
+    flex: none;
+  }
+  .oj-path {
+    flex-basis: 40px;
+    height: 40px;
+  }
+  .oj-path::before {
+    left: 50%;
+    right: auto;
+    top: 0;
+    bottom: 0;
+    border-top: 0;
+    border-left: 3px dotted var(--sb-ink);
+  }
+  .oj-swap {
+    transform: rotate(90deg);
+  }
+  .oj-swap:hover {
+    transform: rotate(270deg);
+  }
+  .oj-ticket-stub {
+    border-left: 0;
+    border-top: 2.5px dashed var(--sb-ink);
+    border-radius: 0 0 17px 17px;
+  }
+  .oj-ticket-stub::before {
+    top: -15px;
+    left: -15px;
+    clip-path: inset(0 0 0 50%);
+  }
+  .oj-ticket-stub::after {
+    top: -15px;
+    bottom: auto;
+    left: auto;
+    right: -15px;
+    clip-path: inset(0 50% 0 0);
+  }
+  .oj-item-edit {
+    display: none; /* the whole stub is the button; no room for the label */
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oj-swap, .oj-item, .oj-go { transition: none; }
 }
 </style>

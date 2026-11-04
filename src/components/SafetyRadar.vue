@@ -1,7 +1,9 @@
 <template>
   <!-- Local radar: where help is, compared with where you're staying and today's stops -->
   <div class="sr">
+    <!-- The map key: tap a kind to hide or show it -->
     <div class="sr-legend" role="group" aria-label="Show on radar">
+      <span class="sr-key" aria-hidden="true">Map key</span>
       <button v-for="k in KINDS" :key="k.key" type="button" class="sr-chip" :class="{ off: hidden.includes(k.key) }"
         :aria-pressed="!hidden.includes(k.key)" @click="toggle(k.key)">
         <span class="sr-swatch" :style="{ background: k.color }" aria-hidden="true">{{ k.glyph }}</span>
@@ -21,6 +23,12 @@
         <line :x1="C" y1="8" :x2="C" :y2="SIZE - 8" class="sr-axis" />
         <line x1="8" :y1="C" :x2="SIZE - 8" :y2="C" class="sr-axis" />
         <text :x="C" y="18" class="sr-north">N</text>
+        <!-- a small compass rose in the corner, pointing north -->
+        <g class="sr-rose" :transform="'translate(' + (SIZE - 34) + ' 34)'" aria-hidden="true">
+          <circle r="20" class="sr-rose-ring" />
+          <path d="M0 -18 4 -4 18 0 4 4 0 18 -4 4 -18 0 -4 -4Z" class="sr-rose-star" />
+          <path d="M0 -18 4 -4 0 0 -4 -4Z" class="sr-rose-n" />
+        </g>
         <!-- slow radar sweep -->
         <path :d="sweep" class="sr-sweep" />
 
@@ -293,5 +301,114 @@ export default {
 }
 @media (prefers-reduced-motion: reduce) {
   .sr-sweep, .sr-home-pulse { animation: none; }
+}
+
+/* ===== Travel advisory look: a clean cream map with a compass rose (colours from src/assets/scrapbook.css) ===== */
+.sr-legend {
+  align-items: center;
+  padding: 10px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-cream);
+}
+.sr-key {
+  flex-basis: 100%;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #4a5d6b;
+}
+.sr-chip {
+  border: 1.5px solid rgba(18, 50, 74, 0.25);
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.sr-chip:hover {
+  border-color: var(--sb-ink);
+  background: #fbf5ea;
+}
+.sr-swatch {
+  border: 1.5px solid var(--sb-ink);
+}
+.sr-swatch.stop {
+  border-color: var(--sb-ink);
+  background: #fbf5ea;
+}
+.sr-n {
+  opacity: 1;
+  color: #4a5d6b;
+}
+.sr-chip:focus-visible,
+.sr-pt:focus-visible {
+  outline: 3px solid var(--sb-teal);
+}
+.sr-stage {
+  padding: 8px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 14px;
+  background:
+    linear-gradient(rgba(18, 50, 74, 0.05) 1px, transparent 1px) 0 0 / 20px 20px,
+    linear-gradient(90deg, rgba(18, 50, 74, 0.05) 1px, transparent 1px) 0 0 / 20px 20px,
+    #fbf6ea;
+}
+.sr-ring {
+  stroke: rgba(18, 50, 74, 0.4);
+}
+.sr-ring:last-of-type {
+  fill: rgba(255, 191, 60, 0.06);
+}
+.sr-ring-label {
+  fill: #4a5d6b;
+  font-weight: 700;
+}
+.sr-axis {
+  stroke: rgba(18, 50, 74, 0.12);
+}
+.sr-north {
+  fill: var(--sb-ink);
+  font-weight: 800;
+}
+.sr-rose-ring {
+  fill: #fff;
+  stroke: var(--sb-ink);
+  stroke-width: 1.5;
+}
+.sr-rose-star {
+  fill: #e6dcc6;
+  stroke: var(--sb-ink);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+.sr-rose-n {
+  fill: #c4302b;
+}
+.sr-sweep {
+  fill: rgba(255, 191, 60, 0.14);
+}
+.sr-dot {
+  stroke: var(--sb-ink);
+}
+.sr-stop {
+  fill: #fff;
+  stroke: var(--sb-ink);
+}
+.sr-home {
+  fill: var(--sb-ink);
+  stroke: #fff;
+}
+.sr-home-pulse {
+  fill: rgba(18, 50, 74, 0.2);
+}
+.sr-tip {
+  border: 2px solid var(--sb-ink);
+  background: #fbf5ea;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.sr-caption {
+  color: #4a5d6b;
+  font-weight: 600;
 }
 </style>

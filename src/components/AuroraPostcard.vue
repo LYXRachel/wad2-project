@@ -1,6 +1,6 @@
 <template>
   <!-- The postcard on the sign-in pages: the campervan-under-the-northern-lights illustration
-       (src/assets/auth-postcard.webp) pinned in front, over the back of a postcard with an airmail stamp,
+       (src/assets/auth-postcard-blank.webp) pinned in front, over the back of a postcard with an airmail stamp,
        a postmark, address lines and "Wish you were here!". The whole group floats gently. -->
   <div class="apc">
     <!-- back of the postcard -->
@@ -20,15 +20,24 @@
     </div>
 
     <!-- the illustration in front, with a red pushpin. On top of the picture: a moving aurora glow over the sky,
-         and an invisible button over the van (tap it: headlights flash, snow kicks up, "Beep beep!", the card hops).
+         and an invisible button over the whole card (hover: the card lifts, the aurora and headlights brighten and the
+         back card slides out; tap: headlights flash, snow kicks up, "Beep beep!", the card hops).
          Positions are percentages of the picture (1200 x 899). -->
     <div class="apc-front" :class="{ hop: honking }">
+      <!-- The pushpin goes INTO the card: its shadow and a small hole are drawn on the card,
+           only a short bit of the needle shows above the hole, and the head sits just above it -->
       <svg class="apc-pin" viewBox="0 0 40 52" aria-hidden="true">
-        <path d="M20 30v20" stroke="#8a99a5" stroke-width="3" stroke-linecap="round" />
-        <path d="M11 26h18l-3-8v-8h3V4H11v6h3v8Z" fill="#e0405a" stroke="#12324a" stroke-width="2.6" stroke-linejoin="round" />
-        <path d="M15 7h4" stroke="#ff9aa5" stroke-width="2.4" stroke-linecap="round" />
+        <ellipse cx="29" cy="49" rx="8" ry="2.6" fill="rgba(18, 50, 74, 0.28)" />
+        <ellipse cx="20" cy="48" rx="3.2" ry="1.5" fill="#3b2c22" />
+        <path d="M20 39v9" stroke="#8a99a5" stroke-width="2.6" stroke-linecap="round" />
+        <path d="M11 38h18l-3-8v-8h3V16H11v6h3v8Z" fill="#e0405a" stroke="#12324a" stroke-width="2.6" stroke-linejoin="round" />
+        <path d="M15 19h4" stroke="#ff9aa5" stroke-width="2.4" stroke-linecap="round" />
       </svg>
       <img class="apc-card" :src="postcard" alt="" width="1200" height="899" draggable="false">
+      <p class="apc-caption">
+        <strong>Ready to Chui-se</strong>
+        <span>Pack your bags. The next chapter awaits!</span>
+      </p>
 
       <!-- the northern lights: soft glows and light curtains drifting over the sky -->
       <span class="apc-aurora" aria-hidden="true">
@@ -52,7 +61,7 @@
         <span v-if="honking" class="apc-beep" aria-hidden="true">Beep beep!</span>
       </transition>
 
-      <!-- the van: tap it -->
+      <!-- the whole card: tap it -->
       <button type="button" class="apc-van" aria-label="Honk the campervan" title="Beep beep!" @click="honk"></button>
     </div>
   </div>
@@ -60,7 +69,8 @@
 
 <script setup>
 import { ref } from 'vue'
-import postcard from '../assets/auth-postcard.webp'
+// The illustration with its printed caption painted out; the caption is real text below, so it's easy to change
+import postcard from '../assets/auth-postcard-blank.webp'
 
 // Tap the van: a honk (headlights flash, snow flies, a speech bubble, the card hops)
 const honking = ref(false)
@@ -195,12 +205,12 @@ function snowStyle(n) {
 }
 .apc-pin {
   position: absolute;
-  top: -34px;
+  top: -42px; /* puts the hole in the cream border, just above the picture */
   left: 48%;
   z-index: 2;
   width: 50px;
-  filter: drop-shadow(2px 4px 2px rgba(0, 0, 0, 0.25));
-  transform: rotate(12deg);
+  transform: rotate(8deg);
+  transform-origin: 50% 92%; /* turns around the hole, so it stays put */
 }
 /* ---------- living picture ---------- */
 /* the northern lights: green glows that drift and breathe, plus light curtains sliding sideways.
@@ -283,16 +293,14 @@ function snowStyle(n) {
   0%, 100% { opacity: 0.2; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1.6); }
 }
-/* the invisible tap area over the van */
+/* the invisible tap area: covers the whole card */
 .apc-van {
   position: absolute;
-  left: 32%;
-  top: 36%;
-  width: 37.5%;
-  height: 41%;
+  inset: 0;
+  z-index: 3;
   padding: 0;
   border: 0;
-  border-radius: 30px;
+  border-radius: 18px;
   background: transparent;
   cursor: pointer;
 }
@@ -363,7 +371,70 @@ function snowStyle(n) {
   opacity: 0;
   transform: rotate(-6deg) scale(0.5) translateY(10px);
 }
+/* ---------- hover: the card lifts and straightens, the back card slides out, the picture lights up ---------- */
+.apc-front,
+.apc-back,
+.apc-card,
+.apc-aurora {
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s ease;
+}
+.apc:has(.apc-van:hover) .apc-front {
+  transform: rotate(-1deg) translateY(-10px) scale(1.03);
+}
+.apc:has(.apc-van:hover) .apc-card {
+  filter: drop-shadow(0 7px 0 #e3cfa9) drop-shadow(0 38px 36px rgba(18, 50, 74, 0.4));
+}
+.apc:has(.apc-van:hover) .apc-back {
+  transform: translate(5%, 2%) rotate(8deg);
+}
+.apc:has(.apc-van:hover) .apc-aurora {
+  filter: brightness(1.7) saturate(1.2);
+}
+.apc:has(.apc-van:hover) .apc-pin {
+  animation: apc-wiggle 0.5s ease-in-out;
+}
+@keyframes apc-wiggle {
+  0%, 100% { rotate: 0deg; }
+  30% { rotate: -10deg; }
+  65% { rotate: 6deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .apc:has(.apc-van:hover) .apc-front { transform: rotate(-3deg); }
+  .apc:has(.apc-van:hover) .apc-back { transform: rotate(4deg); }
+  .apc:has(.apc-van:hover) .apc-pin { animation: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .apc, .apc-aurora .glow, .apc-aurora .rays, .apc-front.hop .apc-card, .apc-front.hop .apc-pin, .apc-snow i { animation: none; }
+}
+/* The caption printed on the card (real text, sized with the card) */
+.apc-front {
+  container-type: inline-size;
+}
+.apc-caption {
+  position: absolute;
+  left: 5.4%;
+  top: 81.2%;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35cqw;
+  margin: 0;
+  color: #1c2133;
+  transform: rotate(1.8deg); /* follows the slight slant of the printed card */
+  transform-origin: left top;
+  pointer-events: none;
+}
+.apc-caption strong {
+  font-family: 'Lilita One', var(--font-display);
+  font-size: 5.3cqw;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.apc-caption span {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 2.75cqw;
+  font-weight: 600;
+  line-height: 1.2;
 }
 </style>

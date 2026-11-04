@@ -459,4 +459,199 @@ function save() {
 @media (prefers-reduced-motion: reduce) {
   .an { animation: none; }
 }
+/* =====================================================================
+   Travel journal look for this side panel (colours from src/assets/scrapbook.css).
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.an-overlay {
+  background: rgba(18, 50, 74, 0.4);
+}
+.an {
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.06) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    var(--sb-paper);
+  color: var(--sb-ink);
+  border-left: 3px solid var(--sb-ink);
+  box-shadow: -6px 0 0 rgba(18, 50, 74, 0.18);
+}
+.an-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+  padding-bottom: 14px;
+}
+.an-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
+  color: var(--sb-ink);
+}
+.an-sub {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.an-kicker {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 9px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 6px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.an-x {
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.an-x:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+}
+.an-x:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+@media (max-width: 640px) {
+  .an {
+    border-left: 0;
+    border-top: 3px solid var(--sb-ink);
+    box-shadow: 0 -6px 0 rgba(18, 50, 74, 0.18);
+  }
+}
+.an-label {
+  color: var(--sb-ink);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.an-input {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 600;
+}
+.an-input:focus {
+  outline: none;
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.an-input.plain {
+  border: 2px solid var(--sb-ink);
+}
+.an-search-icon {
+  color: var(--sb-ink);
+}
+.an-picked {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fff1cf;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.an-picked-icon {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.an-picked-text small,
+.an-result small {
+  color: var(--sb-ink-soft);
+}
+.an-clear {
+  border: 2px solid var(--sb-ink);
+  background: #fffdf8;
+  color: var(--sb-ink);
+}
+.an-results {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.an-result:hover,
+.an-result:focus-visible {
+  background: var(--sb-cream);
+}
+.an-hint,
+.an-note {
+  color: var(--sb-ink-soft);
+}
+.an-hint.err {
+  color: var(--sb-red);
+  font-weight: 700;
+}
+.an-choice {
+  border: 2px solid rgba(18, 50, 74, 0.3);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+}
+.an-choice.on {
+  border-color: var(--sb-ink);
+  background: #fff1cf;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.an-choice small {
+  color: var(--sb-ink-soft);
+}
+.an-foot {
+  border-top: 2px dashed rgba(18, 50, 74, 0.25);
+  background: var(--sb-paper);
+}
+.an-btn.primary {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 0 var(--sb-ink);
+  transition: transform 0.15s var(--sb-spring), box-shadow 0.15s;
+}
+.an-btn.primary:hover:not(:disabled) {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.an-btn.primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.an-btn.primary:disabled {
+  background: #efe6d2;
+  color: rgba(18, 50, 74, 0.5);
+  border-color: rgba(18, 50, 74, 0.35);
+  box-shadow: none;
+  opacity: 1;
+}
+.an-btn:not(.primary):not(.danger-text) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.an-btn:not(.primary):not(.danger-text):hover:not(:disabled) {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.an-btn.danger-text {
+  color: var(--sb-red);
+  font-weight: 800;
+}
 </style>

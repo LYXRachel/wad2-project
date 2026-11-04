@@ -361,21 +361,22 @@ export function buildAvatar(THREE, look, extras = {}) {
     if (hat.id === 'none') return
     const hatMat = mat(hat.color, { rough: 0.8 })
     if (hat.id === 'tricorn') {
-      // Round crown, wide brim with three turned-up sides, amber trim and a badge
-      const crown = add(group, new THREE.SphereGeometry(0.29, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), hatMat, 0, 0.2, -0.02)
-      crown.scale.set(1, 0.75, 1)
-      add(group, cyl(0.44, 0.44, 0.03, 40), hatMat, 0, 0.21, -0.02)
+      // Round crown (wide enough to cover the hair), a brim with three turned-up sides, amber trim and a badge.
+      // It sits low on the head, like a real hat, not perched on top.
+      const crown = add(group, new THREE.SphereGeometry(0.36, 32, 14, 0, Math.PI * 2, 0, Math.PI / 2), hatMat, 0, 0.13, -0.02)
+      crown.scale.set(1, 0.72, 1)
+      add(group, cyl(0.48, 0.48, 0.03, 40), hatMat, 0, 0.14, -0.02)
       for (let i = 0; i < 3; i++) {
         const side = new THREE.Group()
-        side.position.set(0, 0.21, -0.02)
+        side.position.set(0, 0.14, -0.02)
         side.rotation.y = (i * Math.PI * 2) / 3
         group.add(side)
-        const flap = add(side, box(0.5, 0.16, 0.03), hatMat, 0, 0.07, 0.36)
+        const flap = add(side, box(0.52, 0.15, 0.03), hatMat, 0, 0.065, 0.4)
         flap.rotation.x = -0.35
       }
-      const trim = add(group, new THREE.TorusGeometry(0.29, 0.014, 8, 40), mat('#edae49', { metal: 0.4, rough: 0.4 }), 0, 0.23, -0.02)
+      const trim = add(group, new THREE.TorusGeometry(0.36, 0.014, 8, 40), mat('#edae49', { metal: 0.4, rough: 0.4 }), 0, 0.16, -0.02)
       trim.rotation.x = Math.PI / 2
-      add(group, sphere(0.04), mat('#edae49', { metal: 0.5, rough: 0.3 }), 0, 0.31, 0.24)
+      add(group, sphere(0.04), mat('#edae49', { metal: 0.5, rough: 0.3 }), 0, 0.24, 0.37)
     }
     if (hat.id === 'bandana') {
       const cap = add(group, new THREE.SphereGeometry(HEAD_R * 1.12, 32, 14, 0, Math.PI * 2, 0, Math.PI * 0.46), hatMat, 0, 0.03, -0.02)
@@ -388,9 +389,9 @@ export function buildAvatar(THREE, look, extras = {}) {
       for (let i = 0; i < 5; i++) add(group, sphere(0.014), mat('#ffffff'), -0.18 + i * 0.09, 0.27 - (i % 2) * 0.05, 0.14 + (i % 2) * 0.05)
     }
     if (hat.id === 'sunhat') {
-      add(group, cyl(0.52, 0.52, 0.02, 48), hatMat, 0, 0.2, 0)
-      add(group, cyl(0.25, 0.29, 0.17, 32), hatMat, 0, 0.29, -0.01)
-      add(group, cyl(0.295, 0.295, 0.05, 32), mat('#d1495b', { rough: 0.8 }), 0, 0.24, -0.01)
+      add(group, cyl(0.55, 0.55, 0.02, 48), hatMat, 0, 0.17, 0)
+      add(group, cyl(0.29, 0.35, 0.2, 32), hatMat, 0, 0.27, -0.01)
+      add(group, cyl(0.355, 0.355, 0.05, 32), mat('#d1495b', { rough: 0.8 }), 0, 0.2, -0.01)
     }
     if (hat.id === 'beanie') {
       add(group, new THREE.SphereGeometry(HEAD_R * 1.12, 32, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), hatMat, 0, 0.06, -0.01)
@@ -404,7 +405,9 @@ export function buildAvatar(THREE, look, extras = {}) {
   function addHair(group) {
     const style = look.hair
     // The cap sits a little back so the forehead shows
-    const capR = HEAD_R * (style === 'buzz' ? 1.03 : 1.08)
+    // Under a hat the hair is pressed flatter, so it stays inside the hat instead of poking through
+    const hatOn = (look.hat || 'none') !== 'none'
+    const capR = HEAD_R * (style === 'buzz' ? 1.03 : 1.08) * (hatOn ? 0.96 : 1)
     const capLen = style === 'buzz' ? Math.PI * 0.42 : Math.PI * 0.55
     const cap = add(group, new THREE.SphereGeometry(capR, 32, 18, 0, Math.PI * 2, 0, capLen), hairMat, 0, 0.02, -0.02)
     cap.rotation.x = -0.32
@@ -452,6 +455,7 @@ export function buildAvatar(THREE, look, extras = {}) {
         const x = Math.cos(a) * r
         const z = Math.sin(a) * r
         if (z > 0.55 && y < 0.55) continue // keep the face clear
+        if (hatOn && y * HEAD_R * 1.05 + 0.03 > 0.1) continue // under a hat only the curls below the brim show
         add(group, sphere(0.085), hairMat, x * HEAD_R * 1.05, y * HEAD_R * 1.05 + 0.03, z * HEAD_R * 1.05 - 0.02)
       }
     }

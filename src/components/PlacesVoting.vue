@@ -563,4 +563,235 @@ export default {
 .pv-voter.readonly.yes {
   border-style: solid;
 }
+
+/* =====================================================================
+   Scrapbook look (matches Home and Login; colours from src/assets/scrapbook.css).
+   Each place is a ballot card; a group pick gets an inked "Group pick" stamp.
+   These rules come last, so they replace the styles above.
+   ===================================================================== */
+.pv-intro {
+  border: 2px dashed var(--sb-stitch);
+  border-radius: 18px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+}
+.pv-summary,
+.pv-count-pill {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.pv-count-pill {
+  font-size: 0.9rem;
+}
+.pv-heading {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.6rem;
+  color: var(--sb-ink);
+}
+.pv-section + .pv-section {
+  border-top: 2px dashed var(--sb-stitch);
+}
+.pv-empty {
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+/* Quick vote: an amber sticker card */
+.pv-quick {
+  border: var(--sb-line);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #fff4d6, #ffe7ad);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop);
+}
+.pv-quick.done {
+  border-color: var(--sb-ink);
+  background: var(--sb-card);
+  box-shadow: var(--sb-pop-sm);
+}
+.pv-quick-icon,
+.pv-quick.done .pv-quick-icon {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+  transform: rotate(-5deg);
+}
+.pv-quick-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.3rem;
+}
+.pv-quick-sub,
+.pv-quick-for {
+  color: var(--sb-ink-soft);
+}
+.pv-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--sb-amber-hi), var(--sb-amber) 55%, var(--sb-amber-lo));
+  color: var(--sb-ink);
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.1rem;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), var(--sb-pop-sm);
+}
+.pv-quick-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 5px 0 var(--sb-ink);
+}
+.pv-quick-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.pv-quick-btn:focus-visible,
+.pv-voter:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 3px;
+}
+.pv-quick-undo {
+  border-top: 2px dashed var(--sb-stitch);
+  color: var(--sb-ink);
+}
+.pv-undo-btn {
+  color: var(--sb-ink);
+}
+.pv-tools :deep(.dd-trigger) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: var(--sb-pop-sm);
+}
+
+/* Ballot cards */
+.pv-list {
+  gap: 16px;
+}
+.pv-card {
+  position: relative;
+  border: var(--sb-line);
+  border-radius: 18px;
+  background: var(--sb-card);
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+}
+.pv-card.picked {
+  border-color: var(--sb-ink);
+  background: linear-gradient(180deg, var(--sb-card), #fff1cf);
+  box-shadow: var(--sb-pop);
+}
+/* the inked stamp */
+.pv-card.picked::after {
+  content: 'Group pick';
+  position: absolute;
+  top: -12px;
+  right: 22px;
+  padding: 2px 10px;
+  border: 2px solid var(--sb-red);
+  border-radius: 6px;
+  background: var(--sb-cream);
+  color: var(--sb-red);
+  font-family: var(--sb-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transform: rotate(4deg);
+  pointer-events: none;
+}
+.pv-icon {
+  border: 2px solid var(--sb-ink);
+  border-radius: 16px;
+  box-shadow: var(--sb-pop-sm);
+}
+.pv-name {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.2rem;
+  letter-spacing: 0.01em;
+}
+.pv-where {
+  color: var(--sb-muted);
+  font-weight: 600;
+}
+.pv-progress {
+  height: 12px;
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-cream);
+}
+.pv-progress-fill {
+  background: repeating-linear-gradient(-45deg, var(--sb-amber) 0 8px, var(--sb-amber-hi) 8px 16px);
+}
+.pv-card.picked .pv-progress-fill {
+  background: repeating-linear-gradient(-45deg, var(--sb-teal) 0 8px, #5cc4d2 8px 16px);
+}
+/* one chip per traveller */
+.pv-voter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 700;
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
+}
+button.pv-voter:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--sb-ink);
+}
+button.pv-voter:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--sb-ink);
+}
+.pv-voter.yes {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.pv-voter.mine {
+  border-width: 2px;
+}
+.pv-voter.readonly {
+  box-shadow: none;
+  opacity: 1;
+  color: var(--sb-ink-soft);
+}
+.pv-voter.readonly.yes {
+  background: #ffe3a3;
+}
+.pv-count {
+  font-family: var(--sb-display);
+  color: var(--sb-ink);
+}
+/* Empty wishlist warning */
+.pv-error {
+  border: var(--sb-line);
+  background: #ffe8e4;
+  color: var(--sb-ink);
+  box-shadow: var(--sb-pop-sm);
+}
+.pv-error-icon {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-red);
+}
+.pv-pill.btn-danger {
+  border: var(--sb-line);
+  border-radius: 14px;
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: var(--sb-pop-sm);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pv-voter { transition: none; }
+}
 </style>

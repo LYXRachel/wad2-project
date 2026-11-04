@@ -497,4 +497,173 @@ function formatHour(h) {
     animation: none;
   }
 }
+/* =====================================================================
+   Travel journal look: a cream food guide instead of the dark panel.
+   These rules come last, so they replace the older styles above.
+   ===================================================================== */
+.ed-overlay {
+  background: rgba(18, 50, 74, 0.4);
+}
+.ed {
+  --line: rgba(18, 50, 74, 0.25);
+  --muted: var(--sb-ink-soft);
+  --text: var(--sb-ink);
+  background:
+    radial-gradient(rgba(18, 50, 74, 0.06) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    var(--sb-paper);
+  color: var(--sb-ink);
+  border-left: 3px solid var(--sb-ink);
+  box-shadow: -6px 0 0 rgba(18, 50, 74, 0.18);
+}
+.ed-head {
+  border-bottom: 2px dashed rgba(18, 50, 74, 0.25);
+}
+.ed-title {
+  font-family: var(--sb-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  color: var(--sb-ink);
+}
+.ed-sub {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.ed-sub strong {
+  color: var(--sb-ink);
+}
+.ed-close {
+  border: 2px solid var(--sb-ink);
+  border-radius: 50%;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ed-close:hover {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.ed-tools {
+  border-bottom: 0;
+  background: transparent;
+}
+.ed-search {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+}
+.ed-search:focus-within {
+  border-color: var(--sb-ink);
+  box-shadow: 0 0 0 4px rgba(255, 191, 60, 0.45);
+}
+.ed-search input {
+  color: var(--sb-ink);
+}
+.ed-chip {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.ed-chip:hover {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.ed-chip.on {
+  background: var(--sb-amber);
+  border-color: var(--sb-ink);
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.ed-msg {
+  color: var(--sb-ink-soft);
+}
+.ed-msg.bad {
+  color: var(--sb-red);
+  font-weight: 700;
+}
+.ed-link {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.ed-spin {
+  border-color: rgba(18, 50, 74, 0.2);
+  border-top-color: var(--sb-amber);
+}
+.ed-card {
+  border: 2px solid var(--sb-ink);
+  border-radius: 12px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ed-card:hover {
+  border-color: var(--sb-ink);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--sb-ink);
+}
+.ed-thumb {
+  border: 4px solid #fff;
+  border-bottom-width: 10px;
+  border-radius: 3px;
+  outline: 1.5px solid var(--sb-ink);
+  transform: rotate(-3deg);
+}
+.ed-name {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.ed-name small,
+.ed-cuisine {
+  color: var(--sb-ink-soft);
+}
+.ed-badge {
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 6px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.ed-badge.ok { background: #d9f2e4; color: #17603f; }
+.ed-badge.bad { background: #fde0dc; color: #a3262a; }
+.ed-badge.diet { background: #cdeef3; color: var(--sb-ink); }
+.ed-badge.you { background: var(--sb-amber); color: var(--sb-ink); }
+.ed-add {
+  border: 2px solid var(--sb-ink);
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+}
+.ed-add:hover {
+  background: var(--sb-amber-hi);
+  color: var(--sb-ink);
+}
+.ed-maps {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  text-decoration: none;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font-weight: 700;
+}
+.ed-maps:hover {
+  background: var(--sb-cream);
+  color: var(--sb-ink);
+}
+.ed-foot {
+  border-top: 2px dashed rgba(18, 50, 74, 0.25);
+  background: transparent;
+  color: var(--sb-ink-soft);
+}
+.ed button:focus-visible,
+.ed a:focus-visible {
+  outline: 3px solid var(--sb-teal);
+  outline-offset: 2px;
+}
 </style>
