@@ -7,7 +7,7 @@ import express from 'express'
 import { requireAuth } from './auth.js'
 import { geoapifyReady, geoapifyAutocomplete, geoapifyReverse } from '../geoapify.js'
 import { isGoogleMapsLink, isShortLink, pointFromMapsLink } from '../mapsLink.js'
-import { sharedCache } from '../sharedCache.js'
+import { sharedCache, cacheAndFetch, DAY } from '../sharedCache.js'
 
 const router = express.Router()
 const suggestions = sharedCache('place-suggest', { keepDays: 30 })
@@ -26,16 +26,11 @@ router.get('/suggest', requireAuth, async (req, res) => {
   const [lat, lon] = String(req.query.near || '').split(',')
   const near = point(lat, lon)
   const key = q.toLowerCase() + '|' + (near ? near.lat.toFixed(2) + ',' + near.lon.toFixed(2) : '')
-  const saved = await suggestions.get(key)
-  if (saved) return res.json(saved.value)
-  try {
+  const got = await cacheAndFetch(suggestions, key, async () => {
     const list = await geoapifyAutocomplete({ q, near })
-    await suggestions.set(key, list)
-    res.json(list)
-  } catch (err) {
-    console.error('Place suggest failed:', err.message)
-    res.status(502).json({ message: 'Place search is unavailable right now. Try again in a moment.' })
-  }
+    return list.length ? list : null
+  }, { maxAgeMs: 30 * DAY })
+  res.json(got ? got.value : []) // [] = nothing matches
 })
 
 router.get('/reverse', requireAuth, async (req, res) => {

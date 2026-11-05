@@ -1,13 +1,19 @@
 import express from 'express'
 import { requireAuth } from './auth.js'
-import { sharedCache } from '../sharedCache.js'
+import { sharedCache, cacheAndFetch, DAY } from '../sharedCache.js'
 
 const router = express.Router()
 
-const CACHE_MINUTES = 15
-// (kept in the database: see sharedCache.js)
+// (kept in the database: see sharedCache.js for how saved answers and the service are combined)
 const weatherCache = sharedCache('weather', { keepDays: 1 })        // "lat,lon" -> forecast
 const placeCache = sharedCache('weather-places', { keepDays: 365 }) // "kyoto, japan" -> { lat, lon }
+const FORECAST_MAX_AGE = 12 * 60 * 60 * 1000 // an older forecast is not shown
+
+async function getJson(url) {
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+  if (!res.ok) throw new Error('OpenWeather ' + res.status + ': ' + (await res.text()).slice(0, 200))
+  return res.json()
+}
 
 // GET /api/weather?lat=37.56&lon=126.97   OR   /api/weather?q=Kyoto, Japan
 router.get('/', requireAuth, async (req, res) => {
@@ -19,52 +25,29 @@ router.get('/', requireAuth, async (req, res) => {
   let lat = Number(req.query.lat)
   let lon = Number(req.query.lon)
 
-  // A place name: look up its coordinates (saved forever once found)
+  // A place name: its coordinates
   if (req.query.q) {
     const q = String(req.query.q).slice(0, 100)
-    const placeKey = q.toLowerCase()
-    const known = await placeCache.get(placeKey)
-    if (known) {
-      lat = known.value.lat
-      lon = known.value.lon
-    } else {
-      const geoParams = new URLSearchParams({ q, limit: '1', appid: key })
-      const geoRes = await fetch('https://api.openweathermap.org/geo/1.0/direct?' + geoParams, { signal: AbortSignal.timeout(10000) })
-      if (!geoRes.ok) {
-        console.error('OpenWeather geocode failed:', geoRes.status, await geoRes.text())
-        return res.status(502).json({ message: 'Weather service error. Try again later.' })
-      }
-      const geo = await geoRes.json()
-      if (!geo.length) return res.status(404).json({ message: 'Could not find that destination for weather.' })
-      lat = geo[0].lat
-      lon = geo[0].lon
-      await placeCache.set(placeKey, { lat, lon })
-    }
+    const place = await cacheAndFetch(placeCache, q.toLowerCase(), async () => {
+      const geo = await getJson('https://api.openweathermap.org/geo/1.0/direct?' + new URLSearchParams({ q, limit: '1', appid: key }))
+      return geo.length ? { lat: geo[0].lat, lon: geo[0].lon } : null
+    }, { maxAgeMs: 365 * DAY })
+    if (!place) return res.status(404).json({ message: 'No weather data for that destination.' })
+    lat = place.value.lat
+    lon = place.value.lon
   }
 
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
     return res.status(400).json({ message: 'Please give lat and lon, or a place name (q).' })
   }
 
-  // Same area asked for again within 15 minutes? Answer from memory (free)
   const cacheKey = lat.toFixed(2) + ',' + lon.toFixed(2)
-  const saved = await weatherCache.get(cacheKey)
-  if (saved && Date.now() - saved.at < CACHE_MINUTES * 60 * 1000) {
-    return res.json(saved.value)
-  }
-
-  console.log('Calling OpenWeather for', cacheKey)
-  
-  const params = new URLSearchParams({ lat, lon, units: 'metric', appid: key })
-  const response = await fetch('https://api.openweathermap.org/data/2.5/forecast?' + params, { signal: AbortSignal.timeout(10000) })
-  if (!response.ok) {
-    console.error('OpenWeather forecast failed:', response.status, await response.text())
-    return res.status(502).json({ message: 'Weather service error. Try again later.' })
-  }
-  const data = await response.json()
-  const result = { city: { timezone: data.city.timezone }, list: data.list }
-  await weatherCache.set(cacheKey, result)
-  res.json(result)
+  const got = await cacheAndFetch(weatherCache, cacheKey, async () => {
+    const data = await getJson('https://api.openweathermap.org/data/2.5/forecast?' + new URLSearchParams({ lat, lon, units: 'metric', appid: key }))
+    return data.list && data.list.length ? { city: { timezone: data.city.timezone }, list: data.list } : null
+  }, { maxAgeMs: FORECAST_MAX_AGE })
+  if (!got) return res.status(404).json({ message: 'No weather data right now.' })
+  res.json(got.value)
 })
 
 export default router

@@ -1,32 +1,27 @@
-// Discover: public holidays per country (Nager.Date, free, no key), cached for a day
+// Discover: public holidays, climate and a photo + description per city.
+// Every outside answer goes through cacheAndFetch (see sharedCache.js).
 import express from 'express'
 import { wikiFetch } from '../politeFetch.js'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { requireAuth } from './auth.js'
-import { warmPhotos, warmFlags } from '../images.js'
+import { warmFlags } from '../images.js'
 import { wikiGalleryPhoto } from './places.js'
-import { sharedCache } from '../sharedCache.js'
+import { sharedCache, cacheAndFetch, DAY } from '../sharedCache.js'
 
 const router = express.Router()
-const cache = {} // 'JP-2026' -> { at, list }
+const holidayCache = sharedCache('holidays', { keepDays: 90 }) // 'JP-2026' -> [{ date, name }]
 
+// Public holidays (Nager.Date, free, no key): [{ date, name }], or [] when unknown
 async function holidaysFor(cc, year) {
-  const key = cc + '-' + year
-  if (cache[key] && Date.now() - cache[key].at < 24 * 3600 * 1000) return cache[key].list
-  let list = []
-  try {
+  const got = await cacheAndFetch(holidayCache, cc + '-' + year, async () => {
     const res = await fetch('https://date.nager.at/api/v3/PublicHolidays/' + year + '/' + cc, { signal: AbortSignal.timeout(8000) })
-    if (res.ok && res.status === 200) {
-      const data = await res.json()
-      for (const h of data) list.push({ date: h.date, name: h.localName && h.localName !== h.name ? h.name + ' (' + h.localName + ')' : h.name })
-    }
-  } catch (err) {
-    list = null // unknown, try again next time
-  }
-  if (list) cache[key] = { at: Date.now(), list }
-  return list || []
+    if (res.status !== 200) return null
+    const data = await res.json()
+    return data.map((h) => ({ date: h.date, name: h.localName && h.localName !== h.name ? h.name + ' (' + h.localName + ')' : h.name }))
+  }, { maxAgeMs: 90 * DAY })
+  return got ? got.value : []
 }
 
 // GET /api/discover/holidays?countries=JP,TH&years=2026,2027 -> { JP: [{ date, name }], TH: [...] }
@@ -42,16 +37,7 @@ router.get('/holidays', requireAuth, async (req, res) => {
 })
 
 // ---------- climate for any city (Open-Meteo, free, no key) ----------
-// Each city is only looked up once: the cities in the repo file come ready, new ones are kept in the
-// database (see sharedCache.js), so every server instance shares them
-const REPO_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'discover-climate.json')
-let climate = {}
-try {
-  climate = JSON.parse(fs.readFileSync(REPO_FILE, 'utf8'))
-} catch (err) {
-  // no file: everything is looked up
-}
-const climateCache = sharedCache('climate', { keepDays: 365 }) // last year's weather doesn't change
+const climateCache = sharedCache('climate-v2', { keepDays: 365 }) // last year's weather doesn't change
 
 async function getJson(url) {
   const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
@@ -59,13 +45,13 @@ async function getJson(url) {
   return res.json()
 }
 
-// 'Kyoto, Japan' -> { label, lat, lon, cc, temp[12], rain[12] }  (last full year's weather, by month)
+// 'Kyoto, Japan' -> { label, lat, lon, cc, temp[12], rain[12] }  (last full year's weather, by month), or null
+// want = the country code the browser expects, e.g. 'TR' for "Cappadocia, Turkey" (part of the saved key)
 async function climateFor(label, want) {
-  // want = the country code the browser expects, e.g. 'TR' for "Cappadocia, Turkey"
-  // A saved answer in the wrong country (an older lookup picked a same-named town) is looked up again
-  if (climate[label] && (!want || climate[label].cc === want)) return climate[label]
-  const known = await climateCache.get(label)
-  if (known && (!want || known.value.cc === want)) return known.value
+  const got = await cacheAndFetch(climateCache, label + '|' + want, () => lookUpClimate(label, want), { maxAgeMs: 365 * DAY })
+  return got ? got.value : null
+}
+async function lookUpClimate(label, want) {
   const name = label.split(', ')[0]
   const geo = await getJson('https://geocoding-api.open-meteo.com/v1/search?' + new URLSearchParams({ name, count: '10', language: 'en' }))
   const results = geo.results || []
@@ -93,9 +79,7 @@ async function climateFor(label, want) {
   }
   const temp = []
   for (let m = 0; m < 12; m++) temp.push(days[m] ? Math.round(sum[m] / days[m]) : null)
-  const info = { label, lat: place.latitude, lon: place.longitude, cc: place.country_code, temp, rain }
-  await climateCache.set(label, info)
-  return info
+  return { label, lat: place.latitude, lon: place.longitude, cc: place.country_code, temp, rain }
 }
 
 // GET /api/discover/cities?names=Kyoto, Japan|Rome, Italy&codes=JP|IT  (up to 20 at a time)
@@ -116,35 +100,9 @@ router.get('/cities', requireAuth, async (req, res) => {
 
 // ---------- a short description + photo (Wikipedia) ----------
 // Tries "Queenstown, New Zealand" first, then "Queenstown", skipping "may refer to" (disambiguation) pages
-// Kept on disk too (server/data/discover-about.json), so a server restart doesn't ask Wikipedia for
-// hundreds of photos again (that's what got us "too many requests" before)
-const ABOUT_FILE = path.join(path.dirname(REPO_FILE), 'discover-about.json')
-let about = {}
-try {
-  about = JSON.parse(fs.readFileSync(ABOUT_FILE, 'utf8'))
-} catch (err) {
-  about = {}
-}
-// A flag, map or logo isn't a photo of the place (Vietnam's article starts with its flag):
-// those answers are forgotten, so they're looked up again with the backups below
+const aboutCache = sharedCache('discover-about', { keepDays: 90 }) // title -> { text, photo, page }
+// A flag, map or logo isn't a photo of the place (Vietnam's article starts with its flag)
 const NOT_A_PHOTO = /flag_of|\.svg|locator|_map|map_of|coat_of_arms|logo/i
-for (const t in about) {
-  if (about[t].photo && NOT_A_PHOTO.test(about[t].photo)) delete about[t]
-}
-// An answer from before searches were checked against the city's location (a runner for "Bath")
-if (about['Bath, United Kingdom'] && /Becky_Briggs/.test(about['Bath, United Kingdom'].page || '')) delete about['Bath, United Kingdom']
-let aboutTimer = null
-function saveAbout() {
-  clearTimeout(aboutTimer)
-  aboutTimer = setTimeout(() => {
-    try {
-      fs.mkdirSync(path.dirname(ABOUT_FILE), { recursive: true })
-      fs.writeFileSync(ABOUT_FILE, JSON.stringify(about))
-    } catch (err) {
-      console.warn('Could not save the Wikipedia cache:', err.message)
-    }
-  }, 2000)
-}
 
 // The article's photo at a sensible size. The original can be 5-20 MB (that's why cards stayed empty);
 // Wikimedia makes copies in standard widths, and 960 px is plenty for a card or a banner.
@@ -229,24 +187,11 @@ async function wikiSearch(query, priority, near) {
 
 // GET /api/discover/about?title=Queenstown, New Zealand
 // Public: Discover works for guests too
-// Wikipedia summary + photo for a title ("Kyoto, Japan" also tries "Kyoto"). Good answers are cached.
-// Answers without a photo are kept for an hour only (in memory), so they're tried again later
-const noPhoto = new Map() // title -> { at, answer }
-// (two people asking for the same title at once share one lookup)
-const lookingUp = new Map()
-function lookupAbout(title, priority) {
-  if (about[title]) return Promise.resolve(about[title])
-  const miss = noPhoto.get(title)
-  if (miss && Date.now() - miss.at < 3600 * 1000) return Promise.resolve(miss.answer)
-  if (lookingUp.has(title)) return lookingUp.get(title)
-  const job = findAbout(title, priority).finally(() => lookingUp.delete(title))
-  lookingUp.set(title, job)
-  return job
-}
-// The answer we have within `ms`, or null (the lookup carries on, so it's ready when asked again)
-function lookupWithin(title, ms, priority) {
-  const job = lookupAbout(title, priority).catch(() => null)
-  return Promise.race([job, new Promise((resolve) => setTimeout(() => resolve(null), ms))])
+// Wikipedia summary + photo for a title ("Kyoto, Japan" also tries "Kyoto"), or null.
+// Waits up to `ms` for Wikipedia, then uses the saved answer (a slower answer is saved when it arrives).
+async function lookupWithin(title, ms, priority) {
+  const got = await cacheAndFetch(aboutCache, title, () => findAbout(title, priority), { maxAgeMs: 90 * DAY, waitMs: ms })
+  return got ? got.value : null
 }
 async function findAbout(title, priority) {
   // "Kyoto, Japan", then "Kyoto"; a country also tries "Tourism in Vietnam" (its own article often starts with the flag)
@@ -257,7 +202,7 @@ async function findAbout(title, priority) {
   for (const t of tries) {
     try {
       const found = await wikiSummary(t, priority)
-      if (found && found.photo) return keep(title, found)
+      if (found && found.photo) return found
       if (found && !best) best = found
     } catch (err) {
       // try the next name
@@ -265,7 +210,7 @@ async function findAbout(title, priority) {
   }
   try {
     const found = await wikiSearch(title.replace(/, /g, ' '), priority, CITY_AT[title])
-    if (found && found.photo) return keep(title, best ? { ...best, photo: found.photo } : found)
+    if (found && found.photo) return best ? { ...best, photo: found.photo } : found
     if (found && !best) best = found
   } catch (err) {
     // no answer this time
@@ -274,7 +219,7 @@ async function findAbout(title, priority) {
   for (const t of tries) {
     try {
       const wide = await wikiGalleryPhoto(t, 960, priority)
-      if (wide && wide.url) return keep(title, { text: best ? best.text : '', photo: wide.url, page: best ? best.page : wide.page })
+      if (wide && wide.url) return { text: best ? best.text : '', photo: wide.url, page: best ? best.page : wide.page }
     } catch (err) {
       // try the next name
     }
@@ -284,21 +229,12 @@ async function findAbout(title, priority) {
   if (CITY_AT[title]) {
     try {
       const nearby = await photoTakenNear(CITY_AT[title], priority)
-      if (nearby) return keep(title, { text: best ? best.text : '', photo: nearby, page: best ? best.page : null })
+      if (nearby) return { text: best ? best.text : '', photo: nearby, page: best ? best.page : null }
     } catch (err) {
       // no photo this time
     }
   }
-  const answer = best || { text: '', photo: null, page: null }
-  noPhoto.set(title, { at: Date.now(), answer })
-  return answer
-}
-// Good answers (with a photo) are kept for good, on disk
-function keep(title, found) {
-  about[title] = found
-  saveAbout()
-  noPhoto.delete(title)
-  return found
+  return best // no photo (or nothing at all: null)
 }
 
 router.get('/about', async (req, res) => {
@@ -313,8 +249,8 @@ router.get('/about', async (req, res) => {
 // Many photos in one request (Discover needs ~200), looked up a few at a time to be kind to Wikipedia.
 router.get('/photos', async (req, res) => {
   const titles = String(req.query.titles || '').split('|').map((t) => t.trim().slice(0, 100)).filter(Boolean).slice(0, 300)
-  // Known photos straight away; new ones get 1.5 s, then the answer goes without them (null) and
-  // their lookups carry on, so the page's next ask (a few seconds later) gets them
+  // Wikipedia gets 1.5 s per title, then the saved photo is used (or null); a slower answer is
+  // saved when it arrives, so the page's next ask (a few seconds later) gets it
   const out = {}
   await Promise.all(titles.map(async (t) => {
     const found = await lookupWithin(t, 1500, 'first')
@@ -324,28 +260,9 @@ router.get('/photos', async (req, res) => {
 })
 
 // ---------- warm-up ----------
-// A little after the server starts: look up every Discover city's (and country's) photo and download
-// it into the disk cache, so the first person to open Discover gets them all at once.
-// Already-cached ones are skipped in a moment, so after the first run this costs nothing.
-setTimeout(async () => {
-  try {
-    const file = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'data', 'discoverCities.json')
-    const data = JSON.parse(fs.readFileSync(file, 'utf8'))
-    const cityTitles = []
-    for (const c of data.cities) if (!c.heroImage) cityTitles.push(c.cityName + ', ' + c.country)
-    const photoOfTitle = (t) => (about[t] && about[t].photo) || null
-    // 0) Every country's flag (the country banners): tiny, so first
-    await warmFlags()
-    // 1) Photos we already know: download them first (no lookups needed)
-    await warmPhotos(cityTitles.map(photoOfTitle).filter(Boolean), 500)
-    // 2) Then look up the cities we don't know yet, and download those
-    const cards = []
-    for (const t of cityTitles) if (!photoOfTitle(t)) cards.push((await lookupAbout(t, 'later')).photo)
-    await warmPhotos(cards.filter(Boolean), 500)
-    console.log('Discover photos ready')
-  } catch (err) {
-    console.warn('Discover photo warm-up skipped:', err.message)
-  }
+// A little after the server starts: download every country's flag (the country banners) into the disk cache
+setTimeout(() => {
+  warmFlags().catch((err) => console.warn('Flag warm-up skipped:', err.message))
 }, 4000)
 
 export default router
