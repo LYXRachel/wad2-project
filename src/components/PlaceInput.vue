@@ -296,6 +296,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .pi-label {
   font-size: 12.5px;
@@ -460,13 +461,10 @@ onBeforeUnmount(() => {
   min-height: 1.2em;
   font-size: 12px;
   color: #5a6b78;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere; /* (long addresses and links) */
 }
 .pi-state.bad {
   color: #b3261e;
-  white-space: normal;
 }
 .pi-state a {
   color: #003d5b;

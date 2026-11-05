@@ -1008,6 +1008,7 @@ export default {
 }
 .wl-add-name {
   flex: 2 1 240px;
+  min-width: 0;
 }
 .wl-input {
   border-radius: 999px;

@@ -383,7 +383,7 @@ function removeJourney(j) {
 /* From — swap — To */
 .oj-route {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
 }
 .oj-field {
@@ -431,6 +431,7 @@ function removeJourney(j) {
   position: relative;
   flex: 0 0 64px;
   height: 48px;
+  margin-top: 23px; /* below the From / To labels: level with the place boxes */
   display: grid;
   place-items: center;
 }
@@ -775,6 +776,7 @@ function removeJourney(j) {
   .oj-path {
     flex-basis: 40px;
     height: 40px;
+    margin-top: 0;
   }
   .oj-path::before {
     left: 50%;
