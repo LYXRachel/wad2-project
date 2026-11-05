@@ -1,0 +1,34 @@
+name: Gladys tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Browser tests log in to the deployed site (repo Settings -> Secrets and variables -> Actions)
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://wad2-project-teal.vercel.app' }}
+      E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Unit tests
+        run: pnpm test:gladys
+      - name: Install browser
+        if: env.E2E_USERNAME != ''
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser tests (skipped without the E2E_USERNAME / E2E_PASSWORD secrets)
+        if: env.E2E_USERNAME != ''
+        run: pnpm test:gladys:e2e

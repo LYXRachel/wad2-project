@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sharedCache, cacheAndFetch } from './sharedCache.js'
+import { sharedCache, cacheAndFetch } from '../../../server/sharedCache.js'
 
 // No database in tests: the cache keeps answers in memory only
 let n = 0

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { haversineKm, travelBetween, legKey, DEFAULT_TRAVEL, scheduleInOrder, warningsFor, rainFromBlocks, defaultDuration } from './dayOptimizer.js'
+import { haversineKm, travelBetween, legKey, DEFAULT_TRAVEL, scheduleInOrder, warningsFor, rainFromBlocks, defaultDuration } from '../../../src/dayOptimizer.js'
 
 describe('TestSuite: dayOptimizer', () => {
 
