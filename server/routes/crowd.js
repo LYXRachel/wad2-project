@@ -112,6 +112,31 @@ async function buildFallback(name, point) {
   }
 }
 
+// ---------- opening hours ----------
+// BestTime's busyness for one day: 24 numbers, index 0 = 6 AM. The hours with visitors -> { open, close }, or null.
+function hoursFromRaw(raw) {
+  if (!Array.isArray(raw)) return null
+  let first = -1
+  let last = -1
+  raw.forEach((v, i) => {
+    if (v > 0) {
+      if (first < 0) first = i
+      last = i
+    }
+  })
+  return first < 0 ? null : { open: 6 + first, close: 6 + last + 1 } // (after midnight runs past 24, like closes-after-midnight)
+}
+
+// "Closed" must mean closed: BestTime listing a week of opening times but none for this day, and no visitors.
+// No times at all (BestTime just doesn't know) is not closed: the hours with visitors are used instead,
+// or none (unknown, so no warning). Also fixes days saved before this rule (they said closed for "unknown").
+function settleHours(day, listedWeek) {
+  if (day.open != null || !day.closed) return { ...day, closed: false }
+  const seen = hoursFromRaw(day.raw)
+  if (seen) return { ...day, open: seen.open, close: seen.close, closed: false }
+  return { ...day, closed: !!listedWeek }
+}
+
 // ---------- Turn BestTime's big response into the small shape our app needs ----------
 function simplify(name, address, data) {
   const venueTypes = (data.venue_info && data.venue_info.venue_types) || []
@@ -122,6 +147,8 @@ function simplify(name, address, data) {
   if (dwell > 0) defaults.durationDefault = Math.max(0.5, Math.round(dwell / 30) / 2)
 
   const days = {}
+  // Does BestTime list opening times for this place at all (then a day without any is a closed day)?
+  const listedWeek = data.analysis.some((a) => a.day_info.venue_open_close_v2)
   for (const a of data.analysis) {
     const info = a.day_info
     const v2 = info.venue_open_close_v2
@@ -145,12 +172,13 @@ function simplify(name, address, data) {
       close = info.venue_closed <= open ? info.venue_closed + 24 : info.venue_closed
     }
 
-    days[info.day_text] = {
+    days[info.day_text] = settleHours({
       open,
       close,
       closed: open === null,
       raw: a.day_raw // 24 values, index 0 = 6am
-    }
+    }, listedWeek)
+    days[info.day_text].hoursChecked = true
   }
 
   return {
@@ -161,6 +189,15 @@ function simplify(name, address, data) {
     ...defaults,
     days
   }
+}
+
+// Days saved before "closed" was settled: closed only if nobody visits (we can't tell any more whether
+// BestTime listed opening times, so a day with no visitors and no times stays closed)
+function settleSaved(days) {
+  if (!days) return days
+  const out = {}
+  for (const name in days) out[name] = days[name] && !days[name].hoursChecked ? settleHours(days[name], true) : days[name]
+  return out
 }
 
 // What we send to the browser
@@ -176,7 +213,7 @@ function toClient(doc) {
     venueType: doc.venueType,
     bestTimeDefault: doc.bestTimeDefault,
     durationDefault: doc.durationDefault,
-    days: doc.days,
+    days: settleSaved(doc.days),
     fetchedAt: doc.fetchedAt
   }
 }

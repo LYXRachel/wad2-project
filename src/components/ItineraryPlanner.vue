@@ -1198,7 +1198,7 @@ function toWork(s) {
     duration: s.duration || (s.forecast && s.forecast.durationDefault) || defaultDuration(s),
     lat: c ? c.lat : null, lon: c ? c.lon : null,
     crowd: crowdCurve(s.forecast), popular: !!c || !!s.address, // a place we found on the map gets the typical crowd curve
-    open: day && !day.closed ? day.open : null, close: day && !day.closed ? day.close : null,
+    open: day && !day.closed ? day.open : null, close: day && !day.closed ? day.close : null, closedToday: !!(day && day.closed),
     // How the group chose to get here (only counts when coming from that same stop)
     travelMode: s.travel ? s.travel.mode : null, travelFrom: s.travel ? s.travel.from : null, travelBy: s.travel ? s.travel.by : ''
   }

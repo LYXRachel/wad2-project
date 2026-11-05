@@ -7,7 +7,7 @@
 //   result.summary      -> "Route optimized: keeps outdoor stops out of the rain and cuts 4.5 km (12.0 → 7.5 km)."
 //
 // A stop: { id, name, lat, lon, duration (hours), outdoor, locked, hour,
-//           crowd: [24 numbers 0-100] or null, popular, open, close }
+//           crowd: [24 numbers 0-100] or null, popular, open, close, closedToday }
 // rainByHour: 24 numbers, chance of rain 0-1 for each hour of the day.
 //
 // How it works:
@@ -449,7 +449,8 @@ export function warningsFor(it, rainByHour, opts) {
   const crowdLimit = opts && opts.crowdLimit !== undefined ? opts.crowdLimit : 80
   const busy = crowdAt(s, it.start)
   if (!s.locked && crowdLimit != null && busy >= crowdLimit) out.push({ icon: '👥', text: (busy >= 80 ? 'Peak crowds' : 'Busy') + ' at this time' })
-  if ((s.open != null && it.start < s.open) || (s.close != null && it.start + (s.duration || 1) > s.close)) out.push({ icon: '🚪', text: 'Closed at this time' })
+  if (s.closedToday) out.push({ icon: '🚪', text: 'Closed all day' })
+  else if ((s.open != null && it.start < s.open) || (s.close != null && it.start + (s.duration || 1) > s.close)) out.push({ icon: '🚪', text: 'Closed at this time' })
   if (it.lateMin > 0) out.push({ icon: '⚠️', text: "Can't get here in time from the previous stop" })
   return out
 }
