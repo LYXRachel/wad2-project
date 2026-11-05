@@ -241,7 +241,7 @@
                 <article class="ip-card" :class="{ locked: it.stop.locked, moved: wasAt(it) !== null, 'rain-warning-card': isRainAffected(it) }"
                   :draggable="!it.stop.locked && !previewing" @dragstart="startDrag($event, 'stop', it.stop)" @dragend="endDrag"
                   @touchstart="touchStart($event, it, i)" @touchmove="touchMove" @touchend="touchEnd" @touchcancel="touchCancel"
-                  @dragover.prevent="overCard($event, i)" @drop.prevent="dropInto(slotOf(dropAt == null ? i : dropAt))">
+                  @dragover.prevent="overCard($event, i)" @drop.prevent="dropInto(slotOf(dropAt == null ? i : dropAt))" @click="cardClick($event, it)">
                   <!-- Move: drag the dots, or tap the arrows (works on phones and keyboards too) -->
                   <div v-if="!it.stop.locked && !previewing" class="ip-move">
                     <button type="button" class="ip-move-btn" :disabled="numberOf(it) === 0"
@@ -288,7 +288,8 @@
                       </span>
                       <small v-if="wasAt(it) !== null" class="ip-was">was {{ formatHour(wasAt(it)) }}</small>
                     </span>
-                    <h4 class="ip-name">{{ it.stop.name }}</h4>
+                    <!-- The name is the keyboard way in; a click anywhere else on the card does the same -->
+                    <h4 class="ip-name"><button type="button" class="ip-name-btn" :aria-label="'Details of ' + it.stop.name" @click="openSheet(it, 'time')">{{ it.stop.name }}</button></h4>
                     <p v-if="it.stop.kind === 'flight' && it.stop.flight" class="ip-flight-times">
                       <AppIcon name="plane" :size="13" /> Takes off {{ formatHour(hourOf(it.stop.flight.dep)) }} · lands {{ formatHour(hourOf(it.stop.flight.arr)) }}<template v-if="it.stop.flight.number"> · {{ it.stop.flight.number }}</template>
                       · be at the airport {{ it.stop.flight.intl ? '2.5 h' : '1.5 h' }} before
@@ -325,15 +326,14 @@
                     <!-- Red circled ✕ = remove from this day (it goes back to Saved places, not deleted) -->
                     <button type="button" class="ip-back" :disabled="previewing" :aria-label="'Remove ' + it.stop.name + ' from this day (back to saved places)'"
                       title="Remove from this day (back to Saved places)" @click="unschedule(it.stop)">
-                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#d1495b" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="9.5" /><path d="M9 9l6 6M15 9l-6 6" />
-                      </svg>
+                      <!-- (the button is the circle: just the red ✕ inside) -->
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#d1495b" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17" /></svg>
                     </button>
                     <button v-if="it.stop.kind !== 'flight'" type="button" class="ip-lock" :class="{ on: it.stop.locked }" :aria-pressed="it.stop.locked" :disabled="previewing"
                       :aria-label="(it.stop.locked ? 'Unlock ' : 'Lock ') + it.stop.name" :title="it.stop.locked ? 'Fixed time (reservation)' : 'Lock this time'"
-                      @click="toggleLock(it.stop)"><AppIcon :name="it.stop.locked ? 'lock' : 'unlock'" :size="17" /></button>
+                      @click="toggleLock(it.stop)"><AppIcon :name="it.stop.locked ? 'lock' : 'unlock'" :size="16" /></button>
                     <button type="button" class="ip-go" :aria-label="'Show ' + it.stop.name + ' on the map'" title="Show on map" @click="openOnMap(it.stop)">
-                      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                       </svg>
                     </button>
@@ -392,7 +392,7 @@
           </ol>
 
           <button v-if="stopRows.length" type="button" class="ip-add-stop" @click="openAddSheet">
-            <span aria-hidden="true">⊕</span> Add stop
+            <span aria-hidden="true"><AppIcon name="plus" :size="16" :stroke="2.8" /></span> Add stop
           </button>
 
           <!-- ===== Demo: simulate weather conditions ===== -->
@@ -2887,6 +2887,12 @@ const dayOptions = computed(() => {
 })
 const indoorPicks = computed(() => picks.value.filter((w) => !w.outdoor).slice(0, 5)) // group picks only
 
+// A click on a stop's card (not on one of its own buttons) opens its details (idea from lampardnk/wad2)
+function cardClick(e, it) {
+  if (e.target.closest('button, a, input, select, textarea, label, [role="menu"], [role="listbox"]')) return
+  if (window.getSelection && String(window.getSelection())) return // selecting the name's text
+  openSheet(it, 'time')
+}
 function openSheet(it, section) {
   issuesOpen.value = false
   sheetOpener = document.activeElement
@@ -3764,8 +3770,10 @@ watch(
 .ip-back, .ip-lock, .ip-go {
   display: grid;
   place-items: center;
+  flex: none;
   width: 30px;
   height: 30px;
+  padding: 0; /* (the browser's button padding pushed the icon off-centre) */
   border-radius: var(--bs-border-radius, 0.375rem);
   border: 0;
   background: transparent;
@@ -3797,6 +3805,9 @@ watch(
   font-weight: 700;
 }
 .ip-add-stop span { font-size: 18px; line-height: 1; }
+.ip-card { cursor: pointer; }
+.ip-name-btn { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ip-name-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
 .ip-add-stop:hover { background: var(--bs-primary-border-subtle, #9ec5fe); }
 
 /* ---------- Demo sections ---------- */
