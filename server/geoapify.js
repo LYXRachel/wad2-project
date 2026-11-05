@@ -90,7 +90,8 @@ export async function geoapifyAttractions({ placeId, lat, lon, radius, tourismTy
     if (!tags['addr:street'] && p.street) tags['addr:street'] = p.street
     if (!tags['addr:housenumber'] && p.housenumber) tags['addr:housenumber'] = p.housenumber
     if (!tags['addr:city'] && p.city) tags['addr:city'] = p.city
-    elements.push({ tags })
+    const c = f.geometry && f.geometry.coordinates
+    elements.push({ tags, lat: c ? c[1] : p.lat, lon: c ? c[0] : p.lon })
   }
   return { elements }
 }
@@ -123,4 +124,36 @@ export async function geoapifyRoute(from, to, mode, { withPath = false } = {}) {
     route.path = lines.flat().map(([lon, lat]) => ({ lat, lon }))
   }
   return route
+}
+
+// One place as the app stores it: { name, address, lat, lon, kind, city, countryCode }
+function toPlace(r) {
+  return {
+    name: r.name || r.address_line1 || r.formatted || '',
+    address: r.name ? (r.address_line2 || r.formatted || '') : (r.formatted || ''),
+    lat: r.lat,
+    lon: r.lon,
+    kind: r.category || r.result_type || '',
+    city: r.city || '',
+    countryCode: (r.country_code || '').toUpperCase()
+  }
+}
+
+// Type-ahead: real places that match what was typed. near = { lat, lon } keeps results within 60 km.
+// Text that matches nothing gives an empty list (no guessing).
+export async function geoapifyAutocomplete({ q, near, limit = 8 }) {
+  const params = { text: q, format: 'json', limit: String(limit), lang: 'en' }
+  if (near) {
+    params.bias = 'proximity:' + near.lon + ',' + near.lat
+    params.filter = 'circle:' + near.lon + ',' + near.lat + ',60000'
+  }
+  const data = await getJson('/v1/geocode/autocomplete', params)
+  return (data.results || []).map(toPlace).filter((p) => p.name && Number.isFinite(p.lat) && Number.isFinite(p.lon))
+}
+
+// What is at this point (for a dropped pin or a Maps link without a name). null = nothing known there.
+export async function geoapifyReverse(lat, lon) {
+  const data = await getJson('/v1/geocode/reverse', { lat: String(lat), lon: String(lon), format: 'json', lang: 'en' })
+  const r = data.results && data.results[0]
+  return r ? toPlace(r) : null
 }
