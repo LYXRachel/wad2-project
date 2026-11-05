@@ -262,7 +262,13 @@ async function loadStops() {
   const day = dates.includes(today) ? today : dates[0]
   const list = []
   for (const s of props.stops) {
-    if (s.date !== day || !s.address || list.length >= 8) continue
+    if (s.date !== day || list.length >= 8) continue
+    // A stop picked on the map has its own point; older stops are looked up by address
+    if (s.lat != null && s.lon != null) {
+      list.push({ id: 'stop-' + s.id, name: s.name, lat: s.lat, lon: s.lon })
+      continue
+    }
+    if (!s.address) continue
     try {
       if (!stopCoords[s.address]) stopCoords[s.address] = await locatePlace(s.address)
       list.push({ id: 'stop-' + s.id, name: s.name, lat: stopCoords[s.address].lat, lon: stopCoords[s.address].lon })
