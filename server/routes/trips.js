@@ -697,7 +697,7 @@ router.delete('/:id/members/:userId', requireAuth, async (req, res) => {
 })
 
 // PUT /api/trips/:id  { name, destinations: [...], startDate, endDate }  -> Edit trip (organiser only)
-// Moving the whole trip (both dates shifted by the same number of days) moves every stop with it.
+// Moving the whole trip (both dates shifted by the same number of days) moves every stop and expense with it.
 // Otherwise, stops that would end up outside the new dates have to be moved first.
 router.put('/:id', requireAuth, async (req, res) => {
   const trip = await findTripFor(req.userId, req.params.id, true)
@@ -762,6 +762,13 @@ router.put('/:id', requireAuth, async (req, res) => {
   if (shift) {
     trip.stops = stops
     trip.markModified('stops')
+    // Expenses move with the trip too, so each stays on the same trip day
+    if (trip.expenses && Array.isArray(trip.expenses.items)) {
+      for (const e of trip.expenses.items) {
+        if (e.date && DATE_PATTERN.test(e.date)) e.date = new Date((dayNumber(e.date) + shift) * DAY).toISOString().slice(0, 10)
+      }
+      trip.markModified('expenses')
+    }
     trip.version = (trip.version || 0) + 1 // open itineraries reload instead of saving old dates
   }
   await trip.save()
