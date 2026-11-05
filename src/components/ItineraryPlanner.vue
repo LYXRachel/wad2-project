@@ -182,11 +182,12 @@
             </span>
             <button type="button" class="ip-cta small" @click="overflowOpen = true">Choose where they go</button>
           </div>
-          <ol class="ip-list" :class="{ dragging: !!drag }">
+          <ol class="ip-list" :class="{ dragging: !!drag, 'has-start': !sampleMode, 'has-end': !sampleMode && stopRows.length > 0 }">
             <!-- Where the day starts: your hotel, or the airport on the day you land -->
-            <li v-if="!sampleMode" class="ip-anchor-row start">
+            <!-- (off the dotted line: a question about the day, not a place on it) -->
+            <li v-if="!sampleMode && dayIndex === 0 && !arrivalToday" class="ip-anchor-row pre">
               <!-- Day 1: landing comes first, so the flight goes above the hotel -->
-              <button v-if="dayIndex === 0 && !arrivalToday" type="button" class="ip-flight-card" @click="editAnchor('arrive')">
+              <button type="button" class="ip-flight-card" @click="editAnchor('arrive')">
                 <span class="ip-flight-icon" aria-hidden="true"><AppIcon name="plane" :size="18" /></span>
                 <span class="ip-anchor-text">
                   <strong>Landing today?</strong>
@@ -194,6 +195,8 @@
                 </span>
                 <span class="ip-flight-btn">Add flight</span>
               </button>
+            </li>
+            <li v-if="!sampleMode" class="ip-anchor-row start">
               <button type="button" class="ip-anchor" :class="{ empty: !startAnchor }" @click="editAnchor('start')">
                 <span class="ip-anchor-icon" aria-hidden="true"><AppIcon :name="startAnchor && startAnchor.kind === 'arrive' ? 'plane' : 'door'" :size="16" /></span>
                 <span class="ip-anchor-text">
@@ -202,7 +205,9 @@
                 </span>
                 <span class="ip-anchor-edit">{{ startAnchor ? 'Change' : 'Add' }}</span>
               </button>
-              <button v-if="startLeg" type="button" class="ip-leg clickable" :aria-label="'Getting to ' + stopRows[0].stop.name + ': ' + anchorLegText(startLeg)" @click="openAnchorLeg('start')">
+            </li>
+            <li v-if="!sampleMode && startLeg" class="ip-anchor-row leg">
+              <button type="button" class="ip-leg clickable" :aria-label="'Getting to ' + stopRows[0].stop.name + ': ' + anchorLegText(startLeg)" @click="openAnchorLeg('start')">
                 <AppIcon :name="modeIcon(startLeg.mode)" :size="13" /> {{ anchorLegText(startLeg) }}<AppIcon name="chevron" :size="12" class="ip-leg-go" />
               </button>
             </li>
@@ -221,7 +226,7 @@
               </li>
 
               <!-- Lunch / dinner break (kept free when no meal is planned) -->
-              <li v-if="it.stop.virtual" class="ip-stop ip-meal-row">
+              <li v-if="it.stop.virtual" class="ip-stop ip-meal-row" :class="{ first: i === 0, last: i === timeline.length - 1 }">
                 <span class="ip-num meal" aria-hidden="true">{{ it.stop.icon }}</span>
                 <div class="ip-meal">
                   <span class="ip-when">{{ formatHour(it.start) }} <small>· {{ durationText(it.stop.duration) }}</small></span>
@@ -230,7 +235,7 @@
                 </div>
               </li>
 
-              <li v-else class="ip-stop" :data-i="i" :class="{ moving: drag && drag.item.id === it.stop.id, 'menu-open': durFor === it.stop.id }">
+              <li v-else class="ip-stop" :data-i="i" :class="{ first: i === 0, last: i === timeline.length - 1, moving: drag && drag.item.id === it.stop.id, 'menu-open': durFor === it.stop.id }">
                 <span class="ip-num" :style="{ background: numberColor(numberOf(it)) }" aria-hidden="true">{{ numberOf(it) + 1 }}</span>
 
                 <article class="ip-card" :class="{ locked: it.stop.locked, moved: wasAt(it) !== null, 'rain-warning-card': isRainAffected(it) }"
@@ -341,10 +346,12 @@
               <span v-if="drag" class="ip-drop">Drop here</span>
             </li>
             <!-- Where the day ends: back to the hotel, or the airport on the day you fly home -->
-            <li v-if="!sampleMode && stopRows.length" class="ip-anchor-row end">
-              <button v-if="endLeg" type="button" class="ip-leg clickable" :aria-label="'Getting to ' + endAnchor.name + ': ' + anchorLegText(endLeg)" @click="openAnchorLeg('end')">
+            <li v-if="!sampleMode && stopRows.length && endLeg" class="ip-anchor-row leg">
+              <button type="button" class="ip-leg clickable" :aria-label="'Getting to ' + endAnchor.name + ': ' + anchorLegText(endLeg)" @click="openAnchorLeg('end')">
                 <AppIcon :name="modeIcon(endLeg.mode)" :size="13" /> {{ anchorLegText(endLeg) }}<AppIcon name="chevron" :size="12" class="ip-leg-go" />
               </button>
+            </li>
+            <li v-if="!sampleMode && stopRows.length" class="ip-anchor-row end">
               <!-- Last day, nothing set yet: one question, two answers (the flight home first: most people fly out) -->
               <div v-if="isLastDay && !endAnchor" class="ip-end-choice" role="group" aria-labelledby="ip-end-q">
                 <p id="ip-end-q" class="ip-end-q">Where does the day end?</p>
@@ -374,11 +381,13 @@
                   </span>
                   <span class="ip-anchor-edit">{{ endAnchor ? 'Change' : 'Add' }}</span>
                 </button>
-                <!-- Last day ending at the hotel: switching to the flight home is one tap -->
-                <button v-if="isLastDay && endAnchor && endAnchor.kind === 'stay'" type="button" class="ip-end-switch" @click="editAnchor('depart')">
-                  <AppIcon name="plane" :size="14" /> Flying home today? Add your flight
-                </button>
               </template>
+            </li>
+            <li v-if="!sampleMode && stopRows.length && isLastDay && endAnchor && endAnchor.kind === 'stay'" class="ip-anchor-row post">
+              <!-- Last day ending at the hotel: switching to the flight home is one tap -->
+              <button type="button" class="ip-end-switch" @click="editAnchor('depart')">
+                <AppIcon name="plane" :size="14" /> Flying home today? Add your flight
+              </button>
             </li>
           </ol>
 
@@ -648,7 +657,7 @@
           <div ref="mapEl" class="ip-map" role="region" aria-label="Map of the day"></div>
           <p v-if="mapError" class="ip-empty">{{ mapError }}</p>
           <p v-else-if="unmapped.length" class="ip-muted" role="status">
-            Not on the map yet: {{ unmapped.join(', ') }}. We're still looking {{ unmapped.length === 1 ? 'it' : 'them' }} up; adding an address under Details helps.
+            Not on the map yet: {{ unmapped.join(', ') }}. Open {{ unmapped.length === 1 ? 'it' : 'each one' }} and set its location under Details.
           </p>
 
           <article v-if="selected" class="ip-detail">
@@ -739,7 +748,7 @@
       :day-options="dayOptions" :weather="dayBlocks" :typical="typical" :crowd="sheetItem ? crowdOf(sheetItem) : {}"
       :wet="sheetItem ? weatherOf(sheetItem).tone === 'bad' : false"
       :quieter="sheetItem ? quieterTimes(sheetItem) : []" :dry="sheetItem ? dryTimes(sheetItem) : []"
-      :indoor-picks="indoorPicks" :can-change-day="!sampleMode"
+      :indoor-picks="indoorPicks" :can-change-day="!sampleMode" :near="sheetNear"
       @close="closeSheet" @move-time="sheetMoveTime" @move-day="sheetMoveDay" @swap="sheetSwap" @edit="sheetEdit" />
     <!-- Getting from one stop to the next: every way, and choosing one -->
     <LegSheet :leg="legView" @close="closeLeg" @choose="chooseTravel" />
@@ -762,7 +771,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import { optimizeDay, scheduleInOrder, scheduleAsIs, travelMatrix, warningsFor, rainFromBlocks, haversineKm, addMealBreaks, defaultDuration, crowdAt, rainDuring,
-  travelOptions, recommendTravel, travelBetween, legKey, TRAVEL_MODES, DEFAULT_TRAVEL, exitOf } from '../dayOptimizer.js'
+  travelOptions, recommendTravel, travelBetween, legKey, TRAVEL_MODES, DEFAULT_TRAVEL, exitOf, CROWD_LIMIT } from '../dayOptimizer.js'
 import { PLANNER_SAMPLE } from '../dayOptimizerSample.js'
 import { loadLeaflet } from '../services/leaflet.js'
 import EatDrawer from './EatDrawer.vue'
@@ -1147,8 +1156,7 @@ function addPlace() {
   else emit('add-place')
 }
 
-// ---------- coordinates + photos (fetched once per place, shared by every planner) ----------
-const coords = ref({})
+// ---------- photos (fetched once per place, shared by every planner) ----------
 const photos = ref({})
 const photoKey = (s) => (s.name || '').toLowerCase()
 
@@ -1160,45 +1168,8 @@ function nearFor(s) {
   if (match && match.city) return match.city
   return props.destinations.length === 1 ? props.destinations[0] : ''
 }
-// What to look a stop up by: its address, or (no address) its name in the trip's city.
-// Breaks like "Lunch" are not real places, so they're skipped.
+// Breaks like "Lunch" are not real places, so they never need a location
 const MEAL_ONLY = /^(breakfast|brunch|lunch|dinner|supper)( break)?$/i
-function placeText(s) {
-  if (s.address) return s.address
-  if (!s.name || MEAL_ONLY.test(s.name.trim())) return ''
-  const near = nearFor(s)
-  return s.name + (near ? ', ' + near : '')
-}
-const coordKey = (s) => placeText(s) + '|' + nearFor(s)
-function coordsFor(s) {
-  return placeText(s) ? coords.value[coordKey(s)] : null
-}
-
-const locateTries = {} // how many times each place has been looked up
-function locate(list) {
-  for (const s of list) {
-    if (!placeText(s) || s.lat != null) continue
-    const key = coordKey(s)
-    if (coords.value[key] !== undefined) continue
-    coords.value = { ...coords.value, [key]: null }
-    locateTries[key] = (locateTries[key] || 0) + 1
-    axios.get('/api/safety/locate', { params: { place: placeText(s), near: nearFor(s) || undefined }, timeout: 20000, background: true })
-      .then((res) => {
-        if (res.data && res.data.lat != null) coords.value = { ...coords.value, [key]: { lat: res.data.lat, lon: res.data.lon } }
-      })
-      .catch((err) => {
-        // "Not found" stays not found. A busy map server: try again in 20 seconds (3 tries at most)
-        if (err.response && err.response.status === 404) return
-        if (locateTries[key] >= 3) return
-        setTimeout(() => {
-          const copy = { ...coords.value }
-          delete copy[key]
-          coords.value = copy
-          locate([s])
-        }, 20000)
-      })
-  }
-}
 function loadPhotos(list) {
   for (const s of list) {
     const key = photoKey(s)
@@ -1225,19 +1196,18 @@ function toWork(s) {
     return {
       id: s.id, name: s.name, address: null, hour: s.hour, outdoor: false, locked: true, kind: 'flight', flight: s.flight,
       duration: s.duration || 2, lat: s.flight.from.lat, lon: s.flight.from.lon, endLat: s.flight.to.lat, endLon: s.flight.to.lon,
-      crowd: null, popular: false, open: null, close: null, transitSecs: 0, travelMode: null, travelFrom: null, travelBy: ''
+      crowd: null, popular: false, open: null, close: null, travelMode: null, travelFrom: null, travelBy: ''
     }
   }
-  const c = s.lat != null ? { lat: s.lat, lon: s.lon } : coordsFor(s)
+  const c = s.lat != null ? { lat: s.lat, lon: s.lon } : null // no map point: location not set yet
   const day = s.forecast && s.forecast.days && s.forecast.days[props.dayName]
   return {
     id: s.id, name: s.name, address: s.address || null, hour: s.hour, outdoor: !!s.outdoor, locked: !!s.locked, kind: s.kind || null,
-  transitSecs: s.transitSecs || 0,
     // Your own time if you set one, else the place's typical visit time, else a guess from what it is
     duration: s.duration || (s.forecast && s.forecast.durationDefault) || defaultDuration(s),
     lat: c ? c.lat : null, lon: c ? c.lon : null,
     crowd: crowdCurve(s.forecast), popular: !!c || !!s.address, // a place we found on the map gets the typical crowd curve
-    open: day && !day.closed ? day.open : null, close: day && !day.closed ? day.close : null,
+    open: day && !day.closed ? day.open : null, close: day && !day.closed ? day.close : null, closedToday: !!(day && day.closed),
     // How the group chose to get here (only counts when coming from that same stop)
     travelMode: s.travel ? s.travel.mode : null, travelFrom: s.travel ? s.travel.from : null, travelBy: s.travel ? s.travel.by : ''
   }
@@ -1295,7 +1265,6 @@ const savedGroups = computed(() => {
 
 watch([work, unscheduled], () => {
   const all = props.stops.concat(unscheduled.value)
-  locate(all)
   loadPhotos(sampleMode.value ? sample.value.stops.concat(sample.value.wishlist) : all)
 }, { immediate: true })
 
@@ -1465,29 +1434,34 @@ const travelPrefs = computed(() => ({
   real: realLegs.value
 }))
 // Real travel times for one leg (in the background lane; kept by the server, so it's quick next time)
+const legJobs = {} // legKey -> the lookup on its way (so a caller can wait for it)
 function fetchLeg(a, b) {
   a = exitOf(a) // after a flight: from the airport it lands at
-  if (!a || !b || a.lat == null || b.lat == null || sampleMode.value) return
+  if (!a || !b || a.lat == null || b.lat == null || sampleMode.value) return Promise.resolve()
   const key = legKey(a, b)
-  if (realLegs.value[key] || asking.value[key]) return
+  if (realLegs.value[key]) return Promise.resolve()
+  if (legJobs[key]) return legJobs[key]
   asking.value = { ...asking.value, [key]: true }
-  axios.get('/api/travel/leg', { params: { from: a.lat + ',' + a.lon, to: b.lat + ',' + b.lon }, background: true, timeout: 30000 })
+  legJobs[key] = axios.get('/api/travel/leg', { params: { from: a.lat + ',' + a.lon, to: b.lat + ',' + b.lon }, background: true, timeout: 30000 })
     .then((res) => {
       if (res.data && Object.keys(res.data).length) realLegs.value = { ...realLegs.value, [key]: res.data }
     })
     .catch(() => {})
     .finally(() => {
+      delete legJobs[key]
       const copy = { ...asking.value }
       delete copy[key]
       asking.value = copy
     })
+  return legJobs[key]
 }
 // Preferences are constraints for Optimize; they do not change saved itinerary times by themselves.
 const opts = computed(() => ({
   dayStart: props.prefs.dayStart || 8,
   dayEnd: Math.min(24, props.prefs.dayEnd || 23),
   buffer: props.prefs.travelBuffer || 0,
-  crowdWeight: { low: 0.5, medium: 1, high: 2 }[props.prefs.crowdSensitivity] || 1
+  // "Avoid peak crowds": which crowd level gets a warning (Relaxed never, Balanced 80%+, Strict 55%+)
+  crowdLimit: CROWD_LIMIT[props.prefs.crowdSensitivity] !== undefined ? CROWD_LIMIT[props.prefs.crowdSensitivity] : 80
 }))
 // ---------- where the day starts and ends (hotel or airport) ----------
 // Tonight's hotel and last night's (they differ on the day you change hotel)
@@ -1848,10 +1822,25 @@ watch(() => dayShown.value + '|' + dayOpts.value.dayStart + '|' + dayOpts.value.
   if (outsideFlight()) fitDayToPrefs('Day planned around your flight')
 }), { immediate: true })
 
+// Real travel times between every pair of places on the day (2 lookups at a time: the route service
+// refuses bursts). Optimize Route compares orders, so it needs every pair, not only today's legs.
+async function fetchAllLegs(places) {
+  const mapped = places.filter((p) => p && p.lat != null)
+  const pairs = []
+  for (const a of mapped) for (const b of mapped) if (a !== b) pairs.push([a, b])
+  let next = 0
+  const worker = async () => {
+    while (next < pairs.length) {
+      const [a, b] = pairs[next++]
+      await fetchLeg(a, b)
+    }
+  }
+  await Promise.all([worker(), worker()])
+}
 async function optimize() {
   preview.value = null
   phase.value = 'route'
-  await pause(350)
+  await Promise.all([fetchAllLegs(work.value.concat(anchorList.value)), pause(350)])
   phase.value = 'forecast'
   await pause(350)
   phase.value = 'reorder'
@@ -2172,7 +2161,7 @@ function cityOf(stop) {
 // Uses the saved cities when both are known, otherwise the distance (over 40 km apart).
 function otherCityOnDay(w) {
   const wCity = w.city || null
-  const wPoint = w.lat != null ? w : coordsFor(w)
+  const wPoint = w.lat != null ? w : null
   for (const it of stopRows.value) {
     const sCity = cityOf(it.stop)
     if (wCity && sCity) {
@@ -2184,7 +2173,7 @@ function otherCityOnDay(w) {
   return null
 }
 
-function scheduleWish(w, slot, confirmed = false, roomOk = false) {
+async function scheduleWish(w, slot, confirmed = false, roomOk = false) {
   if (previewing.value) return
   // Two cities on one day? Ask first (travel between cities eats the day)
   const other = confirmed ? null : otherCityOnDay(w)
@@ -2204,6 +2193,9 @@ function scheduleWish(w, slot, confirmed = false, roomOk = false) {
   const fresh = toWork({ id: '__new', name: w.name, address: w.address || null, outdoor: !!w.outdoor, duration: w.duration || 1.5, lat: w.lat, lon: w.lon, hour: 0 })
   const list = stopRows.value.map((it) => it.stop)
   list.splice(slot, 0, fresh)
+  // Real travel times to and from the new stop first: an unknown leg counts as 0 min,
+  // which would put the next stop too early
+  await Promise.all([fetchLeg(list[slot - 1], fresh), fetchLeg(fresh, list[slot + 1])])
   const items = retime(list)
   const changes = items.map((it) => ({ id: it.stop.id, hour: it.start }))
   // Doesn't fit before the day ends? Suggest a day with room (or add it anyway)
@@ -2879,6 +2871,11 @@ const sheetStop = computed(() => {
   const list = sampleMode.value ? sample.value.stops : props.stops
   return list.find((s) => s.id === sheet.value.id) || null
 })
+// Where to search when setting a stop's location: around another stop of the day that is on the map
+const sheetNear = computed(() => {
+  const it = stopRows.value.find((x) => x.stop.lat != null)
+  return it ? { lat: it.stop.lat, lon: it.stop.lon } : null
+})
 const dayNameShown = computed(() => (dayShown.value ? new Date(dayShown.value + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }) : props.dayName))
 const dayOptions = computed(() => {
   const list = []
@@ -2956,7 +2953,8 @@ const mapRows = computed(() => stopRows.value.filter((it) => it.stop.lat != null
 const unmapped = computed(() => {
   const names = []
   for (const it of stopRows.value) {
-    if (it.stop.lat == null && placeText(it.stop)) names.push(it.stop.name)
+    const s = it.stop
+    if (s.lat == null && !s.kind && s.name && !MEAL_ONLY.test(s.name.trim())) names.push(s.name)
   }
   return names
 })
@@ -3443,18 +3441,46 @@ watch(
 
 /* ---------- Layout ---------- */
 .ip-body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; margin-top: 16px; align-items: start; }
+/* (a grid item would otherwise grow to its widest card and push the cards past the panel on a phone) */
+.ip-main { min-width: 0; }
 .ip-body.drawer-closed { grid-template-columns: minmax(0, 1fr) 220px; }
 .ip-reorder-hint { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: 13px; color: var(--muted); }
 
 /* ---------- Timeline ---------- */
-.ip-list { position: relative; list-style: none; margin: 0; padding: 0; }
-.ip-list::before {
+/* --chain-left: where the dotted line runs; --chain-pad: where cards start (right of the numbers) */
+.ip-list { position: relative; list-style: none; margin: 0; padding: 0; --chain-left: 15px; --chain-pad: 44px; }
+/* The dotted line: the day's start, its stops and its end are links of one chain. Each row draws its own
+   piece, so the line runs from the start marker to the end marker and never through the cards beside it. */
+.ip-stop::before, .ip-gap::before, .ip-anchor-row.start::before, .ip-anchor-row.leg::before, .ip-anchor-row.end::before {
   content: '';
   position: absolute;
-  top: 30px;
-  bottom: 40px;
-  left: 15px;
+  top: 0;
+  bottom: 0;
+  left: var(--chain-left);
   border-left: 2px dashed var(--edge-strong);
+}
+.ip-anchor-row.start::before { top: 50%; }
+.ip-anchor-row.leg::before { top: -6px; bottom: -6px; } /* (across the row's margins) */
+.ip-anchor-row.end::before { bottom: 50%; }
+/* No start or end (sample day): the line ends at the first and last stops */
+.ip-list:not(.has-start) .ip-gap.first::before { display: none; }
+.ip-list:not(.has-start) .ip-stop.first::before { top: 50%; }
+.ip-list:not(.has-end) .ip-stop.last::before { bottom: 50%; }
+.ip-list:not(.has-end) .ip-gap.end::before { display: none; }
+/* The start and end markers sit on the line, where the stop numbers do */
+.ip-anchor-row.start::after, .ip-anchor-row.end::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: calc(var(--chain-left) + 1px - 7px);
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  box-sizing: border-box;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--soft);
 }
 .ip-stop { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; align-items: center; }
 .ip-stop.moving { opacity: 0.4; }
@@ -3474,8 +3500,8 @@ watch(
 }
 .ip-num.sm { position: absolute; top: 8px; left: 8px; width: 26px; height: 26px; font-size: 12px; box-shadow: none; }
 .ip-num.meal { background: #fff; border: 2px dashed var(--edge-strong); font-size: 15px; }
-.ip-gap { min-height: 12px; padding-left: 44px; display: flex; align-items: center; }
-.ip-gap.end:not(.show) { min-height: 0; }
+.ip-gap { position: relative; min-height: 12px; padding-left: 44px; display: flex; align-items: center; }
+.ip-list:not(.has-end) .ip-gap.end:not(.show) { min-height: 0; }
 .ip-list.dragging .ip-gap { min-height: 40px; }
 .ip-drop {
   flex: 1;
@@ -3512,14 +3538,18 @@ watch(
 .ip-leg .ip-leg-go { padding: 0 !important; background: none !important; color: inherit !important; }
 
 /* Hotel / airport rows */
-.ip-anchor-row { list-style: none; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin: 0 0 8px; }
-.ip-anchor-row.end { margin: 0 0 12px; }
+/* Start, end and their travel legs line up with the stop cards (right of the numbers) */
+/* Same space above the first stop as below the last one (the 12px gap rows); legs sit halfway */
+.ip-anchor-row { position: relative; list-style: none; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; margin: 0; padding-left: var(--chain-pad); }
+.ip-anchor-row.pre { margin-bottom: 8px; }
+.ip-anchor-row.leg { margin: 6px 0; }
+.ip-anchor-row.end { margin-bottom: 12px; }
+.ip-anchor-row.post { margin: -4px 0 12px; }
 .ip-anchor, .ip-flight-card {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  max-width: 520px;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--bs-border-radius-lg, 0.5rem);
@@ -3550,7 +3580,7 @@ watch(
 .ip-flight-card .ip-anchor-text small { color: var(--warn-ink); }
 .ip-anchor-edit { flex: none; font-size: 13px; font-weight: 700; color: var(--primary); }
 .ip-flight-btn { flex: none; padding: 6px 12px; border-radius: var(--bs-border-radius, 0.375rem); background: var(--primary); color: #fff; font-size: 13px; font-weight: 700; }
-.ip-end-choice { width: 100%; max-width: 520px; padding: 12px; border: 1px dashed var(--edge-strong); border-radius: var(--bs-border-radius-lg, 0.5rem); }
+.ip-end-choice { width: 100%; padding: 12px; border: 1px dashed var(--edge-strong); border-radius: var(--bs-border-radius-lg, 0.5rem); }
 .ip-end-q { margin: 0 0 8px 4px; font-size: 13px; color: var(--muted); }
 .ip-end-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .ip-end-option {
@@ -3700,7 +3730,7 @@ watch(
 
 /* Duration chip + menu */
 .ip-dur-wrap { position: relative; display: inline-block; }
-.ip-dur { border: 1px solid transparent; border-radius: var(--bs-border-radius-sm, 0.25rem); background: var(--tag); color: var(--muted); font-size: 12px; font-weight: 600; padding: 2px 8px; margin-left: 4px; }
+.ip-dur { border: 1px solid transparent; border-radius: var(--bs-border-radius-sm, 0.25rem); background: var(--tag); color: var(--muted); font-size: 12px; font-weight: 600; padding: 2px 8px; margin-left: 4px; white-space: nowrap; }
 .ip-dur span { font-size: 9px; opacity: 0.7; }
 .ip-dur:hover:not(:disabled), .ip-dur[aria-expanded='true'] { border-color: var(--primary); color: var(--primary); background: #fff; }
 .ip-dur-menu {
@@ -3730,7 +3760,7 @@ watch(
 .ip-dur-picks button.on { background: var(--primary); border-color: var(--primary); color: #fff; }
 
 /* Action buttons: remove / lock / map, in a row */
-.ip-side { display: flex; align-items: center; gap: 2px; }
+.ip-side { display: flex; align-items: center; gap: 6px; }
 .ip-back, .ip-lock, .ip-go {
   display: grid;
   place-items: center;
@@ -4309,11 +4339,13 @@ watch(
 }
 
 /* ----- The timeline: a dashed route with sticker pins ----- */
-.ip-list::before {
-  left: 15px;
-  width: 0;
-  background: none;
+.ip-stop::before, .ip-gap::before, .ip-anchor-row.start::before, .ip-anchor-row.leg::before, .ip-anchor-row.end::before {
   border-left: 3px dashed rgba(18, 50, 74, 0.45);
+}
+.ip-anchor-row.start::after, .ip-anchor-row.end::after {
+  left: calc(var(--chain-left) + 1.5px - 7px);
+  border-color: var(--sb-ink);
+  background: var(--sb-cream);
 }
 .ip-num {
   border: 2.5px solid var(--sb-ink);
@@ -4483,24 +4515,12 @@ watch(
 /* Where the day starts and ends: "base camp" luggage tags */
 .ip-anchor {
   position: relative;
-  padding: 10px 14px 10px 34px;
+  padding: 10px 14px;
   border: 2px solid var(--sb-ink);
   border-radius: 8px 18px 18px 8px;
   background: #fff1cf;
   color: var(--sb-ink);
   box-shadow: 0 3px 0 var(--sb-ink);
-}
-.ip-anchor::before {
-  content: '';
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  margin-top: -6px;
-  border: 2px solid var(--sb-ink);
-  border-radius: 50%;
-  background: var(--sb-cream);
 }
 .ip-anchor:hover {
   border-color: var(--sb-ink);
@@ -4711,8 +4731,9 @@ watch(
     height: 28px;
     font-size: 0.9rem;
   }
-  .ip-list::before {
-    left: 13px;
+  .ip-list {
+    --chain-left: 13px;
+    --chain-pad: 36px;
   }
   .ip-gap {
     padding-left: 36px;
@@ -4720,6 +4741,13 @@ watch(
   .ip-card {
     gap: 8px;
     padding: 8px;
+    /* the action buttons stay on the time row, so the name gets the full width below it */
+    grid-template-areas:
+      'move thumb when side'
+      'move thumb name name'
+      'move flight flight flight'
+      'move chips chips chips'
+      'move live live live';
   }
   .ip-thumb {
     width: 56px;

@@ -7,7 +7,7 @@
       <slot name="selected" :option="selected">
         <span v-if="selected && selected.appIcon" class="dd-icon" aria-hidden="true"><AppIcon :name="selected.appIcon" :size="16" /></span>
         <span v-else-if="selected && selected.icon" class="dd-icon" aria-hidden="true">{{ selected.icon }}</span>
-        <span class="dd-value" :class="{ placeholder: !selected }">{{ selected ? (selected.short || selected.label) : placeholder }}</span>
+        <span class="dd-value" :class="{ 'dd-unset': !selected }">{{ selected ? (selected.short || selected.label) : placeholder }}</span>
       </slot>
       <svg class="dd-chevron" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
         <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
@@ -309,7 +309,7 @@ function onMenuKey(e) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.dd-value.placeholder {
+.dd-value.dd-unset {
   color: #7d8590;
 }
 .dd-chevron {

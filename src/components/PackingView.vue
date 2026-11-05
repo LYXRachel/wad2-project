@@ -12,7 +12,7 @@
         <div class="pk-tiles">
           <button v-for="o in ACTIVITIES" :key="o.key" type="button" class="pk-tile" :class="{ on: profile.activities.includes(o.key) }"
             :aria-pressed="profile.activities.includes(o.key)" :title="o.label" @click="toggleOption(profile.activities, o.key)">
-            <Icon3D class="pk-tile-icon" :emoji="o.icon" :size="44" />
+            <DoodleIcon class="pk-tile-icon" :name="o.icon" :size="44" />
             <span class="pk-tile-label">{{ o.short || o.label }}</span>
           </button>
         </div>
@@ -26,7 +26,7 @@
         <div class="pk-seg">
           <button v-for="o in WEATHER" :key="o.key" type="button" :class="{ on: profile.weather.includes(o.key) }"
             :aria-pressed="profile.weather.includes(o.key)" @click="toggleOption(profile.weather, o.key)">
-            <Icon3D :emoji="o.icon" :size="22" /> {{ o.label }}
+            <DoodleIcon :name="o.icon" :size="22" /> {{ o.label }}
           </button>
         </div>
       </fieldset>
@@ -37,7 +37,7 @@
         <div class="pk-switches">
           <button v-for="o in EXTRAS" :key="o.key" type="button" role="switch" class="pk-switch-row"
             :aria-checked="profile.extras.includes(o.key)" @click="toggleOption(profile.extras, o.key)">
-            <span class="pk-switch-text pk-switch-icon"><Icon3D :emoji="o.icon" :size="26" /> {{ o.label }}</span>
+            <span class="pk-switch-text pk-switch-icon"><DoodleIcon :name="o.icon" :size="26" /> {{ o.label }}</span>
             <span class="pk-switch" aria-hidden="true"><span class="pk-knob"></span></span>
           </button>
         </div>
@@ -83,7 +83,7 @@
       <!-- What the list was built for (Edit trip details is above) -->
       <div class="pk-profile">
         <span class="pk-muted small">Built for {{ days }} day{{ days === 1 ? '' : 's' }}<span v-if="profileTags.length">:</span></span>
-        <span v-for="t in profileTags" :key="t.key" class="pk-tag"><Icon3D :emoji="t.icon" :size="18" /> {{ t.label }}</span>
+        <span v-for="t in profileTags" :key="t.key" class="pk-tag"><DoodleIcon :name="t.icon" :size="18" /> {{ t.label }}</span>
         <label class="pk-hide ms-auto">
           <input v-model="hidePacked" type="checkbox" role="switch"> Hide packed
         </label>
@@ -92,7 +92,7 @@
       <!-- ===== Categories ===== -->
       <section v-for="cat in groups" :key="cat.key" class="pk-cat" :aria-labelledby="'pk-cat-' + cat.key">
         <button type="button" class="pk-cat-head" :aria-expanded="!collapsed[cat.key]" @click="collapsed[cat.key] = !collapsed[cat.key]">
-          <span class="pk-cat-icon"><Icon3D :emoji="cat.icon" :size="30" /></span>
+          <span class="pk-cat-icon"><DoodleIcon :name="cat.icon" :size="30" /></span>
           <h3 :id="'pk-cat-' + cat.key" class="pk-cat-title">{{ cat.label }}</h3>
           <span v-if="cat.items.length && cat.packed === cat.items.length" class="pk-zipped">Zipped ✓</span>
           <span class="pk-cat-count" :class="{ full: cat.packed === cat.items.length }">{{ cat.packed }}/{{ cat.items.length }}</span>
@@ -145,10 +145,10 @@ import axios from 'axios'
 import { ACTIVITIES, WEATHER, EXTRAS } from '../tripOptions.js'
 import { CATEGORIES, buildPackingList } from '../packingList.js'
 import AppIcon from './AppIcon.vue'
-import Icon3D from './Icon3D.vue'
+import DoodleIcon from './DoodleIcon.vue'
 
 export default {
-  components: { AppIcon, Icon3D },
+  components: { AppIcon, DoodleIcon },
   props: {
     tripId: { type: String, default: '' },
     days: { type: Number, default: 3 },
@@ -495,9 +495,8 @@ export default {
 }
 .pk-tile-label {
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal; /* "Theme parks" goes on two lines instead of being cut */
+  line-height: 1.2;
   font-size: 13px;
   font-weight: 800;
 }
@@ -1079,7 +1078,8 @@ export default {
 /* Wide screens: all 10 activities in one row; weather and extras side by side */
 @media (min-width: 1200px) {
   .pk-tiles {
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    /* as many tiles per row as fit with their whole label (one row of 10 when there's room) */
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   }
   .pk-pair {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
@@ -1106,6 +1106,14 @@ export default {
   }
   .pk-tiles {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  /* ("Sightseeing" fits a phone tile whole) */
+  .pk-tile {
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+  .pk-tile-label {
+    font-size: 12px;
   }
   .pk-seg {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -14,9 +14,16 @@ export function geoapifyReady() {
 
 async function getJson(path, params, ms) {
   const url = BASE + path + '?' + new URLSearchParams({ ...params, apiKey: apiKey() })
-  const res = await fetch(url, { signal: AbortSignal.timeout(ms || 8000) })
-  if (!res.ok) throw new Error('Geoapify ' + res.status)
-  return res.json()
+  // Too many requests at once (429): wait a moment and ask again, twice at most
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { signal: AbortSignal.timeout(ms || 8000) })
+    if (res.status === 429 && attempt < 2) {
+      await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
+      continue
+    }
+    if (!res.ok) throw Object.assign(new Error('Geoapify ' + res.status), { status: res.status })
+    return res.json()
+  }
 }
 
 // Find a place by text. Answers in Photon's shape ({ features: [...] }), so code written for Photon works with it.
@@ -83,7 +90,8 @@ export async function geoapifyAttractions({ placeId, lat, lon, radius, tourismTy
     if (!tags['addr:street'] && p.street) tags['addr:street'] = p.street
     if (!tags['addr:housenumber'] && p.housenumber) tags['addr:housenumber'] = p.housenumber
     if (!tags['addr:city'] && p.city) tags['addr:city'] = p.city
-    elements.push({ tags })
+    const c = f.geometry && f.geometry.coordinates
+    elements.push({ tags, lat: c ? c[1] : p.lat, lon: c ? c[0] : p.lon })
   }
   return { elements }
 }
@@ -91,12 +99,61 @@ export async function geoapifyAttractions({ placeId, lat, lon, radius, tourismTy
 // How long a route takes: { min, km } or null. from/to = { lat, lon }.
 // mode: 'walk' | 'bicycle' | 'drive' | 'approximated_transit' (public transport worked out from
 // OpenStreetMap's bus/train lines; no timetables, so it's an estimate).
-export async function geoapifyRoute(from, to, mode) {
-  const data = await getJson('/v1/routing', {
-    waypoints: from.lat + ',' + from.lon + '|' + to.lat + ',' + to.lon,
-    mode
-  }, 10000)
-  const p = data.features && data.features[0] && data.features[0].properties
+// null = Geoapify says there's no route this way (e.g. no road to that point); a failed request throws
+// withPath: also return the route's points, path: [{ lat, lon }, ...] from start to end
+export async function geoapifyRoute(from, to, mode, { withPath = false } = {}) {
+  let data
+  try {
+    data = await getJson('/v1/routing', {
+      waypoints: from.lat + ',' + from.lon + '|' + to.lat + ',' + to.lon,
+      mode
+    }, 10000)
+  } catch (err) {
+    if (err.status === 400) return null // "No path could be found for input"
+    throw err
+  }
+  const f = data.features && data.features[0]
+  const p = f && f.properties
   if (!p || p.time == null) return null
-  return { min: Math.max(1, Math.round(p.time / 60)), km: Math.round((p.distance || 0) / 100) / 10 }
+  // An empty route (0 m) is no route (Geoapify's transit sometimes answers 0 m, 1 min)
+  if (!p.distance) return null
+  const route = { min: Math.max(1, Math.round(p.time / 60)), km: Math.round((p.distance || 0) / 100) / 10 }
+  if (withPath && f.geometry) {
+    // LineString: [[lon, lat], ...]; MultiLineString (one line per leg): [[[lon, lat], ...], ...]
+    const lines = f.geometry.type === 'LineString' ? [f.geometry.coordinates] : f.geometry.coordinates
+    route.path = lines.flat().map(([lon, lat]) => ({ lat, lon }))
+  }
+  return route
+}
+
+// One place as the app stores it: { name, address, lat, lon, kind, city, countryCode }
+function toPlace(r) {
+  return {
+    name: r.name || r.address_line1 || r.formatted || '',
+    address: r.name ? (r.address_line2 || r.formatted || '') : (r.formatted || ''),
+    lat: r.lat,
+    lon: r.lon,
+    kind: r.category || r.result_type || '',
+    city: r.city || '',
+    countryCode: (r.country_code || '').toUpperCase()
+  }
+}
+
+// Type-ahead: real places that match what was typed. near = { lat, lon } keeps results within 60 km.
+// Text that matches nothing gives an empty list (no guessing).
+export async function geoapifyAutocomplete({ q, near, limit = 8 }) {
+  const params = { text: q, format: 'json', limit: String(limit), lang: 'en' }
+  if (near) {
+    params.bias = 'proximity:' + near.lon + ',' + near.lat
+    params.filter = 'circle:' + near.lon + ',' + near.lat + ',60000'
+  }
+  const data = await getJson('/v1/geocode/autocomplete', params)
+  return (data.results || []).map(toPlace).filter((p) => p.name && Number.isFinite(p.lat) && Number.isFinite(p.lon))
+}
+
+// What is at this point (for a dropped pin or a Maps link without a name). null = nothing known there.
+export async function geoapifyReverse(lat, lon) {
+  const data = await getJson('/v1/geocode/reverse', { lat: String(lat), lon: String(lon), format: 'json', lang: 'en' })
+  const r = data.results && data.results[0]
+  return r ? toPlace(r) : null
 }

@@ -13,9 +13,9 @@ import crowdRoutes from './routes/crowd.js'
 import preferenceRoutes from './routes/preferences.js'
 import tripRoutes from './routes/trips.js'
 import weatherRoutes from './routes/weather.js'
-import distanceRoutes from './routes/distance.js'
 import flightRoutes from './routes/flights.js'
 import placeRoutes from './routes/places.js'
+import pickRoutes from './routes/pick.js'
 import rateRoutes from './routes/rates.js'
 import photoRoutes from './routes/photos.js'
 import expenseRoutes from './routes/expenses.js'
@@ -49,7 +49,7 @@ app.use('/api/invites/users', searchLimit)
 app.use('/api/friends/search', searchLimit)
 // Routes that call outside services (weather, maps, crowds...) which have their own quotas
 const outsideLimit = rateLimit({ max: 120, message: 'Too many lookups. Please wait a moment and try again.' })
-for (const path of ['/api/crowd', '/api/weather', '/api/distance-matrix', '/api/travel', '/api/flights', '/api/places', '/api/rates', '/api/safety', '/api/maps', '/api/eat', '/api/discover']) {
+for (const path of ['/api/crowd', '/api/weather', '/api/travel', '/api/flights', '/api/places', '/api/place', '/api/rates', '/api/safety', '/api/maps', '/api/eat', '/api/discover']) {
   app.use(path, outsideLimit)
 }
 
@@ -64,9 +64,9 @@ app.use('/api/friends', friendRoutes)
 app.use('/api/trips', tripRoutes)
 app.use('/api/groups', groupRoutes)
 app.use('/api/weather', weatherRoutes)
-app.use('/api/distance-matrix', distanceRoutes)
 app.use('/api/flights', flightRoutes)
 app.use('/api/places', placeRoutes)
+app.use('/api/place', pickRoutes)
 app.use('/api/travel', travelRoutes) // travel times between stops (itinerary, Other journeys)
 app.use('/api/icons', iconRoutes) // 3D icons (Fluent Emoji), cached on disk
 app.use('/api/rates', rateRoutes)
@@ -85,6 +85,11 @@ app.get('/api/health', (req, res) => {
 // Catch any unexpected error so the server doesn't crash
 // (Express 5 sends errors from async routes here automatically)
 app.use((err, req, res, next) => {
+  // Two devices saved the same trip at the same moment: the second save is refused (see models/trip.js)
+  // instead of quietly overwriting the first. The page reloads the trip and the person tries again.
+  if (err.name === 'VersionError') {
+    return res.status(409).json({ conflict: true, message: 'Someone else changed this trip at the same moment, so your change was not saved. The latest version is loaded: please try again.' })
+  }
   console.error(err)
   res.status(500).json({ message: 'Something went wrong on the server.' })
 })
@@ -92,7 +97,8 @@ app.use((err, req, res, next) => {
 // Connect to MongoDB, then start the server
 const PORT = process.env.PORT || 3000
 
-mongoose.connect(process.env.MONGODB_URI)
+// Give up after 8 s (instead of Mongoose's 30 s) so a blocked database fails clearly, not at Vercel's 30 s limit
+mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 8000 })
   .then(async () => {
     console.log('Connected to MongoDB')
     // Make the database's indexes match the User model

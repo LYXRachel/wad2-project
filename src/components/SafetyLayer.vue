@@ -246,10 +246,11 @@ async function refresh(force = false) {
   } finally {
     if (isCurrent()) loading.value = false
   }
+  // Your stops go on the radar now; they don't need the (slower) hospitals and police search
+  if (isCurrent()) loadStops()
   await nearbyJob
   if (!isCurrent()) return
   errors.value = failed // replaced each time, never piles up
-  loadStops()
 }
 
 /* Today's itinerary stops (or the first day's) on the radar */
@@ -262,7 +263,13 @@ async function loadStops() {
   const day = dates.includes(today) ? today : dates[0]
   const list = []
   for (const s of props.stops) {
-    if (s.date !== day || !s.address || list.length >= 8) continue
+    if (s.date !== day || list.length >= 8) continue
+    // A stop picked on the map has its own point; older stops are looked up by address
+    if (s.lat != null && s.lon != null) {
+      list.push({ id: 'stop-' + s.id, name: s.name, lat: s.lat, lon: s.lon })
+      continue
+    }
+    if (!s.address) continue
     try {
       if (!stopCoords[s.address]) stopCoords[s.address] = await locatePlace(s.address)
       list.push({ id: 'stop-' + s.id, name: s.name, lat: stopCoords[s.address].lat, lon: stopCoords[s.address].lon })
@@ -833,7 +840,7 @@ onUnmounted(() => {
               {{ expanded.includes(g.kind) ? 'Show fewer' : 'Show ' + (Math.min(10, optionsByKind[g.kind].length) - g.show) + ' more' }}
             </button>
           </div>
-          <p v-if="!places.length && lastUpdated" class="sf-muted small">No hospitals or shelters found within 3 km in OpenStreetMap.</p>
+          <p v-if="!places.length && !nearbyLoading && lastUpdated" class="sf-muted small">No hospitals or shelters found within 3 km in OpenStreetMap.</p>
         </template>
       </section>
 
