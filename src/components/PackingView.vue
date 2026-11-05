@@ -77,6 +77,7 @@
           <div class="pk-bar" role="progressbar" :aria-valuenow="packedCount" aria-valuemin="0" :aria-valuemax="items.length" aria-label="Packing progress">
             <div class="pk-bar-fill" :style="{ width: percent + '%' }"></div>
           </div>
+          <p class="pk-own">Your own list: ticks and changes here are just for you. Everyone on the trip has their own.</p>
         </div>
       </div>
 
@@ -191,8 +192,7 @@ export default {
       ],
       saveTimer: null,
       saveStatus: '',
-      lastSaved: '',
-      basePacking: null // the list as it was last saved: the server only applies what changed since then
+      lastSaved: ''
     }
   },
 
@@ -271,7 +271,6 @@ export default {
 
   created() {
     this.lastSaved = this.saveKey
-    this.basePacking = JSON.parse(JSON.stringify(this.packing))
   },
 
   methods: {
@@ -306,23 +305,12 @@ export default {
       this.newItem[category] = ''
     },
 
-    // Sends my changes; the server adds them to the latest list (so other people's ticks are kept)
-    // and sends the combined list back
+    // Saves MY packing list (everyone on the trip has their own); the trip details are shared
     async save() {
       const key = this.saveKey
-      const sent = JSON.parse(JSON.stringify(this.packing))
       try {
-        const res = await axios.put('/api/trips/' + this.tripId + '/packing', { ...this.profile, packing: sent, base: this.basePacking })
-        if (this.saveKey === key && res.data.packing) {
-          // Nothing changed while saving: show the combined list, including the group's changes
-          this.packing = res.data.packing
-          this.basePacking = JSON.parse(JSON.stringify(res.data.packing))
-          this.lastSaved = this.saveKey
-        } else {
-          // I kept editing meanwhile: those edits get sent next, measured from what I just sent
-          this.basePacking = sent
-          this.lastSaved = key
-        }
+        await axios.put('/api/trips/' + this.tripId + '/packing', { ...this.profile, packing: this.packing })
+        this.lastSaved = key
         this.saveStatus = 'Saved ✓'
       } catch (err) {
         this.saveStatus = (err.response && err.response.data && err.response.data.message) || 'Could not save. Check your connection.'
@@ -675,6 +663,12 @@ export default {
 }
 @keyframes pk-stamp {
   0% { opacity: 0; transform: scale(1.6) rotate(-4deg); }
+}
+.pk-own {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3d5266;
 }
 .pk-bar {
   height: 18px;

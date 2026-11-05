@@ -27,6 +27,13 @@ function pickKeys(list, allowed) {
   return out
 }
 
+// My own packing list on this trip; before anyone had their own, the trip had one shared list,
+// so someone without a list yet starts from a copy of that one
+function packingOf(t, userId) {
+  const mine = t.packingByUser && t.packingByUser[String(userId)]
+  return mine || t.packing || null
+}
+
 // Clean the packing progress sent by the browser. Returns null if anything is invalid.
 function cleanPacking(p) {
   if (!p || typeof p !== 'object') return null
@@ -99,7 +106,7 @@ function toClient(t, userId, contacts) {
     activities: t.activities || [],
     weather: t.weather || [],
     extras: t.extras || [],
-    packing: t.packing || null,
+    packing: userId ? packingOf(t, userId) : null, // MY packing list (everyone has their own)
     expenses: t.expenses || null,
     photoAlbums: t.photoAlbums || [],
     stay: t.stay || null,
@@ -208,7 +215,7 @@ router.get('/', requireAuth, async (req, res) => {
   // My trips, trips I joined, and trips shared with my family groups
   // The list only needs what the trip cards show, so the big parts (expenses, packing, photos...) stay on the server
   const trips = await Trip.find(await accessQuery(req.userId))
-    .select('-expenses -packing -crew -stay -photoAlbums -wishlist -comments')
+    .select('-expenses -packing -packingByUser -crew -stay -photoAlbums -wishlist -comments')
     .sort({ createdAt: -1 })
   const fixes = []
   for (const t of trips) {
@@ -384,14 +391,12 @@ router.put('/:id/dates', requireAuth, async (req, res) => {
 })
 
 // PUT /api/trips/:id/packing  { activities, weather, extras, packing: { checked, qty, removed, custom } }
+// The packing list is each person's own (ticks, amounts, removed and added items); the trip details it's
+// built from (activities, expected weather, extras) are shared by the whole trip.
 router.put('/:id/packing', requireAuth, async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Trip not found.' })
   const packing = cleanPacking(req.body.packing)
   if (!packing) return res.status(400).json({ message: 'Some packing details are invalid.' })
-
-  // "base" = the list as this person last saw it. Only what THEY changed since then is applied,
-  // on top of the latest saved list, so two people ticking items at the same time don't undo each other.
-  const base = req.body.base ? cleanPacking(req.body.base) : null
 
   const trip = await findTripFor(req.userId, req.params.id)
   if (!trip) return res.status(404).json({ message: 'Trip not found.' })
@@ -400,42 +405,10 @@ router.put('/:id/packing', requireAuth, async (req, res) => {
     weather: pickKeys(req.body.weather, WEATHER_KEYS),
     extras: pickKeys(req.body.extras, EXTRA_KEYS)
   }
-  // Try a few times in case someone else saves in between (the "packing" value must still be what we read)
-  let latest = trip.packing
-  for (let attempt = 0; attempt < 4; attempt++) {
-    const merged = base ? mergePacking(cleanPacking(latest || {}) || { checked: {}, qty: {}, removed: [], custom: [] }, base, packing) : packing
-    const filter = { _id: trip._id, packing: latest === undefined ? null : latest }
-    const updated = await Trip.findOneAndUpdate(filter, { $set: { ...set, packing: merged } }, { new: true })
-    if (updated) return res.json({ ok: true, packing: merged })
-    latest = (await Trip.findById(trip._id).select('packing')).packing
-  }
-  res.status(409).json({ message: 'Lots of people are editing the list. Please try again.' })
+  set['packingByUser.' + String(req.userId)] = packing // only my list changes
+  await Trip.updateOne({ _id: trip._id }, { $set: set })
+  res.json({ ok: true, packing })
 })
-
-// Apply the changes between "base" and "mine" to "latest" (the list someone else may have changed meanwhile)
-function mergePacking(latest, base, mine) {
-  const out = { checked: { ...latest.checked }, qty: { ...latest.qty }, removed: latest.removed.slice(), custom: latest.custom.slice() }
-  for (const field of ['checked', 'qty']) {
-    const keys = new Set(Object.keys(base[field]).concat(Object.keys(mine[field])))
-    for (const k of keys) {
-      if (base[field][k] === mine[field][k]) continue // I didn't touch it
-      if (mine[field][k] === undefined) delete out[field][k]
-      else out[field][k] = mine[field][k]
-    }
-  }
-  for (const id of mine.removed) if (!base.removed.includes(id) && !out.removed.includes(id)) out.removed.push(id)
-  for (const id of base.removed) if (!mine.removed.includes(id)) out.removed = out.removed.filter((x) => x !== id)
-  for (const c of mine.custom) {
-    const before = base.custom.find((x) => x.id === c.id)
-    const i = out.custom.findIndex((x) => x.id === c.id)
-    if (!before && i < 0) out.custom.push(c) // I added it
-    else if (before && i >= 0 && (before.name !== c.name || before.qty !== c.qty)) out.custom[i] = c // I edited it
-  }
-  for (const c of base.custom) {
-    if (!mine.custom.some((x) => x.id === c.id)) out.custom = out.custom.filter((x) => x.id !== c.id) // I deleted it
-  }
-  return out
-}
 
 // PUT /api/trips/:id/journeys  [{ id, from, to, mode, min, date?, by?, fromPoint?, toPoint? }]  -> "Other journeys" saved on the trip
 // (trips that aren't between two itinerary stops, e.g. airport -> hotel). Anyone on the trip can edit.
@@ -486,6 +459,42 @@ router.put('/:id/albums', requireAuth, async (req, res) => {
   const ids = albums.map((a) => a.id)
   await Photo.updateMany({ trip: trip._id, album: { $nin: ids.concat('') } }, { album: '' })
   res.json({ ok: true })
+})
+
+// GET /api/trips/:id/day-settings -> { daySettings: { 'YYYY-MM-DD': { dayStart, dayEnd, crowdSensitivity, travelBuffer } } }
+router.get('/:id/day-settings', requireAuth, async (req, res) => {
+  const trip = await findTripFor(req.userId, req.params.id)
+  if (!trip) return res.status(404).json({ message: 'Trip not found.' })
+  res.json({ daySettings: trip.daySettings || {} })
+})
+
+// PUT /api/trips/:id/day-settings  { date, settings }  (settings: null = back to everyone's defaults)
+// Smart Schedule settings for one day of the trip. Anyone on the trip can change them.
+router.put('/:id/day-settings', requireAuth, async (req, res) => {
+  const b = req.body || {}
+  if (typeof b.date !== 'string' || !DATE_PATTERN.test(b.date)) return res.status(400).json({ message: 'Pick a day of the trip.' })
+  const trip = await findTripFor(req.userId, req.params.id)
+  if (!trip) return res.status(404).json({ message: 'Trip not found.' })
+  const all = { ...(trip.daySettings || {}) }
+  if (!b.settings) {
+    delete all[b.date]
+  } else {
+    const s = b.settings
+    const dayStart = Number(s.dayStart)
+    const dayEnd = Number(s.dayEnd)
+    const travelBuffer = Number(s.travelBuffer)
+    const okHours = Number.isInteger(dayStart) && Number.isInteger(dayEnd) && dayStart >= 5 && dayStart <= 12 && dayEnd >= 16 && dayEnd <= 24 && dayEnd - dayStart >= 4
+    if (!okHours) return res.status(400).json({ message: 'Your day needs to be at least 4 hours long.' })
+    if (!['low', 'medium', 'high'].includes(s.crowdSensitivity) || ![0, 0.25, 0.5, 1].includes(travelBuffer)) {
+      return res.status(400).json({ message: 'Those schedule settings are invalid.' })
+    }
+    if (!all[b.date] && Object.keys(all).length >= 60) return res.status(400).json({ message: 'Too many days with their own settings.' })
+    all[b.date] = { dayStart, dayEnd, crowdSensitivity: s.crowdSensitivity, travelBuffer }
+  }
+  trip.daySettings = all
+  trip.markModified('daySettings')
+  await trip.save()
+  res.json({ daySettings: trip.daySettings })
 })
 
 // PUT /api/trips/:id/stay  { name, address, nameLocal, addressLocal, lat, lon } or {} to clear

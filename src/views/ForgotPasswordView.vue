@@ -27,14 +27,18 @@
 
       <label for="fp-pass" class="as-label">New password</label>
       <div class="as-field"><span class="as-field-icon"><AuthIcon name="key" /></span>
-        <input id="fp-pass" type="password" class="as-input" v-model="password"
+        <input id="fp-pass" :type="showPw ? 'text' : 'password'" class="as-input" v-model="password"
           placeholder="At least 8 characters" autocomplete="new-password" required>
+        <button type="button" class="as-eye" :aria-pressed="showPw" :aria-label="showPw ? 'Hide password' : 'Show password'" aria-controls="fp-pass"
+          :title="showPw ? 'Hide password' : 'Show password'" @click="showPw = !showPw"><AppIcon :name="showPw ? 'eye-off' : 'eye'" :size="20" /></button>
       </div>
 
       <label for="fp-confirm" class="as-label">Confirm new password</label>
       <div class="as-field"><span class="as-field-icon"><AuthIcon name="key" /></span>
-        <input id="fp-confirm" type="password" class="as-input" v-model="confirmPassword"
+        <input id="fp-confirm" :type="showConfirm ? 'text' : 'password'" class="as-input" v-model="confirmPassword"
           placeholder="Confirm new password" autocomplete="new-password" required>
+        <button type="button" class="as-eye" :aria-pressed="showConfirm" :aria-label="showConfirm ? 'Hide password' : 'Show password'" aria-controls="fp-confirm"
+          :title="showConfirm ? 'Hide password' : 'Show password'" @click="showConfirm = !showConfirm"><AppIcon :name="showConfirm ? 'eye-off' : 'eye'" :size="20" /></button>
       </div>
 
       <p v-if="errorMessage" class="as-error" role="alert">{{ errorMessage }}</p>
@@ -59,12 +63,15 @@
 import axios from 'axios'
 import AuthShell from '../components/AuthShell.vue'
 import AuthIcon from '../components/AuthIcon.vue'
+import AppIcon from '../components/AppIcon.vue'
 import { passwordProblem } from '../../server/passwordRules.js'
 
 export default {
-  components: { AuthShell, AuthIcon },
+  components: { AuthShell, AuthIcon, AppIcon },
   data() {
     return {
+      showPw: false, // the eye buttons: show the passwords as plain text
+      showConfirm: false,
       step: 1,
       email: String(this.$route.query.email || ''),
       code: '',

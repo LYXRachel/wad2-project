@@ -65,6 +65,15 @@
         {{ p.name === me ? 'My photos' : p.name }} <span class="ph-n">{{ p.count }}</span>
       </button>
       <button v-if="currentAlbum" type="button" class="ph-link ms-auto" @click="removeAlbum">Remove "{{ currentAlbum.name }}" album</button>
+      <!-- Order: as added, or the most-loved photos first -->
+      <div class="ph-sort" :class="{ 'ms-auto': !currentAlbum }" role="radiogroup" aria-label="Order photos by">
+        <button type="button" role="radio" :aria-checked="sort === 'recent'" :class="{ on: sort === 'recent' }" @click="sort = 'recent'">
+          <AppIcon name="clock" :size="14" /> Newest
+        </button>
+        <button type="button" role="radio" :aria-checked="sort === 'loved'" :class="{ on: sort === 'loved' }" @click="sort = 'loved'">
+          <AppIcon name="heart" :size="14" /> Most loved
+        </button>
+      </div>
     </div>
 
     <!-- ===== Upload staging tray ===== -->
@@ -212,6 +221,7 @@ export default {
       loadError: '',
       album: 'all',        // 'all' | '' (highlights) | album id
       who: '',
+      sort: 'recent',      // 'recent' (as added) | 'loved' (most reactions first)
       addingAlbum: false,
       newAlbumName: '',
       uploads: [],         // staging tray
@@ -253,6 +263,8 @@ export default {
         if (this.who && p.uploadedBy !== this.who) continue
         list.push(p)
       }
+      // Most loved: the photos with the most reactions first (ties keep their order)
+      if (this.sort === 'loved') list.sort((a, b) => this.loveCount(b) - this.loveCount(a))
       return list
     },
     currentAlbum() {
@@ -383,6 +395,13 @@ export default {
       } catch (err) {
         return null
       }
+    },
+
+    // How many reactions a photo has, all emojis together
+    loveCount(photo) {
+      let n = 0
+      for (const e in photo.reactions || {}) n += photo.reactions[e].length
+      return n
     },
 
     countIn(albumId) {
@@ -1432,6 +1451,37 @@ export default {
 }
 
 /* Who added them: little cream tags */
+.ph-sort {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 2px solid var(--sb-ink, #12324a);
+  border-radius: 999px;
+  background: #fffdf8;
+  box-shadow: 0 2px 0 var(--sb-ink, #12324a);
+}
+.ph-sort button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sb-ink-soft, #3a5266);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ph-sort button:hover {
+  color: var(--sb-ink, #12324a);
+  background: #fff1cf;
+}
+.ph-sort button.on {
+  background: var(--sb-amber, #ffbf3c);
+  color: var(--sb-ink, #12324a);
+  box-shadow: inset 0 0 0 2px var(--sb-ink, #12324a);
+}
 .ph-people {
   margin-top: 18px;
 }

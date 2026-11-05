@@ -5,6 +5,15 @@
       <div class="sp-titles">
         <h3 id="sp-title" class="sp-title"><span class="sp-spark" aria-hidden="true"><AppIcon name="sparkles" :size="18" /></span> Smart Schedule</h3>
         <p class="sp-sub">Automatically balances travel time, crowd levels and the weather.</p>
+        <!-- Which day these settings are for: its own, or the defaults -->
+        <p v-if="dayLabel" class="sp-day">
+          Settings for <strong>{{ dayLabel }}</strong>
+          <template v-if="custom">
+            · set just for this day
+            <button type="button" class="sp-reset" @click="emit('reset')">Reset to default</button>
+          </template>
+          <template v-else> · using your default</template>
+        </p>
       </div>
       <div class="sp-head-right">
         <span v-if="saveText" class="sp-saved" :class="{ bad: saveText.startsWith('Could not') }" role="status">{{ saveText }}</span>
@@ -50,15 +59,20 @@
 
 <script setup>
 // Smart Schedule settings. Changes apply at once (the planner re-times the day) and are saved a moment later.
-import { reactive, ref, computed, watch } from 'vue'
-import { prefs, savePreferences } from '../preferences.js'
+import { reactive, computed, watch } from 'vue'
 import CustomDropdown from './CustomDropdown.vue'
 import AppIcon from './AppIcon.vue'
 
+// The settings shown are for the open day (ItineraryView keeps them): a day starts with the
+// defaults, and changing anything here gives that day its own settings ("Reset to default" undoes it).
 const props = defineProps({
   saveStatus: { type: String, default: '' },                                  // itinerary saving
-  status: { type: Object, default: () => ({ kind: 'idle', text: '' }) }       // from the planner
+  status: { type: Object, default: () => ({ kind: 'idle', text: '' }) },      // from the planner
+  settings: { type: Object, default: () => ({}) },                            // { dayStart, dayEnd, crowdSensitivity, travelBuffer } for the open day
+  dayLabel: { type: String, default: '' },                                    // e.g. 'Day 1 (Sun 20 Dec)'
+  custom: { type: Boolean, default: false }                                   // this day has its own settings
 })
+const emit = defineEmits(['change', 'reset'])
 
 const CROWD = [
   { value: 'low', label: 'Relaxed', hint: "Crowds don't bother me much" },
@@ -83,36 +97,28 @@ for (let h = 5; h <= 12; h++) startChoices.push({ value: h, label: hourLabel(h) 
 const endChoices = []
 for (let h = 16; h <= 24; h++) endChoices.push({ value: h, label: hourLabel(h) })
 
-// ----- the settings: apply now, save shortly after -----
-const form = reactive({ ...prefs })
-watch(prefs, (p) => {
-  // Loaded from the server (or changed elsewhere): show it
-  for (const key in p) if (form[key] !== p[key]) form[key] = p[key]
-})
+// ----- the settings for the open day: shown here, changed straight away -----
+const KEYS = ['dayStart', 'dayEnd', 'crowdSensitivity', 'travelBuffer']
+const form = reactive({})
+for (const key of KEYS) form[key] = props.settings[key]
+// Another day opened (or the settings loaded): show that day's settings
+watch(() => props.settings, (now) => {
+  for (const key of KEYS) if (form[key] !== now[key]) form[key] = now[key]
+}, { deep: true })
 
 const hoursError = computed(() => (form.dayEnd - form.dayStart < 4 ? 'Your day needs to be at least 4 hours long.' : ''))
-const saving = ref('')
-let timer = null
 
+// Changed here: give this day its own settings (ItineraryView saves them and re-times the day)
 watch(form, () => {
   let changed = false
-  for (const key in form) if (form[key] !== prefs[key]) changed = true
+  for (const key of KEYS) if (form[key] !== props.settings[key]) changed = true
   if (!changed || hoursError.value) return
-  Object.assign(prefs, form) // the planner re-times the open day straight away
-  saving.value = 'Saving…'
-  clearTimeout(timer)
-  timer = setTimeout(async () => {
-    try {
-      await savePreferences({ ...form })
-      saving.value = 'Saved'
-      setTimeout(() => { if (saving.value === 'Saved') saving.value = '' }, 2000)
-    } catch (err) {
-      saving.value = 'Could not save settings'
-    }
-  }, 600)
+  const out = {}
+  for (const key of KEYS) out[key] = form[key]
+  emit('change', out)
 })
 
-const saveText = computed(() => saving.value || props.saveStatus)
+const saveText = computed(() => props.saveStatus)
 </script>
 
 <style scoped>
@@ -163,6 +169,28 @@ const saveText = computed(() => saving.value || props.saveStatus)
   font-weight: 600;
   color: var(--sb-ink-soft);
 }
+.sp-day {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--sb-ink-soft);
+}
+.sp-day strong {
+  color: var(--sb-ink);
+}
+.sp-reset {
+  margin-left: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--sb-ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.sp-reset:hover {
+  color: #b5482f;
+}
 .sp-head-right {
   display: flex;
   align-items: center;
@@ -186,9 +214,11 @@ const saveText = computed(() => saving.value || props.saveStatus)
 
 /* Controls: one cream strip, three settings */
 .sp-controls {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto));
-  justify-content: start;
+  /* the 3 controls sit in a row and wrap to the next line when there isn't room
+     (they never squeeze, so one control can't slide under the next) */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 14px 28px;
   margin-top: 16px;
   padding: 14px 16px;
@@ -200,7 +230,7 @@ const saveText = computed(() => saving.value || props.saveStatus)
   display: flex;
   flex-direction: column;
   gap: 7px;
-  min-width: 0;
+  max-width: 100%;
 }
 .sp-label {
   font-size: 11px;
@@ -326,7 +356,7 @@ const saveText = computed(() => saving.value || props.saveStatus)
 
 @media (max-width: 760px) {
   .sp-controls {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
   .sp-hours,
   .sp-seg {

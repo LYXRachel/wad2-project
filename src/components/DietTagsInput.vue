@@ -9,7 +9,7 @@
       :placeholder="tags.length ? 'Add more…' : '+ Add dietary need or allergy…'"
       role="combobox" aria-autocomplete="list" :aria-expanded="menuOpen" :aria-controls="uid + '-menu'"
       :aria-activedescendant="menuOpen && options.length ? uid + '-o' + active : null"
-      @focus="menuOpen = true" @blur="menuOpen = false" @keydown="onKey">
+      @focus="menuOpen = true" @blur="onBlur" @keydown="onKey">
 
     <ul v-if="menuOpen && options.length" :id="uid + '-menu'" class="dt-menu" role="listbox">
       <li v-for="(o, i) in options" :id="uid + '-o' + i" :key="o.key" role="option" :aria-selected="i === active"
@@ -69,6 +69,16 @@ function addTag(key) {
   }
   query.value = ''
   active.value = 0
+}
+// Typed something and clicked away (without Enter or picking from the menu): keep it as a tag,
+// as a known diet if the words match one ("vegan" -> Vegan), otherwise as typed
+function onBlur() {
+  menuOpen.value = false
+  const typed = query.value.trim()
+  if (!typed) return
+  let key = typed
+  for (const d of DIETS) if (d.label.toLowerCase() === typed.toLowerCase()) key = d.key
+  addTag(key)
 }
 function removeTag(key) {
   const list = []

@@ -25,14 +25,18 @@
 
       <label for="password" class="as-label">Password</label>
       <div class="as-field"><span class="as-field-icon"><AuthIcon name="key" /></span>
-        <input id="password" type="password" class="as-input" v-model="password"
+        <input id="password" :type="showPw ? 'text' : 'password'" class="as-input" v-model="password"
           placeholder="At least 8 characters" autocomplete="new-password" data-testid="signup-password" required>
+        <button type="button" class="as-eye" :aria-pressed="showPw" :aria-label="showPw ? 'Hide password' : 'Show password'" aria-controls="password"
+          :title="showPw ? 'Hide password' : 'Show password'" @click="showPw = !showPw"><AppIcon :name="showPw ? 'eye-off' : 'eye'" :size="20" /></button>
       </div>
 
       <label for="confirm" class="as-label">Confirm password</label>
       <div class="as-field"><span class="as-field-icon"><AuthIcon name="key" /></span>
-        <input id="confirm" type="password" class="as-input" v-model="confirmPassword"
+        <input id="confirm" :type="showConfirm ? 'text' : 'password'" class="as-input" v-model="confirmPassword"
           placeholder="Confirm password" autocomplete="new-password" data-testid="signup-confirm" required>
+        <button type="button" class="as-eye" :aria-pressed="showConfirm" :aria-label="showConfirm ? 'Hide password' : 'Show password'" aria-controls="confirm"
+          :title="showConfirm ? 'Hide password' : 'Show password'" @click="showConfirm = !showConfirm"><AppIcon :name="showConfirm ? 'eye-off' : 'eye'" :size="20" /></button>
       </div>
 
       <p v-if="errorMessage" class="as-error" role="alert" data-testid="signup-error">{{ errorMessage }}</p>
@@ -53,14 +57,17 @@
 import axios from 'axios'
 import AuthShell from '../components/AuthShell.vue'
 import AuthIcon from '../components/AuthIcon.vue'
+import AppIcon from '../components/AppIcon.vue'
 import DoodleIcon from '../components/DoodleIcon.vue'
 import { saveLogin } from '../auth.js'
 import { markNewAccount } from '../onboarding.js'
 
 export default {
-  components: { AuthShell, AuthIcon, DoodleIcon },
+  components: { AuthShell, AuthIcon, DoodleIcon, AppIcon },
   data() {
     return {
+      showPw: false, // the eye buttons: show the passwords as plain text
+      showConfirm: false,
       name: '',
       username: '',
       email: '',

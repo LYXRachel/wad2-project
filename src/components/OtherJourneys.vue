@@ -97,6 +97,8 @@ import CustomDropdown from './CustomDropdown.vue'
 import { TRAVEL_MODES as MODES, travelOptions, recommendTravel, legKey, DEFAULT_TRAVEL, haversineKm } from '../dayOptimizer.js'
 import { notify, errorText } from '../notify.js'
 import { cityCentre } from '../services/cityCentre.js'
+import { AIRPORTS } from '../../shared/airports.js'
+import DISCOVER from '../data/discoverCities.json'
 
 const props = defineProps({
   tripId: { type: String, default: '' },
@@ -189,7 +191,29 @@ function pointOf(p) {
   return p && p.lat != null && p.lon != null ? { name: p.name, address: p.address || '', lat: p.lat, lon: p.lon } : null
 }
 // Example text in the empty boxes, from this trip
-const fromHint = computed(() => (props.destinations[0] ? 'e.g. ' + props.destinations[0].split(', ')[0] + ' Airport' : 'e.g. the airport'))
+// The airport for a destination: its own one from the built-in list, else the closest to the city
+// (e.g. Kyoto has no airport, so it suggests Osaka Itami)
+function nearestAirportName(destination) {
+  if (!destination) return ''
+  const city = destination.split(', ')[0].toLowerCase()
+  for (const a of AIRPORTS) if (a[2].toLowerCase() === city) return a[1]
+  const c = DISCOVER.cities.find((x) => x.cityName.toLowerCase() === city)
+  if (!c) return ''
+  let best = null
+  let bestDist = Infinity
+  for (const a of AIRPORTS) {
+    const dLat = a[4] - c.lat
+    const dLon = (a[5] - c.lon) * Math.cos((c.lat * Math.PI) / 180)
+    const dist = dLat * dLat + dLon * dLon
+    if (dist < bestDist) {
+      bestDist = dist
+      best = a
+    }
+  }
+  return best ? best[1] : ''
+}
+// (an airport from the built-in list near the first destination: Kyoto has no airport of its own)
+const fromHint = computed(() => 'e.g. ' + (nearestAirportName(props.destinations[0]) || 'the airport'))
 const toHint = computed(() => (props.stays.length ? 'e.g. ' + props.stays[0].name : 'e.g. your hotel'))
 const dayOptions = computed(() => {
   const list = []

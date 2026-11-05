@@ -491,4 +491,28 @@ const bubbleText = computed(() => {
 .as-foot a:hover {
   text-decoration: underline;
 }
+/* the eye button at the end of a password field: show / hide what you typed */
+.as-eye {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-left: 2px solid #efdcbc;
+  background: #f4e6cc;
+  color: #12324a;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.as-eye:hover {
+  background: #ffe3a3;
+}
+.as-eye[aria-pressed='true'] {
+  background: #ffbf3c;
+}
+.as-eye:focus-visible {
+  outline: 3px solid #19b3c4;
+  outline-offset: -3px;
+}
 </style>

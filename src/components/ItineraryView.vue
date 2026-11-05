@@ -7,7 +7,8 @@
     </div>
 
     <!-- Smart Schedule: hours, crowds, buffer, and what the scheduler is doing -->
-    <SchedulePanel :save-status="saveStatus" :status="plannerStatus" />
+    <SchedulePanel :save-status="saveStatus" :status="plannerStatus" :settings="dayPrefs" :day-label="dayLabel" :custom="!!daySettings[selectedDate]"
+      @change="setDaySettings" @reset="setDaySettings(null)" />
 
     <!-- The itinerary: day navigator, timeline with weather + crowd icons, saved places drawer -->
     <ItineraryPlanner :days="dayList" :selected-date="selectedDate" :stops="itinerary"
@@ -27,7 +28,7 @@ import axios from 'axios'
 import { notify, errorText } from '../notify.js'
 import SchedulePanel from './SchedulePanel.vue'
 import ItineraryPlanner from './ItineraryPlanner.vue'
-import { prefs, loadPreferences } from '../preferences.js'
+import { prefs, loadPreferences, hoursChangedByUser } from '../preferences.js'
 import { getForecast } from '../crowd.js'
 import { fetchWeatherForecast } from '../services/weatherService.js'
 import { trip, loadDemo, loadFromServer, savedShape, runtimeStop, newId } from '../itineraryStore.js'
@@ -82,7 +83,8 @@ export default {
       tripVersion: 0, // the version of the trip we last saved or loaded
       saving: false,
       loaded: false,
-      lastSavedKey: ''
+      lastSavedKey: '',
+      daySettings: {} // Smart Schedule settings for single days: { 'YYYY-MM-DD': { dayStart, dayEnd, crowdSensitivity, travelBuffer } }
     }
   },
 
@@ -111,6 +113,16 @@ export default {
       await loadPreferences()
     } catch (err) {
       console.warn('Could not load preferences, using defaults')
+    }
+
+    // Days of this trip with their own Smart Schedule settings
+    if (!this.isDemo) {
+      try {
+        const res = await axios.get('/api/trips/' + this.tripId + '/day-settings')
+        this.daySettings = res.data.daySettings || {}
+      } catch (err) {
+        // every day uses the defaults
+      }
     }
 
     this.loadClimate() // in the background: typical weather for days with no forecast
@@ -153,9 +165,16 @@ export default {
   },
 
   computed: {
-    // The user's day start/end (Preferences), for the day optimizer
+    // The open day's Smart Schedule settings: its own if it has some, otherwise your defaults (Preferences)
     dayPrefs() {
-      return prefs
+      return this.prefsFor(this.selectedDate)
+    },
+    // "Day 1 (Sun 20 Dec)" for the Smart Schedule panel
+    dayLabel() {
+      const i = this.dayList.indexOf(this.selectedDate)
+      if (i < 0) return ''
+      const d = new Date(this.selectedDate + 'T00:00:00')
+      return 'Day ' + (i + 1) + ' (' + d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) + ')'
     },
     // For the planner's "Unscheduled" drawer: every wishlist place, and the names already planned
     allWishlist() {
@@ -360,11 +379,42 @@ export default {
     }
   },
   methods: {
+    // A day's Smart Schedule settings: its own, or your defaults
+    prefsFor(date) {
+      const own = this.daySettings[date]
+      return own ? { ...prefs, ...own } : prefs
+    },
+    // Changed in the Smart Schedule panel: these settings are now the open day's own (null = back to the defaults).
+    // The planner re-times the day when the hours or buffer change; saved to the trip for the whole group.
+    async setDaySettings(settings) {
+      const date = this.selectedDate
+      if (!date) return
+      const before = this.prefsFor(date)
+      const all = { ...this.daySettings }
+      if (settings) all[date] = settings
+      else delete all[date]
+      this.daySettings = all
+      const after = this.prefsFor(date)
+      if (before.dayStart !== after.dayStart || before.dayEnd !== after.dayEnd || before.travelBuffer !== after.travelBuffer) {
+        this.$nextTick(() => { hoursChangedByUser.value++ })
+      }
+      if (this.isDemo) return
+      this.saveStatus = 'Saving…'
+      try {
+        const res = await axios.put('/api/trips/' + this.tripId + '/day-settings', { date, settings })
+        this.daySettings = res.data.daySettings || {}
+        this.saveStatus = 'All changes saved'
+      } catch (err) {
+        this.saveStatus = 'Could not save settings'
+        notify(errorText(err, 'Could not save this day\'s settings.'), () => this.setDaySettings(settings))
+      }
+    },
     // A day's active hours: your Preferences, shortened by my flights
     // (start 45 min after landing; finish 2.5 h before the flight home)
     dayHours(d) {
-      let start = prefs.dayStart || 8
-      let end = Math.min(24, prefs.dayEnd || 23)
+      const p = this.prefsFor(d)
+      let start = p.dayStart || 8
+      let end = Math.min(24, p.dayEnd || 23)
       const f = this.myFlight
       const hourOf = (t) => Number(t.slice(0, 2)) + Number(t.slice(3, 5)) / 60
       if (f.arrival && f.arrival.date === d && f.arrival.time) start = Math.max(start, Math.ceil((hourOf(f.arrival.time) + 0.75) * 4) / 4)

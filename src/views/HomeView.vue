@@ -330,7 +330,7 @@
             <path d="M0 120 Q60 80 120 100 T300 95 L300 120 Z" class="hill" />
           </svg>
           <img v-if="photos[t.destinations[0]]" :src="photos[t.destinations[0]]" class="trip-photo" alt="" loading="lazy">
-          <span v-if="t.members && t.members.length > 1" class="trip-demo"><DoodleIcon name="users" :size="15" anim="" /> {{ t.members.length }}</span>
+          <span v-if="t.members && t.members.length > 1" class="trip-demo" :title="t.members.length + ' people on this trip'"><AppIcon name="users" :size="14" /> {{ t.members.length }}</span>
         </router-link>
 
         <div class="trip-body">
@@ -412,6 +412,7 @@ import FlagImg from '../components/FlagImg.vue'
 import { avatar as twin, loadAvatar } from '../avatarStore.js'
 import { needsSetup, setupDone } from '../onboarding.js'
 import { friends } from '../friends.js'
+import { DEMO_FINISHED_TRIPS } from '../demoSettings.js'
 
 const DAY_MS = 86400000
 
@@ -1269,6 +1270,7 @@ export default {
     },
 
     statusFor(t) {
+      if (DEMO_FINISHED_TRIPS.includes(String(t.id))) return { kind: 'past', label: 'Completed' } // demo: treated as finished
       if (!t.startDate) return { kind: 'none', label: 'Planning' }
       const today = new Date()
       today.setHours(0, 0, 0, 0)
@@ -2280,7 +2282,8 @@ export default {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.trip-art svg {
+/* (only the scenery drawing: a rule for every svg inside also stretched the people icon in the badge) */
+.trip-art > svg {
   width: 100%;
   height: 100%;
   display: block;
@@ -2329,21 +2332,25 @@ export default {
 }
 .status-past { background: #dde6ec; }
 /* how many people: a small cream chip in the photo's top-right */
+/* How many people are on the trip: a small sticker inside the photo's corner */
 .trip-demo {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 1;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 9px 3px 6px;
+  gap: 5px;
+  padding: 3px 10px 3px 8px;
+  border: 2px solid #12324a;
   border-radius: 999px;
   background: #fffaf0;
   color: #12324a;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
-  box-shadow: 0 3px 8px rgba(18, 50, 74, 0.3);
+  line-height: 1.2;
+  box-shadow: 0 2px 0 #12324a;
+  white-space: nowrap;
 }
 /* the card body */
 .trip-body {
@@ -2520,12 +2527,12 @@ export default {
 }
 /* finished trips look a little faded until you hover */
 .trip-card.archived .trip-photo,
-.trip-card.archived .trip-art svg {
+.trip-card.archived .trip-art > svg {
   filter: grayscale(0.6);
   transition: filter 0.2s, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .trip-card.archived:hover .trip-photo,
-.trip-card.archived:hover .trip-art svg {
+.trip-card.archived:hover .trip-art > svg {
   filter: none;
 }
 /* ---------- "New trip": a blank postcard (same frame as the trip cards), the whole card is the button ---------- */

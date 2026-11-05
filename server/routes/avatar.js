@@ -40,7 +40,7 @@ function cleanPicture(p) {
 // ---------- XP: everything comes from the trips themselves ----------
 export async function progressFor(userId) {
   const trips = await Trip.find({ $or: [{ owner: userId }, { 'members.user': userId }] })
-    .select('name destination destinations startDate endDate createdAt stops packing expenses')
+    .select('name destination destinations startDate endDate createdAt stops packing packingByUser expenses')
   const end = today()
   const finished = []
   for (const t of trips) {
@@ -75,7 +75,8 @@ export async function progressFor(userId) {
       if (COLD.includes(c)) souvenirs.cold = true
     }
     if ((t.stops || []).length >= 5) lines.push({ label: 'Planned 5+ stops', xp: XP.planner })
-    const ticked = t.packing && t.packing.checked ? Object.keys(t.packing.checked).length : 0
+    const myList = (t.packingByUser && t.packingByUser[String(userId)]) || t.packing // my own packing list
+    const ticked = myList && myList.checked ? Object.keys(myList.checked).length : 0
     if (ticked >= 5) lines.push({ label: 'Packed 5+ items', xp: XP.packer })
     const spent = t.expenses && t.expenses.items ? t.expenses.items.length : 0
     if (spent >= 3) lines.push({ label: 'Logged 3+ expenses', xp: XP.banker })

@@ -694,11 +694,6 @@
         <div v-show="drawerOpen" class="ip-drawer-body">
           <p v-if="drag && drag.kind === 'stop'" class="ip-unschedule">Drop here to unschedule</p>
           <p v-else-if="!unscheduled.length" class="ip-muted">Places you save in Places → Wishlist wait here.</p>
-          <!-- Group trips: only places most of the group voted for can go on a day -->
-          <p v-else-if="votingOn" class="ip-vote-rule">
-            <AppIcon name="thumbs-up" :size="15" />
-            <span>Only <strong>group picks</strong> can go on a day: places {{ needed }} of {{ travellers.length }} travellers voted for.</span>
-          </p>
           <!-- One group per destination -->
           <p v-if="votingOn && unscheduled.length && !picks.length && !(drag && drag.kind === 'stop')" class="ip-muted">
             No group picks yet. Vote on the places below, and they can be added once {{ needed }} people say yes.
@@ -732,7 +727,7 @@
               </div>
               <div class="ip-wish-text">
                 <span class="ip-wish-name">{{ w.name }}</span>
-                <small>{{ (w.votes || []).length }} of {{ needed }} votes needed</small>
+                <small>{{ (w.votes || []).length }} {{ (w.votes || []).length === 1 ? 'vote' : 'votes' }} · needs {{ needed }} of {{ travellers.length }}</small>
               </div>
               <button type="button" class="ip-vote" :aria-label="'Vote on ' + w.name + ' in Group decisions'" @click="emit('go-vote')">Vote</button>
             </div>
@@ -783,6 +778,7 @@ import AnchorSheet from './AnchorSheet.vue'
 import OverflowSheet from './OverflowSheet.vue'
 import CustomDropdown from './CustomDropdown.vue'
 import AddStopSheet from './AddStopSheet.vue'
+import { hoursChangedByUser } from '../preferences.js'
 
 const props = defineProps({
   days: { type: Array, default: () => [] },
@@ -1170,16 +1166,41 @@ function nearFor(s) {
 }
 // Breaks like "Lunch" are not real places, so they never need a location
 const MEAL_ONLY = /^(breakfast|brunch|lunch|dinner|supper)( break)?$/i
+// Photos use the same lookup as the Wishlist cards (/api/places/photos, asked per city), so a place
+// shows the same photo in both. Searching by name alone missed places like "Maruyama Park".
 function loadPhotos(list) {
+  const byCity = {} // city -> names still to look up
   for (const s of list) {
     const key = photoKey(s)
     // Only real places (with an address) get a photo search; "Dinner" etc. keep their icon
     if (!s.address || photos.value[key] !== undefined) continue
     photos.value = { ...photos.value, [key]: null }
-    axios.get('/api/places/photo', { params: { destination: s.name.slice(0, 80), size: 'thumb' }, background: true })
-      .then((res) => { if (res.data.url) photos.value = { ...photos.value, [key]: res.data.url } })
-      .catch(() => {})
+    const city = nearFor(s)
+    if (!byCity[city]) byCity[city] = []
+    byCity[city].push(s.name)
   }
+  for (const city in byCity) {
+    const names = byCity[city]
+    for (let i = 0; i < names.length; i += 40) {
+      const batch = names.slice(i, i + 40)
+      axios.get('/api/places/photos', { params: { city, names: batch.join('|') }, background: true })
+        .then((res) => {
+          for (const name of batch) {
+            if (res.data[name]) photos.value = { ...photos.value, [name.toLowerCase()]: res.data[name] }
+            else loadPhotoByName(name) // not found for this city: try the name on its own
+          }
+        })
+        .catch(() => {
+          for (const name of batch) loadPhotoByName(name)
+        })
+    }
+  }
+}
+// The older lookup: the place's own Wikipedia picture, by name
+function loadPhotoByName(name) {
+  axios.get('/api/places/photo', { params: { destination: name.slice(0, 80), size: 'thumb' }, background: true })
+    .then((res) => { if (res.data.url) photos.value = { ...photos.value, [name.toLowerCase()]: res.data.url } })
+    .catch(() => {})
 }
 
 // ---------- the day's stops, in the shape the optimizer wants ----------
@@ -1487,6 +1508,20 @@ function hourOf(hhmm) {
   const parts = (hhmm || '0:0').split(':').map(Number)
   return parts[0] + parts[1] / 60
 }
+// How you chose to get from the last stop back to the hotel/airport, per day: { '2026-12-20': { mode, from } }
+// (the way to the first stop is saved on that stop instead, like any other leg)
+function readEndTravel() {
+  try {
+    return JSON.parse(localStorage.getItem('ip-end-travel') || '{}') || {}
+  } catch (err) {
+    return {}
+  }
+}
+const endTravel = ref(readEndTravel())
+function endTravelOf() {
+  const c = endTravel.value[dayShown.value]
+  return c ? { travelMode: c.mode, travelFrom: c.from } : {}
+}
 // The two ends of the day as map points (the planner travels from / to them)
 const startAnchor = computed(() => {
   const a = arrivalToday.value
@@ -1498,11 +1533,11 @@ const startAnchor = computed(() => {
 const endAnchor = computed(() => {
   const d = departureToday.value
   // early = you have to be at the airport before your day would even start: no time for plans today
-  if (d && d.place) return { id: '@end', kind: 'depart', name: d.place.name, lat: d.place.lat, lon: d.place.lon, hour: hourOf(d.time), flight: d.flight, early: hourOf(d.time) - 2.5 < opts.value.dayStart }
+  if (d && d.place) return { id: '@end', kind: 'depart', name: d.place.name, lat: d.place.lat, lon: d.place.lon, hour: hourOf(d.time), flight: d.flight, early: hourOf(d.time) - 2.5 < opts.value.dayStart, ...endTravelOf() }
   // tonight = the early flight is tomorrow, so today ends at the airport (hour past midnight, e.g. 27.8 = 3:50 AM)
   const t = departureTonight.value
-  if (t) return { id: '@end', kind: 'depart', name: t.place.name, lat: t.place.lat, lon: t.place.lon, hour: 24 + hourOf(t.time), flight: t.flight, tonight: true }
-  if (dayStay.value) return { id: '@end', kind: 'stay', name: dayStay.value.name, lat: dayStay.value.lat, lon: dayStay.value.lon }
+  if (t) return { id: '@end', kind: 'depart', name: t.place.name, lat: t.place.lat, lon: t.place.lon, hour: 24 + hourOf(t.time), flight: t.flight, tonight: true, ...endTravelOf() }
+  if (dayStay.value) return { id: '@end', kind: 'stay', name: dayStay.value.name, lat: dayStay.value.lat, lon: dayStay.value.lon, ...endTravelOf() }
   return null
 })
 const anchorList = computed(() => [startAnchor.value, endAnchor.value].filter(Boolean))
@@ -1726,6 +1761,26 @@ watch(() => dayShown.value + '|' + anchorList.value.map((x) => x.kind + x.name +
   if (!before || now.split('|')[0] !== before.split('|')[0]) return
   const s = startAnchor.value
   nextTick(() => fitDayToPrefs(s && s.kind === 'arrive' ? 'Day planned around your flight' : 'Day re-timed from your hotel'))
+})
+
+// Active hours or transit buffer changed in the Schedule panel: re-time the open day to fit
+// (waits a tick so the new hours have reached dayOpts first)
+watch(hoursChangedByUser, () => {
+  nextTick(() => fitDayToPrefs('Re-timed to your active hours (' + formatHour(dayOpts.value.dayStart) + ' to ' + formatHour(dayOpts.value.dayEnd) + ')'))
+})
+
+// A stop was taken off this day (removed, unscheduled or moved to another day): the rest of the day
+// moves up to fill the gap, so it doesn't keep waiting until the old times
+watch(() => dayShown.value + '|' + stopRows.value.map((it) => it.stop.id).join(','), (now, before) => {
+  if (!before) return
+  const [dayNow, idsNow] = now.split('|')
+  const [dayBefore, idsBefore] = before.split('|')
+  if (dayNow !== dayBefore) return
+  const left = idsNow ? idsNow.split(',') : []
+  const was = idsBefore ? idsBefore.split(',') : []
+  if (left.length >= was.length) return
+  for (const id of left) if (!was.includes(id)) return // something else changed too (e.g. a swap)
+  nextTick(() => fitDayToPrefs('Moved up after removing a stop'))
 })
 
 // Editing the hotel / airport (AnchorSheet)
@@ -2403,7 +2458,7 @@ const legView = computed(() => {
     checking: !!asking.value[legKey(a, b)]
   }
 })
-// Hotel/airport legs: shown with the suggestion, but not chosen per leg (they follow your settings)
+// Hotel/airport legs: suggested from your settings, and you can pick another way (like any other leg)
 function anchorLegView(which) {
   const rows = stopRows.value
   if (!rows.length) return null
@@ -2413,19 +2468,29 @@ function anchorLegView(which) {
   const tp = travelPrefs.value
   const options = travelOptions(a, b, tp)
   const rec = recommendTravel(options, tp)
-  const leave = which === 'start' ? rows[0].start - rec.option.min / 60 : rows[rows.length - 1].start + (a.duration || 1)
+  const chosen = b.travelMode && b.travelFrom === a.id ? b.travelMode : ''
+  const used = (chosen && options.find((o) => o.mode === chosen)) || rec.option
+  const leave = which === 'start' ? rows[0].start - used.min / 60 : rows[rows.length - 1].start + (a.duration || 1)
+  let chosenBy = ''
+  if (chosen) chosenBy = which === 'end' || b.travelBy === props.me ? 'You' : b.travelBy
   return {
     fromName: a.name, toName: b.name, from: { lat: a.lat, lon: a.lon }, to: { lat: b.lat, lon: b.lon },
     leaveText: formatHour(Math.max(0, leave)), options, recommended: rec.option.mode, reason: rec.reason,
-    chosen: '', chosenBy: '', readonly: true,
+    chosen, chosenBy,
     group: tp.group, maxWalk: tp.maxWalk, modes: tp.modes, priority: tp.priority,
     checking: !!asking.value[legKey(a, b)]
   }
 }
 // A way was chosen (or null = back to the suggestion): save it on the stop and re-time the day
 function chooseTravel(mode) {
-  const leg = legOpen.value
+  let leg = legOpen.value
   if (!leg) return
+  if (leg.anchor === 'end') return chooseEndTravel(mode)
+  // From the hotel/airport to the first stop: saved on the first stop, like any other leg
+  if (leg.anchor === 'start') {
+    if (!stopRows.value.length) return
+    leg = { fromId: '@start', toId: stopRows.value[0].stop.id }
+  }
   const travel = mode ? { mode, from: leg.fromId, by: props.me || '' } : null
   const list = []
   let name = ''
@@ -2449,6 +2514,18 @@ function chooseTravel(mode) {
   }
   legOpen.value = null
   explainLocked(items, mode ? TRAVEL_MODES[mode].label + ' to ' + name : 'Suggested way to ' + name)
+}
+// From the last stop back to the hotel/airport: kept for this day in this browser
+function chooseEndTravel(mode) {
+  const rows = stopRows.value
+  const all = { ...endTravel.value }
+  if (mode && rows.length) all[dayShown.value] = { mode, from: rows[rows.length - 1].stop.id }
+  else delete all[dayShown.value]
+  endTravel.value = all
+  try { localStorage.setItem('ip-end-travel', JSON.stringify(all)) } catch (err) { /* private mode */ }
+  legOpen.value = null
+  const name = endAnchor.value ? endAnchor.value.name : 'the end of the day'
+  noteChange((mode ? TRAVEL_MODES[mode].label : 'The suggested way') + ' to ' + name + '.')
 }
 function wasAt(it) {
   if (!previewing.value) return null
@@ -3889,8 +3966,6 @@ watch(
 .ip-chev { color: var(--muted); font-size: 20px; line-height: 1; }
 .ip-drawer-body { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
 .ip-unschedule { margin: 0; padding: 14px; text-align: center; border: 1.5px dashed var(--primary); border-radius: var(--bs-border-radius, 0.375rem); color: var(--primary); font-size: 13px; }
-.ip-vote-rule { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 8px; padding: 10px 12px; border-radius: var(--bs-border-radius, 0.375rem); background: var(--warn-bg); color: var(--warn-ink); font-size: 13px; line-height: 1.4; }
-.ip-vote-rule svg { flex: none; margin-top: 1px; }
 .ip-group { display: flex; flex-direction: column; gap: 8px; }
 .ip-group + .ip-group { margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
 .ip-group-head { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
@@ -4924,16 +4999,6 @@ watch(
   font-size: 13px;
   line-height: 1.45;
   color: var(--sb-ink-soft);
-}
-.ip-vote-rule {
-  border: 2px solid var(--sb-ink);
-  border-radius: 12px;
-  background: #fff1cf;
-  color: var(--sb-ink);
-  font-weight: 500;
-}
-.ip-vote-rule svg {
-  color: var(--sb-ink);
 }
 .ip-unschedule {
   border: 2.5px dashed var(--sb-teal);

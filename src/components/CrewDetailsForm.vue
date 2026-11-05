@@ -47,9 +47,10 @@
       <label class="cd-label" :for="uid + '-phone'">WhatsApp</label>
       <PhoneInput :id="uid + '-phone'" v-model="form.phone" />
     </template>
-    <p v-else-if="settingsNote" class="cd-note">
-      <AppIcon name="utensils" :size="14" /> Food needs and <AppIcon name="message" :size="14" /> WhatsApp come from your <router-link to="/settings">Settings</router-link>, so you only fill them in once.
-    </p>
+    <div v-else-if="settingsNote" class="cd-note">
+      <p class="mb-0"><AppIcon name="utensils" :size="14" /> Food needs and <AppIcon name="message" :size="14" /> WhatsApp come from your Settings, so you only fill them in once.</p>
+      <router-link to="/settings" class="cd-settings-btn"><AppIcon name="settings" :size="15" /> Edit in Settings <span aria-hidden="true">→</span></router-link>
+    </div>
 
     <p v-if="error" class="cd-err" role="alert">{{ error }}</p>
     <div class="cd-btns">
@@ -319,11 +320,38 @@ function submit() {
   font-weight: 600;
   color: var(--sb-ink-soft);
 }
-.cd-note a {
+.cd-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* A clear button to Settings (it was a small underlined word) */
+.cd-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 7px 14px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  box-shadow: 0 3px 0 var(--sb-ink);
   color: var(--sb-ink);
   font-weight: 800;
-  text-decoration-color: var(--sb-amber);
-  text-decoration-thickness: 3px;
+  font-size: 13.5px;
+  text-decoration: none;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.cd-settings-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--sb-ink);
+  color: var(--sb-ink);
+}
+.cd-settings-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--sb-ink);
 }
 .cd-err {
   margin: 10px 0 0;
