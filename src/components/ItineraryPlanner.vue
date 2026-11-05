@@ -1465,22 +1465,26 @@ const travelPrefs = computed(() => ({
   real: realLegs.value
 }))
 // Real travel times for one leg (in the background lane; kept by the server, so it's quick next time)
+const legJobs = {} // legKey -> the lookup on its way (so a caller can wait for it)
 function fetchLeg(a, b) {
   a = exitOf(a) // after a flight: from the airport it lands at
-  if (!a || !b || a.lat == null || b.lat == null || sampleMode.value) return
+  if (!a || !b || a.lat == null || b.lat == null || sampleMode.value) return Promise.resolve()
   const key = legKey(a, b)
-  if (realLegs.value[key] || asking.value[key]) return
+  if (realLegs.value[key]) return Promise.resolve()
+  if (legJobs[key]) return legJobs[key]
   asking.value = { ...asking.value, [key]: true }
-  axios.get('/api/travel/leg', { params: { from: a.lat + ',' + a.lon, to: b.lat + ',' + b.lon }, background: true, timeout: 30000 })
+  legJobs[key] = axios.get('/api/travel/leg', { params: { from: a.lat + ',' + a.lon, to: b.lat + ',' + b.lon }, background: true, timeout: 30000 })
     .then((res) => {
       if (res.data && Object.keys(res.data).length) realLegs.value = { ...realLegs.value, [key]: res.data }
     })
     .catch(() => {})
     .finally(() => {
+      delete legJobs[key]
       const copy = { ...asking.value }
       delete copy[key]
       asking.value = copy
     })
+  return legJobs[key]
 }
 // Preferences are constraints for Optimize; they do not change saved itinerary times by themselves.
 const opts = computed(() => ({
@@ -2184,7 +2188,7 @@ function otherCityOnDay(w) {
   return null
 }
 
-function scheduleWish(w, slot, confirmed = false, roomOk = false) {
+async function scheduleWish(w, slot, confirmed = false, roomOk = false) {
   if (previewing.value) return
   // Two cities on one day? Ask first (travel between cities eats the day)
   const other = confirmed ? null : otherCityOnDay(w)
@@ -2204,6 +2208,9 @@ function scheduleWish(w, slot, confirmed = false, roomOk = false) {
   const fresh = toWork({ id: '__new', name: w.name, address: w.address || null, outdoor: !!w.outdoor, duration: w.duration || 1.5, lat: w.lat, lon: w.lon, hour: 0 })
   const list = stopRows.value.map((it) => it.stop)
   list.splice(slot, 0, fresh)
+  // Real travel times to and from the new stop first: an unknown leg counts as 0 min,
+  // which would put the next stop too early
+  await Promise.all([fetchLeg(list[slot - 1], fresh), fetchLeg(fresh, list[slot + 1])])
   const items = retime(list)
   const changes = items.map((it) => ({ id: it.stop.id, hour: it.start }))
   // Doesn't fit before the day ends? Suggest a day with room (or add it anyway)
