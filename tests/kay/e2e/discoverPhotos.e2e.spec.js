@@ -2,7 +2,7 @@
  E2E tests for my two features, done the way a user uses them: Discover and Photos.
  Playwright starts the Vue app with `pnpm dev` (see playwright.config.js).
  Test 2 also needs the Express server + MongoDB running, and the test account, like the itinerary tests:
-   E2E_USERNAME=... E2E_PASSWORD=... pnpm exec playwright test e2e/discoverPhotos.e2e.spec.js
+   E2E_USERNAME=... E2E_PASSWORD=... pnpm exec playwright test tests/kay
  Each test has 3 stages: (1) setup: go to the page, (2) actions, (3) assert.
 
  | Test | Feature  | User actions                                                   | Expected result                                   |
@@ -65,7 +65,7 @@ test('Test2: user can upload a photo to a new album and delete it', async ({ pag
   await expect(page.getByText(/No photos here yet|Start the shared roll/)).toBeVisible()
 
   // (2) actions: upload a photo (it goes into the open album)
-  await page.locator('input[type="file"][accept^="image/jpeg"]').setInputFiles('e2e/fixtures/test-photo.jpg')
+  await page.locator('input[type="file"][accept^="image/jpeg"]').setInputFiles('tests/kay/e2e/fixtures/test-photo.jpg')
 
   // (3) assert: the upload finished and the photo shows
   await expect(page.getByText('Added ✓')).toBeVisible()

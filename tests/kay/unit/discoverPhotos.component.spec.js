@@ -39,14 +39,14 @@ vi.mock('axios', () => ({
 }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: () => {} }) }))
 // the 3D map never loads in tests
-vi.mock('../../services/maplibre.js', () => ({ loadMapLibre: () => new Promise(() => {}) }))
-vi.mock('../../photoCache.js', () => ({ PHOTO_CACHE: {}, photoUrl: (url) => url, loadCityPhotos: () => {} }))
+vi.mock('../../../src/services/maplibre.js', () => ({ loadMapLibre: () => new Promise(() => {}) }))
+vi.mock('../../../src/photoCache.js', () => ({ PHOTO_CACHE: {}, photoUrl: (url) => url, loadCityPhotos: () => {} }))
 
 import { mount, flushPromises } from '@vue/test-utils'
 import axios from 'axios'
-import DiscoverView from '../../views/DiscoverView.vue'
-import PhotosView from '../PhotosView.vue'
-import { shortlist } from '../../shortlist.js'
+import DiscoverView from '../../../src/views/DiscoverView.vue'
+import PhotosView from '../../../src/components/PhotosView.vue'
+import { shortlist } from '../../../src/shortlist.js'
 
 describe('DiscoverView', () => {
 

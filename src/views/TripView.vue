@@ -4,13 +4,13 @@
     <LoadingSkeleton v-if="loading" variant="page" :count="3" label="Loading your trip…" />
 
     <div v-else-if="loadError" class="alert alert-warning">
-      {{ loadError }} <router-link to="/home">Back to your trips</router-link>
+      {{ loadError }}
+      <button v-if="loadRetry" type="button" class="btn btn-link p-0 align-baseline" @click="$router.go(0)">Try again</button>
+      <span v-if="loadRetry"> · </span>
+      <router-link to="/home">Back to your trips</router-link>
     </div>
 
     <template v-else>
-      <!-- The destination photo as a taped polaroid, captioned with the first city -->
-      <div class="trip-stage" :style="stageStyle" :data-caption="(itineraryInfo.destinations[0] || '').split(', ')[0]" aria-hidden="true"></div>
-
       <!-- Top bar: back, trip name, every section of the trip. Stays on screen while scrolling. -->
       <!-- One line: back, trip name, then the tabs. As the window narrows, tabs move into "More" one by one;
            on phones they become one menu button. -->
@@ -25,6 +25,9 @@
 
       <!-- Trip title -->
       <header class="trip-head">
+        <!-- The destination photo as a taped polaroid, captioned with the first city.
+             (Inside the title block, so its top lines up with the title's whatever the bar above is doing) -->
+        <div class="trip-stage" :style="stageStyle" :data-caption="(itineraryInfo.destinations[0] || '').split(', ')[0]" aria-hidden="true"></div>
         <h1 class="trip-title">{{ headerTitle }}</h1>
         <!-- The route, place to place with dotted lines (like a travel journal) -->
         <ol class="trip-route" :aria-label="'Route: ' + itineraryInfo.destinations.map((d) => d.split(', ')[0]).join(', then ')">
@@ -275,6 +278,7 @@ export default {
       trip: null,
       loading: true,
       loadError: '',
+      loadRetry: false, // the load failed in a way trying again could fix
       showShare: false,
       showEdit: false, // Edit trip dialog
       editRev: 0,      // goes up after each edit, to reload the itinerary
@@ -425,18 +429,25 @@ export default {
     if (this.showGuide) this.$router.replace({ query: {} })
     if (!this.isDemo) {
       try {
-        const res = await axios.get('/api/trips/' + this.id)
+        // (a time limit, so a server that doesn't answer shows a message instead of loading forever)
+        const res = await axios.get('/api/trips/' + this.id, { timeout: 30000 })
         this.trip = res.data
       } catch (err) {
-        this.loadError = err.response && err.response.status === 404 ? 'That trip could not be found.' : 'Could not load this trip. Is the server running?'
+        const notFound = err.response && err.response.status === 404
+        this.loadError = notFound ? 'That trip could not be found.'
+          : err.code === 'ECONNABORTED' ? 'The server is taking too long to answer (it may be starting up).'
+            : 'Could not load this trip. Is the server running?'
+        this.loadRetry = !notFound
       }
     }
     this.loading = false
     this.loadPhoto()
     document.body.classList.add('sb-page') // dropdown menus (opened on <body>) take the scrapbook look
+    window.addEventListener('trip-conflict', this.reloadTrip) // a save clashed with another device's
   },
   beforeUnmount() {
     document.body.classList.remove('sb-page')
+    window.removeEventListener('trip-conflict', this.reloadTrip)
   },
   methods: {
     // Planner added or removed a day (or undid that): save the trip's new end date
@@ -1144,11 +1155,14 @@ export default {
   color: var(--sb-ink);
 }
 /* The destination photo: a taped polaroid on the right of the header, captioned in handwriting */
+/* Its top-left corner meets the top of the title's letters: the title block's top padding, plus the
+   space above the letters (about 0.11em of the title's size), plus what the 3° tilt lifts the left corner
+   (about 0.026 × the width) */
 .trip-stage {
-  top: 96px;
+  top: var(--stage-top);
   left: auto;
   right: clamp(16px, 5vw, 72px);
-  width: clamp(220px, 22vw, 300px);
+  width: var(--stage-w);
   height: auto;
   aspect-ratio: 5 / 4;
   margin-left: 0;
@@ -1232,8 +1246,11 @@ export default {
 
 /* Title block on the page, left of the polaroid */
 .trip-head {
+  --stage-w: clamp(220px, 22vw, 300px);
+  --stage-top: calc(64px + 4px + 0.11 * clamp(2.6rem, 6vw, 4.2rem) + 0.026 * var(--stage-w)); /* (+4px: the frame's outline) */
   color: var(--sb-ink);
-  min-height: 300px; /* the summary cards always start below the polaroid */
+  /* the summary cards always start below the polaroid: its top, its height (4:5 of its width), its tilt and shadow */
+  min-height: calc(var(--stage-top) + 0.826 * var(--stage-w) + 12px);
   padding-top: 64px;
   padding-right: clamp(16px, 34vw, 440px); /* clear of the polaroid */
 }
@@ -1496,9 +1513,11 @@ export default {
 
 /* Tablets: the polaroid gets small and sits beside the title */
 @media (max-width: 900px) {
+  .trip-head {
+    --stage-w: 150px;
+    --stage-top: calc(40px + 4px + 0.11 * clamp(2.6rem, 6vw, 4.2rem) + 0.026 * var(--stage-w)); /* (top padding is 40px here) */
+  }
   .trip-stage {
-    top: 84px;
-    width: 150px;
     border-width: 7px;
     border-bottom-width: 30px;
   }

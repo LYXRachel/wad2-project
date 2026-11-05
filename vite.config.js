@@ -25,5 +25,10 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:3000'
     }
+  },
+  // Unit tests live in tests/<person>/ (browser tests in tests/<person>/e2e/ run with Playwright)
+  test: {
+    include: ['tests/**/*.spec.js'],
+    exclude: ['tests/**/e2e/**', '**/node_modules/**']
   }
 })

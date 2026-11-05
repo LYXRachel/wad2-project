@@ -71,6 +71,13 @@ const tripSchema = new mongoose.Schema({
   }, { timestamps: true })]
 }, { timestamps: true })
 
+// A save based on an old copy fails (see VersionError in index.js) instead of quietly overwriting
+// someone else's change. Comments are left out: they're only added or edited one at a time, and
+// Mongoose merges those safely, so two people commenting at once both get saved. (Mongoose 8 ignores
+// { exclude: [...] } here, so the guarded fields are listed instead; the timestamps change on every save.)
+tripSchema.set('optimisticConcurrency', Object.keys(tripSchema.paths)
+  .filter((p) => !['_id', '__v', 'createdAt', 'updatedAt'].includes(p) && p !== 'comments' && !p.startsWith('comments.')))
+
 // Indexes for the lookups the app makes often (without them MongoDB reads every trip)
 tripSchema.index({ 'members.user': 1 })        // "trips I'm on"
 tripSchema.index({ 'pendingInvites.user': 1 }) // "trips I'm invited to"

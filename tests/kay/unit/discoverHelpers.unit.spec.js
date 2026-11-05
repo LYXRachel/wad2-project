@@ -12,7 +12,7 @@
 */
 
 import { describe, it, expect } from 'vitest'
-import { codeForDestination } from '../../destinations.js'
+import { codeForDestination } from '../../../src/destinations.js'
 
 describe('TestSuite: codeForDestination', () => {
 

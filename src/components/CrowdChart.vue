@@ -3,7 +3,7 @@
        <CrowdChart :forecast="f" day-name="Tuesday" :planned-hour="14" :suggest-hour="21" /> -->
   <figure class="crowd-chart" data-testid="crowd-chart">
     <figcaption class="crowd-chart-caption">
-      <span>{{ forecast.estimated ? 'Estimated crowds' : 'Crowds' }} on {{ dayName }} (hover a bar)</span>
+      <span>Crowds on {{ dayName }} (hover a bar)</span>
       <span class="crowd-chart-readout" aria-live="polite">{{ readout }}</span>
     </figcaption>
 
@@ -64,7 +64,10 @@ export default {
       const day = this.forecast.days[this.dayName]
       const list = []
       if (!day || day.closed) return list
-      for (let h = Math.floor(day.open); h < Math.ceil(day.close); h++) {
+      // No opening hours known (open/close null): show the whole day instead of no bars
+      const open = day.open != null ? Math.floor(day.open) : 0
+      const close = day.close != null ? Math.ceil(day.close) : 24
+      for (let h = open; h < close; h++) {
         let kind = 'base'
         if (h === this.plannedHour) kind = 'planned'
         if (h === this.suggestHour) kind = 'suggested'

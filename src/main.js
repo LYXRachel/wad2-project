@@ -3,7 +3,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import axios from 'axios'
-import { setOffline } from './notify.js'
+import { setOffline, notify } from './notify.js'
 import './assets/style.css'
 import './assets/playful.css' // the playful look: colours, chunky buttons, cards, animations
 import './assets/scrapbook.css' // the scrapbook look shared by the trip tabs (tokens + .sb-* pieces)
@@ -58,6 +58,15 @@ router.beforeEach((to, from) => {
   pending.clear()
 })
 
+// ---------- Saves give up after 30 s ----------
+// So a server that doesn't answer shows "could not save" instead of a save that never finishes.
+// (Photo uploads are left alone: big files on a slow connection can take longer.)
+axios.interceptors.request.use((config) => {
+  const method = (config.method || 'get').toLowerCase()
+  if (method !== 'get' && !config.timeout && !(config.data instanceof FormData)) config.timeout = 30000
+  return config
+})
+
 // Can we reach the server? Any proper answer means yes; no answer means no.
 // AppToast shows a bar while it's down, so failed background refreshes aren't silent.
 axios.interceptors.response.use(
@@ -78,6 +87,12 @@ axios.interceptors.response.use(
     const down = !r || (r.status >= 500 && !(r.data && typeof r.data === 'object' && r.data.message))
     if (down) setOffline(true)
     else setOffline(false)
+    // A save clashed with another device's (server/index.js, VersionError). Say so, and let the open
+    // trip page load the latest version (TripView listens for 'trip-conflict').
+    if (r && r.status === 409 && r.data && r.data.conflict) {
+      notify(r.data.message)
+      window.dispatchEvent(new CustomEvent('trip-conflict'))
+    }
     return Promise.reject(err)
   }
 )

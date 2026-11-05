@@ -330,7 +330,7 @@
     <!-- Teleport: the panel sits above the whole page, including the sticky top bar -->
     <Teleport to="body">
     <ExpenseForm v-if="showForm" :expense="editing" :travellers="travellers" :me="me" :home-currency="home"
-      :last-currency="lastCurrency" :rates="rates" :default-date="defaultDate"
+      :last-currency="lastCurrency" :rates="rates" :default-date="defaultDate" :saving="savingExpense"
       @save="saveExpense" @delete="deleteExpense" @close="showForm = false" />
     </Teleport>
 
@@ -370,6 +370,7 @@ export default {
     const saved = demo ? demoExpenses() : this.initial || {}
     return {
       CATEGORIES,
+      savingExpense: false, // an expense is being saved (the form waits for it)
       CURRENCIES,
       currencyOptions: currencyOptions(),
       categoryOptions: [{ value: '', label: 'All categories', icon: '🗂' }].concat(CATEGORIES.map((c) => ({ value: c.key, label: c.label, icon: c.icon }))),
@@ -719,8 +720,11 @@ export default {
         this.showForm = false
         return
       }
+      if (this.savingExpense) return // the first click is still saving
+      this.savingExpense = true
       const exists = this.state.items.some((x) => x.id === expense.id)
       const ok = exists ? await this.send('put', '/items/' + expense.id, expense) : await this.send('post', '/items', expense)
+      this.savingExpense = false
       if (ok) this.showForm = false
     },
 

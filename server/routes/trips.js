@@ -200,7 +200,12 @@ function cleanWishlist(list) {
     if (!Number.isFinite(duration) || duration <= 0 || duration > 24) duration = null
     const bookedVia = typeof w.bookedVia === 'string' && w.bookedVia.trim() ? w.bookedVia.trim().slice(0, 40) : null
     const link = typeof w.link === 'string' && /^https?:\/\//i.test(w.link.trim()) ? w.link.trim().slice(0, 500) : null
-    out.push({ id: String(w.id || new mongoose.Types.ObjectId()).slice(0, 40), name, address, outdoor: !!w.outdoor, type, city, votes, duration, bookedVia, link })
+    // Where it is on the map (picked from a suggestion, a pin or a Maps link). null = not set yet
+    const lat = w.lat === null || w.lat === undefined ? NaN : Number(w.lat)
+    const lon = w.lon === null || w.lon === undefined ? NaN : Number(w.lon)
+    const onMap = Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180
+    out.push({ id: String(w.id || new mongoose.Types.ObjectId()).slice(0, 40), name, address, outdoor: !!w.outdoor, type, city, votes, duration, bookedVia, link,
+      lat: onMap ? lat : null, lon: onMap ? lon : null })
   }
   return out
 }
@@ -405,7 +410,7 @@ router.put('/:id/packing', requireAuth, async (req, res) => {
   res.json({ ok: true, packing })
 })
 
-// PUT /api/trips/:id/journeys  [{ id, from, to, mode, min, date?, by? }]  -> "Other journeys" saved on the trip
+// PUT /api/trips/:id/journeys  [{ id, from, to, mode, min, date?, by?, fromPoint?, toPoint? }]  -> "Other journeys" saved on the trip
 // (trips that aren't between two itinerary stops, e.g. airport -> hotel). Anyone on the trip can edit.
 router.put('/:id/journeys', requireAuth, async (req, res) => {
   if (!Array.isArray(req.body) || req.body.length > 50) return res.status(400).json({ message: 'Journeys are invalid.' })
@@ -420,7 +425,11 @@ router.put('/:id/journeys', requireAuth, async (req, res) => {
     }
     if (from.toLowerCase() === to.toLowerCase()) continue // same place twice: not a journey (dropped, so older ones like that don't block saving)
     const date = typeof j.date === 'string' && DATE_PATTERN.test(j.date) ? j.date : ''
-    journeys.push({ id: text(j.id, 40) || String(new mongoose.Types.ObjectId()), from, to, mode: j.mode, min: Math.round(min), date, by: text(j.by, 40) })
+    // Where it starts and ends on the map (null for journeys saved before places had map points)
+    const at = (p) => (p && Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lon)) && Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180
+      ? { lat: Number(p.lat), lon: Number(p.lon) } : null)
+    journeys.push({ id: text(j.id, 40) || String(new mongoose.Types.ObjectId()), from, to, mode: j.mode, min: Math.round(min), date, by: text(j.by, 40),
+      fromPoint: at(j.fromPoint), toPoint: at(j.toPoint) })
   }
   const trip = await findTripFor(req.userId, req.params.id)
   if (!trip) return res.status(404).json({ message: 'Trip not found.' })
@@ -706,7 +715,7 @@ router.delete('/:id/members/:userId', requireAuth, async (req, res) => {
 })
 
 // PUT /api/trips/:id  { name, destinations: [...], startDate, endDate }  -> Edit trip (organiser only)
-// Moving the whole trip (both dates shifted by the same number of days) moves every stop with it.
+// Moving the whole trip (both dates shifted by the same number of days) moves every stop and expense with it.
 // Otherwise, stops that would end up outside the new dates have to be moved first.
 router.put('/:id', requireAuth, async (req, res) => {
   const trip = await findTripFor(req.userId, req.params.id, true)
@@ -771,6 +780,13 @@ router.put('/:id', requireAuth, async (req, res) => {
   if (shift) {
     trip.stops = stops
     trip.markModified('stops')
+    // Expenses move with the trip too, so each stays on the same trip day
+    if (trip.expenses && Array.isArray(trip.expenses.items)) {
+      for (const e of trip.expenses.items) {
+        if (e.date && DATE_PATTERN.test(e.date)) e.date = new Date((dayNumber(e.date) + shift) * DAY).toISOString().slice(0, 10)
+      }
+      trip.markModified('expenses')
+    }
     trip.version = (trip.version || 0) + 1 // open itineraries reload instead of saving old dates
   }
   await trip.save()

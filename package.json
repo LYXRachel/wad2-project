@@ -4,9 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "vite",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:lam": "vitest run tests/lam",
+    "test:gladys": "vitest run tests/gladys",
+    "test:gladys:e2e": "playwright test tests/gladys",
+    "test:kay": "vitest run tests/kay",
+    "test:kay:e2e": "playwright test tests/kay",
+    "test:e2e": "playwright test",
+    "dev": "vite"
   },
   "keywords": [],
   "author": "",

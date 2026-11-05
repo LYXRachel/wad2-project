@@ -52,6 +52,10 @@ export default {
       },
       immediate: true
     },
+    // Another tab of this browser signed in or opened the app: this tab is signed out (see auth.js)
+    'auth.endedHere'(reason) {
+      if (reason) this.$router.replace({ path: '/login', query: { reason } })
+    },
     $route: {
       handler(to) {
         // Pages with meta.dark (Settings) get a dark page background straight away,

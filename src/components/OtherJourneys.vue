@@ -16,12 +16,12 @@
       <div class="oj-ticket-main">
         <p class="oj-ticket-kicker" aria-hidden="true"><AppIcon name="plane" :size="14" /> {{ editing ? 'Changing a journey' : 'Plan a journey' }}</p>
         <div class="oj-route">
-          <PlaceInput id="oj-from" v-model="fromText" label="From" :placeholder="fromHint" :groups="placeGroups" />
+          <PlaceInput id="oj-from" v-model="fromText" v-model:place="fromPlace" label="From" :placeholder="fromHint" :groups="placeGroups" :near="centre" pin />
           <!-- the swap button sits on the dotted flight path between the two places -->
           <div class="oj-path">
             <button type="button" class="oj-swap" aria-label="Swap from and to" title="Swap" @click="swap"><AppIcon name="swap" :size="16" /></button>
           </div>
-          <PlaceInput id="oj-to" v-model="toText" label="To" :placeholder="toHint" :groups="placeGroups" />
+          <PlaceInput id="oj-to" v-model="toText" v-model:place="toPlace" label="To" :placeholder="toHint" :groups="placeGroups" :near="centre" pin />
         </div>
       </div>
       <div class="oj-ticket-stub">
@@ -29,7 +29,7 @@
           <label for="oj-day">Day</label>
           <CustomDropdown id="oj-day" v-model="day" :options="[{ value: '', label: 'Any day' }].concat(dayOptions)" block aria-label="Day" />
         </div>
-        <button type="submit" class="oj-go" :disabled="busy || !fromText.trim() || !toText.trim()">{{ busy ? 'Finding…' : 'Find ways' }} <span aria-hidden="true">→</span></button>
+        <button type="submit" class="oj-go" :disabled="!fromPlace || !toPlace">Find ways <span aria-hidden="true">→</span></button>
       </div>
     </form>
 
@@ -39,8 +39,9 @@
     <div v-if="result" class="oj-result">
       <p class="oj-why">
         <strong>{{ result.fromName }} → {{ result.toName }}</strong><br>
-        We suggest <strong>{{ label(result.recommended) }}</strong>: {{ result.reason }}.
+        <template v-if="result.recommended">We suggest <strong>{{ label(result.recommended) }}</strong>: {{ result.reason }}.</template>
         <span v-if="result.checking"> Checking live routes…</span>
+        <template v-else-if="!result.options.length">No route data for this journey.</template>
       </p>
       <TravelChoices :options="result.options" :recommended="result.recommended" :group="group" :maps-url="mapsUrl"
         :chosen="editing ? editing.mode : ''" :chosen-by="editing ? editing.by : ''"
@@ -87,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import AppIcon from './AppIcon.vue'
 import TravelChoices from './TravelChoices.vue'
@@ -95,6 +96,7 @@ import PlaceInput from './PlaceInput.vue'
 import CustomDropdown from './CustomDropdown.vue'
 import { TRAVEL_MODES as MODES, travelOptions, recommendTravel, legKey, DEFAULT_TRAVEL, haversineKm } from '../dayOptimizer.js'
 import { notify, errorText } from '../notify.js'
+import { cityCentre } from '../services/cityCentre.js'
 import { AIRPORTS } from '../../shared/airports.js'
 import DISCOVER from '../data/discoverCities.json'
 
@@ -120,8 +122,12 @@ function shortAirport(name) {
 
 const fromText = ref('')
 const toText = ref('')
+const fromPlace = ref(null) // the real places picked: { name, address, lat, lon }
+const toPlace = ref(null)
+// Search for places around the trip's first city
+const centre = ref(null)
+cityCentre(props.destinations[0]).then((c) => (centre.value = c))
 const day = ref('')
-const busy = ref(false)
 const error = ref('')
 const result = ref(null)
 const journeys = ref(props.initialJourneys.slice())
@@ -144,7 +150,7 @@ const placeGroups = computed(() => {
   const hotels = []
   for (const st of props.stays) {
     if (hotels.some((h) => h.label === st.name)) continue
-    hotels.push({ label: st.name, sub: st.from ? 'From ' + dayLabel(st.from) : st.city ? st.city.split(', ')[0] : '' })
+    hotels.push({ label: st.name, sub: st.from ? 'From ' + dayLabel(st.from) : st.city ? st.city.split(', ')[0] : '', place: pointOf(st) })
   }
   if (hotels.length) groups.push({ label: hotels.length === 1 ? 'Your hotel' : 'Your hotels', icon: 'door', items: hotels })
   // wishlist places (excludes places already on the plan)
@@ -158,7 +164,8 @@ const placeGroups = computed(() => {
     if (!isOnPlan && !wishlistItems.some((x) => x.label === w.name)) {
       wishlistItems.push({
         label: w.name,
-        sub: w.city ? w.city.split(', ')[0] + ' · Wishlist' : 'Wishlist item'
+        sub: w.city ? w.city.split(', ')[0] + ' · Wishlist' : 'Wishlist item',
+        place: pointOf(w)
       })
     }
   }
@@ -169,21 +176,20 @@ const placeGroups = computed(() => {
   const stops = []
   for (const s of props.stops) {
     if (!s.name || stops.some((x) => x.label === s.name)) continue
-    stops.push({ label: s.name, sub: s.date ? dayLabel(s.date) : '' })
+    stops.push({ label: s.name, sub: s.date ? dayLabel(s.date) : '', place: pointOf(s) })
   }
   if (stops.length) groups.push({ label: 'On your plan', icon: 'map-pin', items: stops })
   // airports & cities
-  const cities = []
+  // (other airports: type the airport's name to search for it)
   const airports = []
-  for (const a of props.myAirports) airports.push({ label: a.name, sub: 'Your flight' })
-  for (const d of props.destinations) {
-    cities.push({ label: d, sub: '' })
-    if (!props.myAirports.length) airports.push({ label: d.split(', ')[0] + ' Airport', sub: d })
-  }
+  for (const a of props.myAirports) airports.push({ label: a.name, sub: 'Your flight', place: pointOf(a) })
   if (airports.length) groups.push({ label: 'Airports', icon: 'plane', items: airports })
-  if (cities.length) groups.push({ label: 'Cities', icon: 'landmark', items: cities })
   return groups
 })
+// A trip place as a picked place (null when it has no map point)
+function pointOf(p) {
+  return p && p.lat != null && p.lon != null ? { name: p.name, address: p.address || '', lat: p.lat, lon: p.lon } : null
+}
 // Example text in the empty boxes, from this trip
 // The airport for a destination: its own one from the built-in list, else the closest to the city
 // (e.g. Kyoto has no airport, so it suggests Osaka Itami)
@@ -209,28 +215,6 @@ function nearestAirportName(destination) {
 // (an airport from the built-in list near the first destination: Kyoto has no airport of its own)
 const fromHint = computed(() => 'e.g. ' + (nearestAirportName(props.destinations[0]) || 'the airport'))
 const toHint = computed(() => (props.stays.length ? 'e.g. ' + props.stays[0].name : 'e.g. your hotel'))
-// What to look a typed place up by: a stop's address or the hotel's, when it's one of those
-function lookupText(text) {
-  const t = text.trim()
-  // check wishlist
-  const wish = props.wishlist.find((x) => x.name === t)
-  if (wish && wish.address) return wish.address
-  // check hotel
-  const hotel = props.stays.find((x) => x.name === t)
-  if (hotel && hotel.address) return hotel.address
-  // check stops
-  const stop = props.stops.find((s) => s.name === t)
-  return stop && stop.address ? stop.address : t
-}
-// Hotels and my airports already have a map position: no lookup needed
-function knownPlace(text) {
-  const t = text.trim()
-  const p = props.wishlist.find((x) => x.name === t) || props.stays.find((x) => x.name === t) || 
-    props.myAirports.find((x) => x.name === t)
-            
-  return p && p.lat != null ? { lat: p.lat, lon: p.lon } : null
-}
-
 const dayOptions = computed(() => {
   const list = []
   if (!props.startDate || !props.endDate) return list
@@ -254,6 +238,9 @@ function swap() {
   const t = fromText.value
   fromText.value = toText.value
   toText.value = t
+  const p = fromPlace.value
+  fromPlace.value = toPlace.value
+  toPlace.value = p
 }
 
 const travelPrefs = computed(() => ({
@@ -264,62 +251,41 @@ const travelPrefs = computed(() => ({
   real: {}
 }))
 
-async function locate(text) {
-  const known = knownPlace(text)
-  if (known) return known
-  const res = await axios.get('/api/safety/locate', { params: { place: lookupText(text), near: props.destinations[0] || undefined }, timeout: 20000 })
-  return { lat: res.data.lat, lon: res.data.lon }
-}
-
 function build(from, to, real, checking) {
   const tp = { ...travelPrefs.value, real }
   const options = travelOptions(from, to, tp)
   const rec = recommendTravel(options, tp)
-  return { fromName: fromText.value.trim(), toName: toText.value.trim(), from, to, options, recommended: rec.option.mode, reason: rec.reason, checking }
+  return { fromName: fromText.value.trim(), toName: toText.value.trim(), from, to, options, recommended: rec ? rec.option.mode : '', reason: rec ? rec.reason : '', checking }
 }
 
-// "V&A Waterfront" and "v&a waterfront " are the same place
-function samePlace(a, b) {
-  return a.trim().toLowerCase().replace(/\s+/g, ' ') === b.trim().toLowerCase().replace(/\s+/g, ' ')
-}
 const SAME_PLACE = 'From and To are the same place. Choose two different places.'
-
 async function findWays() {
   error.value = ''
   result.value = null
-  if (samePlace(fromText.value, toText.value)) {
-    error.value = SAME_PLACE
-    return
-  }
-  busy.value = true
-  let from = null
-  let to = null
-  try {
-    [from, to] = await Promise.all([locate(fromText.value), locate(toText.value)])
-  } catch (err) {
-    busy.value = false
-    error.value = err.response && err.response.status === 404
-      ? "We couldn't find one of those places. Try adding the city, e.g. \"Namba Station, Osaka\"."
-      : errorText(err, 'Place search is busy right now. Try again in a moment.')
+  const from = fromPlace.value
+  const to = toPlace.value
+  if (!from || !to) {
+    error.value = 'Pick both places from the suggestions, paste a Google Maps link, or drop a pin.'
     return
   }
   // Two names for the same spot (under 100 m apart): nothing to travel
   if (haversineKm(from, to) < 0.1) {
-    busy.value = false
     error.value = SAME_PLACE
     return
   }
-  // Show the estimate straight away, then the live routes when they arrive
+  // "Checking" straight away, then the real routes when they arrive
   result.value = build(from, to, {}, true)
-  busy.value = false
   try {
     const res = await axios.get('/api/travel/leg', { params: { from: from.lat + ',' + from.lon, to: to.lat + ',' + to.lon }, timeout: 20000 })
     result.value = build(from, to, { [legKey(from, to)]: res.data }, false)
   } catch (err) {
-    if (result.value) result.value.checking = false // keep the estimate
+    if (result.value) result.value.checking = false // no route data
   }
 }
-
+// A different place picked: the ways shown were for the old ones
+watch([fromPlace, toPlace], () => {
+  if (result.value && (result.value.from !== fromPlace.value || result.value.to !== toPlace.value)) result.value = null
+})
 function mapsUrl(mode) {
   const r = result.value
   return 'https://www.google.com/maps/dir/?api=1&origin=' + r.from.lat + ',' + r.from.lon + '&destination=' + r.to.lat + ',' + r.to.lon + '&travelmode=' + MODES[mode].maps
@@ -344,7 +310,8 @@ function saveJourney(mode) {
   const opt = r.options.find((o) => o.mode === mode)
   const old = editing.value
   // Changing a saved journey keeps its place in the list (and its id); a new one goes first
-  const j = { id: old ? old.id : 'j-' + Date.now().toString(36), from: r.fromName, to: r.toName, mode, min: opt.min, date: day.value, by: props.me }
+  const j = { id: old ? old.id : 'j-' + Date.now().toString(36), from: r.fromName, to: r.toName, mode, min: opt.min, date: day.value, by: props.me,
+    fromPoint: { lat: r.from.lat, lon: r.from.lon }, toPoint: { lat: r.to.lat, lon: r.to.lon } }
   let list = [j].concat(journeys.value)
   if (old) {
     list = []
@@ -353,8 +320,7 @@ function saveJourney(mode) {
   store(list, () => {
     result.value = null
     editing.value = null
-    fromText.value = ''
-    toText.value = ''
+    clearPlaces()
     notify((old ? 'Journey updated: ' : 'Journey saved: ') + j.from + ' → ' + j.to + ' by ' + label(mode) + '.', null, 'ok')
   })
 }
@@ -363,16 +329,25 @@ function editJourney(j) {
   editing.value = j
   fromText.value = j.from
   toText.value = j.to
+  // Journeys saved before places had map points: pick the places again
+  fromPlace.value = j.fromPoint ? { name: j.from, address: '', ...j.fromPoint } : null
+  toPlace.value = j.toPoint ? { name: j.to, address: '', ...j.toPoint } : null
   day.value = j.date || ''
   if (formEl.value) formEl.value.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
-  findWays()
+  if (fromPlace.value && toPlace.value) findWays()
+  else error.value = 'This journey was saved without map points. Pick From and To again, then Save.'
+}
+function clearPlaces() {
+  fromText.value = ''
+  toText.value = ''
+  fromPlace.value = null
+  toPlace.value = null
 }
 function cancelEdit() {
   editing.value = null
   result.value = null
   error.value = ''
-  fromText.value = ''
-  toText.value = ''
+  clearPlaces()
   day.value = ''
 }
 function removeJourney(j) {
@@ -433,7 +408,7 @@ function removeJourney(j) {
 /* From — swap — To */
 .oj-route {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
 }
 .oj-field {
@@ -481,6 +456,7 @@ function removeJourney(j) {
   position: relative;
   flex: 0 0 64px;
   height: 48px;
+  margin-top: 23px; /* below the From / To labels: level with the place boxes */
   display: grid;
   place-items: center;
 }
@@ -825,6 +801,7 @@ function removeJourney(j) {
   .oj-path {
     flex-basis: 40px;
     height: 40px;
+    margin-top: 0;
   }
   .oj-path::before {
     left: 50%;

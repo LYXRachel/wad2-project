@@ -5,7 +5,7 @@
 //
 //   import { getForecast, suggestSlot, crowdLevel } from '../crowd.js'
 //
-//   const forecast = await getForecast('N Seoul Tower', '105 Namsangongwon-gil, Seoul')
+//   const forecast = await getForecast({ name: 'N Seoul Tower', address: '105 Namsangongwon-gil, Seoul', lat: 37.5512, lon: 126.9882 })
 //   const result = suggestSlot({
 //     forecast,
 //     dayName: 'Tuesday',
@@ -51,8 +51,9 @@ export const DEFAULT_PREFS = {
 }
 
 // Ask our server for a place's forecast (the server caches it in MongoDB)
-export async function getForecast(name, address) {
-  const res = await axios.get('/api/crowd', { params: { name, address }, background: true })
+// place = { name, address, lat, lon }: only places with a map point have crowd data
+export async function getForecast(place) {
+  const res = await axios.get('/api/crowd', { params: { name: place.name, address: place.address, lat: place.lat, lon: place.lon }, background: true })
   return res.data
 }
 
@@ -220,7 +221,6 @@ export function suggestSlot({ forecast, dayName, currentHour = null, duration, b
   }
   parts.push('last entry ' + formatHour(Math.floor(Math.min(day.close, prefs.dayEnd) - hours)))
   if (buffer > 0) parts.push(buffer * 60 + ' min travel kept free')
-  if (forecast.estimated) parts.unshift('estimate')
   result.reason = parts.join(' · ')
 
   return result

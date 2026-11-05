@@ -5,7 +5,6 @@
 //   - asked for in the size the page needs (500 px for a card, 960 for a banner, not the 5-20 MB original),
 //   - downloaded once and kept on disk (server/data/cache/img/), so the next visitor gets it instantly,
 //   - sent with "keep this for a year", so the browser doesn't even ask again.
-// warmPhotos() downloads a list ahead of time (Discover does this when the server starts).
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
@@ -112,18 +111,6 @@ export async function imageRoute(req, res) {
   } catch (err) {
     res.redirect(src)
   }
-}
-
-// Download a list of photos ahead of time, a couple at a time (so it never gets in anyone's way)
-export async function warmPhotos(list, width = 500) {
-  let next = 0
-  async function worker() {
-    while (next < list.length) {
-      const src = list[next++]
-      if (src && allowed(src)) await photoFile(src, width, 'later').catch(() => null)
-    }
-  }
-  await Promise.all([worker(), worker()])
 }
 
 // ---------- country flags ----------
