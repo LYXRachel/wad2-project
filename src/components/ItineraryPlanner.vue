@@ -762,7 +762,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import { optimizeDay, scheduleInOrder, scheduleAsIs, travelMatrix, warningsFor, rainFromBlocks, haversineKm, addMealBreaks, defaultDuration, crowdAt, rainDuring,
-  travelOptions, recommendTravel, travelBetween, legKey, TRAVEL_MODES, DEFAULT_TRAVEL, exitOf } from '../dayOptimizer.js'
+  travelOptions, recommendTravel, travelBetween, legKey, TRAVEL_MODES, DEFAULT_TRAVEL, exitOf, CROWD_LIMIT } from '../dayOptimizer.js'
 import { PLANNER_SAMPLE } from '../dayOptimizerSample.js'
 import { loadLeaflet } from '../services/leaflet.js'
 import EatDrawer from './EatDrawer.vue'
@@ -1451,7 +1451,8 @@ const opts = computed(() => ({
   dayStart: props.prefs.dayStart || 8,
   dayEnd: Math.min(24, props.prefs.dayEnd || 23),
   buffer: props.prefs.travelBuffer || 0,
-  crowdWeight: { low: 0.5, medium: 1, high: 2 }[props.prefs.crowdSensitivity] || 1
+  // "Avoid peak crowds": which crowd level gets a warning (Relaxed never, Balanced 80%+, Strict 55%+)
+  crowdLimit: CROWD_LIMIT[props.prefs.crowdSensitivity] !== undefined ? CROWD_LIMIT[props.prefs.crowdSensitivity] : 80
 }))
 // ---------- where the day starts and ends (hotel or airport) ----------
 // Tonight's hotel and last night's (they differ on the day you change hotel)
@@ -1812,10 +1813,25 @@ watch(() => dayShown.value + '|' + dayOpts.value.dayStart + '|' + dayOpts.value.
   if (outsideFlight()) fitDayToPrefs('Day planned around your flight')
 }), { immediate: true })
 
+// Real travel times between every pair of places on the day (2 lookups at a time: the route service
+// refuses bursts). Optimize Route compares orders, so it needs every pair, not only today's legs.
+async function fetchAllLegs(places) {
+  const mapped = places.filter((p) => p && p.lat != null)
+  const pairs = []
+  for (const a of mapped) for (const b of mapped) if (a !== b) pairs.push([a, b])
+  let next = 0
+  const worker = async () => {
+    while (next < pairs.length) {
+      const [a, b] = pairs[next++]
+      await fetchLeg(a, b)
+    }
+  }
+  await Promise.all([worker(), worker()])
+}
 async function optimize() {
   preview.value = null
   phase.value = 'route'
-  await pause(350)
+  await Promise.all([fetchAllLegs(work.value.concat(anchorList.value)), pause(350)])
   phase.value = 'forecast'
   await pause(350)
   phase.value = 'reorder'
