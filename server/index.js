@@ -85,6 +85,11 @@ app.get('/api/health', (req, res) => {
 // Catch any unexpected error so the server doesn't crash
 // (Express 5 sends errors from async routes here automatically)
 app.use((err, req, res, next) => {
+  // Two devices saved the same trip at the same moment: the second save is refused (see models/trip.js)
+  // instead of quietly overwriting the first. The page reloads the trip and the person tries again.
+  if (err.name === 'VersionError') {
+    return res.status(409).json({ conflict: true, message: 'Someone else changed this trip at the same moment, so your change was not saved. The latest version is loaded: please try again.' })
+  }
   console.error(err)
   res.status(500).json({ message: 'Something went wrong on the server.' })
 })

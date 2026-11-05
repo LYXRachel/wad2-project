@@ -426,9 +426,11 @@ export default {
     this.loading = false
     this.loadPhoto()
     document.body.classList.add('sb-page') // dropdown menus (opened on <body>) take the scrapbook look
+    window.addEventListener('trip-conflict', this.reloadTrip) // a save clashed with another device's
   },
   beforeUnmount() {
     document.body.classList.remove('sb-page')
+    window.removeEventListener('trip-conflict', this.reloadTrip)
   },
   methods: {
     // Planner added or removed a day (or undid that): save the trip's new end date
