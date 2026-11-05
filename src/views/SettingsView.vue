@@ -1022,7 +1022,7 @@ async function deleteAccount() {
 .st-page .st :deep(.dd.open .dd-chevron) {
   color: var(--brass-dark);
 }
-.st-page .st :deep(.dd-value.placeholder) {
+.st-page .st :deep(.dd-value.dd-unset) {
   color: var(--muted);
 }
 /* food needs */
@@ -1886,7 +1886,7 @@ async function deleteAccount() {
 .st-page .st :deep(.dd.open .dd-chevron) {
   color: var(--sb-ink);
 }
-.st-page .st :deep(.dd-value.placeholder) {
+.st-page .st :deep(.dd-value.dd-unset) {
   color: rgba(18, 50, 74, 0.55);
 }
 .st-page .st :deep(.dt),

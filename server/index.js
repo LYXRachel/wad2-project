@@ -97,7 +97,8 @@ app.use((err, req, res, next) => {
 // Connect to MongoDB, then start the server
 const PORT = process.env.PORT || 3000
 
-mongoose.connect(process.env.MONGODB_URI)
+// Give up after 8 s (instead of Mongoose's 30 s) so a blocked database fails clearly, not at Vercel's 30 s limit
+mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 8000 })
   .then(async () => {
     console.log('Connected to MongoDB')
     // Make the database's indexes match the User model
