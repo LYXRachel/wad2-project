@@ -1196,7 +1196,7 @@ function toWork(s) {
     return {
       id: s.id, name: s.name, address: null, hour: s.hour, outdoor: false, locked: true, kind: 'flight', flight: s.flight,
       duration: s.duration || 2, lat: s.flight.from.lat, lon: s.flight.from.lon, endLat: s.flight.to.lat, endLon: s.flight.to.lon,
-      crowd: null, popular: false, open: null, close: null, travelMode: null, travelFrom: null, travelBy: ''
+      crowd: null, open: null, close: null, travelMode: null, travelFrom: null, travelBy: ''
     }
   }
   const c = s.lat != null ? { lat: s.lat, lon: s.lon } : null // no map point: location not set yet
@@ -1206,7 +1206,7 @@ function toWork(s) {
     // Your own time if you set one, else the place's typical visit time, else a guess from what it is
     duration: s.duration || (s.forecast && s.forecast.durationDefault) || defaultDuration(s),
     lat: c ? c.lat : null, lon: c ? c.lon : null,
-    crowd: crowdCurve(s.forecast), popular: !!c || !!s.address, // a place we found on the map gets the typical crowd curve
+    crowd: crowdCurve(s.forecast), // real crowd data only (none: no crowd shown)
     open: day && !day.closed ? day.open : null, close: day && !day.closed ? day.close : null, closedToday: !!(day && day.closed),
     // How the group chose to get here (only counts when coming from that same stop)
     travelMode: s.travel ? s.travel.mode : null, travelFrom: s.travel ? s.travel.from : null, travelBy: s.travel ? s.travel.by : ''
@@ -2193,9 +2193,14 @@ async function scheduleWish(w, slot, confirmed = false, roomOk = false) {
   const fresh = toWork({ id: '__new', name: w.name, address: w.address || null, outdoor: !!w.outdoor, duration: w.duration || 1.5, lat: w.lat, lon: w.lon, hour: 0 })
   const list = stopRows.value.map((it) => it.stop)
   list.splice(slot, 0, fresh)
-  // Real travel times to and from the new stop first: an unknown leg counts as 0 min,
-  // which would put the next stop too early
-  await Promise.all([fetchLeg(list[slot - 1], fresh), fetchLeg(fresh, list[slot + 1])])
+  // Placed straight away (waiting for real travel times took seconds, and a second tap meanwhile
+  // added the place twice); the real times are looked up in the background, then the day is re-timed
+  const day = dayShown.value
+  Promise.all([fetchLeg(list[slot - 1], fresh), fetchLeg(fresh, list[slot + 1])]).then(() => {
+    const now = stopRows.value.map((it) => it.stop)
+    if (dayShown.value !== day || previewing.value || !now.some((s) => s.name === w.name)) return
+    save(retime(now).map((it) => ({ id: it.stop.id, hour: it.start })))
+  })
   const items = retime(list)
   const changes = items.map((it) => ({ id: it.stop.id, hour: it.start }))
   // Doesn't fit before the day ends? Suggest a day with room (or add it anyway)
@@ -2345,7 +2350,7 @@ function legIcon(it) {
 }
 function legText(it) {
   if (it.mode === 'break') return ''
-  if (it.mode === 'unknown') return '~' + it.travelMin + ' min (place not found on the map)'
+  if (it.mode === 'unknown') return 'Travel time unknown'
   if (!TRAVEL_MODES[it.mode]) return ''
   const e = legEntry(it)
   return TRAVEL_MODES[it.mode].label + ' · ' + it.travelMin + ' min' + (e.live ? '' : ' (est.)')
@@ -2543,13 +2548,13 @@ function crowdOf(it) {
   if (stopKey in crowdOverrides.value) {
     c = crowdOverrides.value[stopKey]
   } else {
-    if (!s.crowd && !s.popular) return { value: null, text: '–', tone: 'none', title: 'No crowd data (no address)' }
+    if (!s.crowd) return { value: null, text: '–', tone: 'none', title: 'No crowd data' }
     c = Math.round(crowdAt(s, it.start))
   }
   const level = c >= 80 ? { text: 'Peak', tone: 'bad' } : c >= 55 ? { text: 'Busy', tone: 'mid' } : { text: 'Quiet', tone: 'ok' }
   const isSimulated = stopKey in crowdOverrides.value
 
-  return { value: c, text: level.text, tone: level.tone, title: level.text + ' at this time, about ' + c + '% of its busiest' + (isSimulated ? ' (Simulated)' : (s.crowd ? '' : ' (estimate)')), isSimulated }
+  return { value: c, text: level.text, tone: level.tone, title: level.text + ' at this time, about ' + c + '% of its busiest' + (isSimulated ? ' (Simulated)' : ''), isSimulated }
 }
 // Rain and crowds already show as the coloured icons, so the card doesn't repeat them as pills
 function cardPills(it) {
@@ -2574,7 +2579,7 @@ function freeTimes(it, isGood) {
       if (o.stop.id !== s.id && h < o.start + (o.stop.duration || 1) + 0.25 && h + dur + 0.25 > o.start) clash = true
     }
     if (clash || !isGood(h)) continue
-    out.push({ hour: h, crowd: s.crowd || s.popular ? Math.round(crowdAt(s, h)) : null })
+    out.push({ hour: h, crowd: s.crowd ? Math.round(crowdAt(s, h)) : null })
   }
   out.sort((a, b) => (a.crowd || 0) - (b.crowd || 0) || a.hour - b.hour)
   return out.slice(0, 3)
@@ -2691,7 +2696,6 @@ function previewCascadeForMove(it, newHour) {
 }
 
 function quieterTimes(it) {
-  // if (!it.stop.crowd && !it.stop.popular) return []
   // const now = crowdAt(it.stop, it.start)
   // 1. Get current crowd level (checks crowdOverrides first, falls back to live data)
   const currentCrowd = crowdOf(it)

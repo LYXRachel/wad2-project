@@ -1,6 +1,6 @@
 // Discover's city photos.
-// - PHOTO_CACHE: city id -> photo link. Kept in this browser too, so after a reload every card
-//   has its photo straight away (no waiting for the server to say which photo each city has).
+// - PHOTO_CACHE: city id -> photo link. Kept in this browser for up to 30 days, so after a reload the
+//   cards show the saved photos while the server is asked again (its answers replace them).
 // - photoUrl(): the copy of a Wikimedia photo that our server keeps, in the size we need.
 // - loadCityPhotos(): asks the server for the photo links it doesn't know yet (all in one go).
 // - warmDiscover(): shortly after the app opens, gets the links and loads the first photos in the
@@ -8,11 +8,13 @@
 import axios from 'axios'
 import DATA from './data/discoverCities.json'
 
-const KEY = 'discover-photos-v2' // (v2: forgets a wrong photo for Bath)
+const KEY = 'discover-photos-v3' // { at, links } (v3: saved with the time, so old links expire)
+const MAX_AGE = 30 * 24 * 3600 * 1000
 
 function loadSaved() {
   try {
-    return JSON.parse(localStorage.getItem(KEY)) || {}
+    const saved = JSON.parse(localStorage.getItem(KEY))
+    return saved && Date.now() - saved.at < MAX_AGE ? saved.links : {}
   } catch (err) {
     return {}
   }
@@ -21,7 +23,7 @@ export const PHOTO_CACHE = loadSaved()
 
 function save() {
   try {
-    localStorage.setItem(KEY, JSON.stringify(PHOTO_CACHE))
+    localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), links: PHOTO_CACHE }))
   } catch (err) {
     // private window / storage full: they're still kept while the app is open
   }
@@ -37,7 +39,8 @@ export function cityId(c) {
   return (c.cityName + '-' + c.country).toLowerCase().replace(/[^a-z]+/g, '-')
 }
 
-// Fills PHOTO_CACHE for every Discover city. The server answers within ~1.5 s with what it knows;
+// Fills PHOTO_CACHE for every Discover city: the server is always asked (its answer wins; with no answer
+// the saved link stays). It answers within ~1.5 s with what it knows;
 // cities it's still looking up are asked for again a few seconds later (onUpdate runs after each answer)
 let loading = null
 export function loadCityPhotos(onUpdate) {
@@ -46,7 +49,7 @@ export function loadCityPhotos(onUpdate) {
   for (const c of DATA.cities) {
     const id = cityId(c)
     if (c.heroImage) PHOTO_CACHE[id] = c.heroImage
-    else if (!PHOTO_CACHE[id]) idOf[c.cityName + ', ' + c.country] = id
+    else idOf[c.cityName + ', ' + c.country] = id
   }
   async function ask(titles) {
     const asks = []
@@ -66,7 +69,7 @@ export function loadCityPhotos(onUpdate) {
     for (const t in idOf) if (!PHOTO_CACHE[idOf[t]]) list.push(t)
     return list
   }
-  loading = ask(missing()).then(() => {
+  loading = ask(Object.keys(idOf)).then(() => {
     loading = null
     // Still looking some up: ask for just those again after 3, 6 and 12 seconds
     let wait = 3000

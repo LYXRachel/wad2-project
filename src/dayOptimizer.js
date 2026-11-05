@@ -11,14 +11,14 @@
 // rainByHour: 24 numbers, chance of rain 0-1 for each hour of the day.
 //
 // How it works:
-//  1. Travel times between every pair of stops (straight-line distance -> walk or transit minutes).
+//  1. Travel times between every pair of stops (real routes from the server; unknown legs count as 0 min).
 //  2. For an order of the flexible stops, build the day: each stop starts when you arrive
 //     (rounded up to 15 min); locked stops keep their time and the others fit around them.
 //  3. Judge that day as the planner shows it (lunch and dinner breaks included): the fewest warnings
 //     wins (closed, outside your day, late, outdoors in rain, crowds, no time to eat); equal warnings
 //     go to the shortest road distance, which doesn't depend on taxi vs bus.
 //  4. Try every order (up to 7 flexible stops = 5040 orders), or 2-opt swaps for longer days.
-//     Travel times are real routes for every pair, or estimates for every pair, never a mix.
+//     Travel times are real routes for every pair, or left out for every pair, never a mix.
 //     Then explain each stop's time with short "reason" pills.
 // =====================================================================
 
@@ -32,8 +32,8 @@ export function haversineKm(a, b) {
 }
 
 // ---------- getting from one stop to the next ----------
-// Every way to get there, with its time. Real times come from the server's route lookup (tp.real);
-// until they arrive (or without a map key) we estimate from the straight-line distance.
+// Every way to get there, with its time, from the server's route lookup (tp.real).
+// No route known (not looked up yet, or no map key): no ways, and the leg's time is unknown.
 // tp ("travel preferences", from Settings → Transport):
 //   { modes: ['walk', 'transit', 'taxi', 'bike'], maxWalk: 20, priority: 'balanced' | 'fastest' | 'cheapest',
 //     group: 4 (people sharing a taxi), real: { 'lat,lon>lat,lon': { walk: { min, km }, taxi: {...}, ... } } }
@@ -48,15 +48,6 @@ export const DEFAULT_TRAVEL = { modes: ['walk', 'transit', 'taxi'], maxWalk: 20,
 // The key a route is saved under: both ends, to about 10 m
 export function legKey(a, b) {
   return a.lat.toFixed(4) + ',' + a.lon.toFixed(4) + '>' + b.lat.toFixed(4) + ',' + b.lon.toFixed(4)
-}
-
-// Straight-line guesses (minutes). Walking and cycling paths are ~25% longer than a straight line,
-// roads ~30%. Transit adds ~8 min of walking to the stop and waiting; a taxi ~5 min to arrive.
-function estimateMin(mode, km) {
-  if (mode === 'walk') return Math.max(3, Math.round((km * 1.25) / 4.8 * 60))
-  if (mode === 'bike') return Math.round(3 + (km * 1.25) / 14 * 60)
-  if (mode === 'transit') return Math.round(8 + (km * 1.3) / 22 * 60)
-  return Math.round(5 + (km * 1.3) / 24 * 60)
 }
 
 // Every way from a to b: [{ mode, min, km, live (a real route, not a guess), allowed (in your preferences) }]
@@ -74,10 +65,11 @@ export function travelOptions(a, b, tp = DEFAULT_TRAVEL) {
   for (const mode of ['walk', 'transit', 'taxi', 'bike']) {
     if (mode === 'transit' && km < 0.6) continue // a bus for a few hundred metres? just walk
     const r = real[mode]
-    let min = r ? r.min : estimateMin(mode, km)
-    if (r && mode === 'taxi') min += 5 // the route is driving time; add the wait for the car
+    if (!r) continue // no route known for this way
+    let min = r.min
+    if (mode === 'taxi') min += 5 // the route is driving time; add the wait for the car
     // Transit times from the route lookup are still approximate (no timetables)
-    list.push({ mode, min, km: r && r.km != null ? r.km : km, live: !!r && mode !== 'transit', allowed: tp.modes.includes(mode) })
+    list.push({ mode, min, km: r.km != null ? r.km : km, live: mode !== 'transit', allowed: tp.modes.includes(mode) })
   }
   return list
 }
@@ -121,18 +113,14 @@ export function recommendTravel(options, tp = DEFAULT_TRAVEL) {
 }
 
 // How you'll get from a to b: the way the group picked (b.travelMode, if it was picked for coming
-// from a), otherwise the suggestion. Without tp it's the old simple rule (walk up to 1.3 km, else transit).
-// Unknown places (not on the map) count as 15 min.
-export function travelBetween(a, b, tp) {
+// from a), otherwise the suggestion. No route known (or a place not on the map): mode 'unknown', 0 min.
+const UNKNOWN_LEG = { min: 0, mode: 'unknown', km: null, live: false }
+export function travelBetween(a, b, tp = DEFAULT_TRAVEL) {
   a = exitOf(a)
-  if (!a || !b || a.lat == null || b.lat == null) return { min: 15, mode: 'unknown', km: null }
-  if (!tp) {
-    const km = haversineKm(a, b)
-    if (km <= 1.3) return { min: estimateMin('walk', km), mode: 'walk', km }
-    return { min: estimateMin('transit', km), mode: 'transit', km }
-  }
+  if (!a || !b || a.lat == null || b.lat == null) return UNKNOWN_LEG
   const options = travelOptions(a, b, tp)
   const rec = recommendTravel(options, tp)
+  if (!rec) return UNKNOWN_LEG
   const picked = b.travelMode && b.travelFrom === a.id ? options.find((o) => o.mode === b.travelMode) : null
   const use = picked || rec.option
   return { min: use.min, mode: use.mode, km: use.km, live: use.live, picked: !!picked, recommended: rec.option.mode, reason: rec.reason }
@@ -149,12 +137,9 @@ export function travelMatrix(stops, tp) {
 }
 
 // ---------- crowds & weather ----------
-// Typical crowd curve when we have no real data: outdoor sights peak 11 AM - 3 PM
-const OUTDOOR_CURVE = [5, 5, 5, 5, 5, 5, 10, 20, 30, 45, 65, 85, 95, 95, 85, 65, 50, 40, 35, 30, 20, 10, 5, 5]
-const INDOOR_CURVE = [5, 5, 5, 5, 5, 5, 5, 10, 20, 35, 50, 60, 70, 70, 65, 60, 50, 40, 35, 25, 15, 10, 5, 5]
-
+// Crowd % while you're there, from the place's real crowd data (stop.crowd). No data: 0 (no penalty)
 export function crowdAt(stop, start) {
-  const curve = stop.crowd || (stop.popular === false ? null : stop.outdoor ? OUTDOOR_CURVE : INDOOR_CURVE)
+  const curve = stop.crowd
   if (!curve) return 0
   const hours = Math.max(1, Math.round(stop.duration || 1))
   let total = 0
@@ -546,7 +531,7 @@ function summarize(before, after, options = {}, estimated = false) {
   if (!parts.length) return 'Your day is already in a good order.'
   parts.splice(3) // the three biggest wins are enough
   const text = parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0]
-  return 'Route optimized: ' + text + '.' + (estimated ? ' (Real routes aren\'t available for every pair of places, so straight-line estimates were used.)' : '')
+  return 'Route optimized: ' + text + '.' + (estimated ? ' (Real routes aren\'t available for every pair of places, so travel time wasn\'t counted.)' : '')
 }
 
 // 3-hour forecast blocks ({ time, span, rain }) -> chance of rain for each hour

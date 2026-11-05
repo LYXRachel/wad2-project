@@ -221,7 +221,6 @@ export function suggestSlot({ forecast, dayName, currentHour = null, duration, b
   }
   parts.push('last entry ' + formatHour(Math.floor(Math.min(day.close, prefs.dayEnd) - hours)))
   if (buffer > 0) parts.push(buffer * 60 + ' min travel kept free')
-  if (forecast.estimated) parts.unshift('estimate')
   result.reason = parts.join(' · ')
 
   return result

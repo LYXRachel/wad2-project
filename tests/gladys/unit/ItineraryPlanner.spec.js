@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { mount } from '@vue/test-utils'
-import ItineraryPlanner from './ItineraryPlanner.vue'
+import ItineraryPlanner from '../../../src/components/ItineraryPlanner.vue'
 
 beforeAll(() => {
   Element.prototype.scrollTo = () => {}

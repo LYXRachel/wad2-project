@@ -6,11 +6,10 @@
 import express from 'express'
 import { requireAuth } from './auth.js'
 import { geoapifyReady, geoapifyRoute } from '../geoapify.js'
-import { sharedCache } from '../sharedCache.js'
+import { sharedCache, cacheAndFetch, DAY } from '../sharedCache.js'
 
 const router = express.Router()
 const legs = sharedCache('travel-legs', { keepDays: 90 }) // roads rarely change
-const running = new Map() // the same leg asked for twice at once is looked up once
 
 // Our names -> Geoapify's
 const MODES = { walk: 'walk', bike: 'bicycle', taxi: 'drive', transit: 'approximated_transit' }
@@ -23,8 +22,7 @@ function point(text) {
   return { lat: Math.round(lat * 1e4) / 1e4, lon: Math.round(lon * 1e4) / 1e4 } // about 10 m
 }
 
-// -> { found: { walk: {...}, ... }, complete: every way got an answer (a route, or "no route") }
-// A failed request (e.g. too many at once) is not an answer: that way is just missing this time.
+// -> { walk: {...}, ... } (a failed request, e.g. too many at once, just leaves that way out)
 async function lookUp(from, to) {
   const found = {}
   const names = Object.keys(MODES)
@@ -32,7 +30,6 @@ async function lookUp(from, to) {
   for (let i = 0; i < names.length; i++) {
     if (answers[i].status === 'fulfilled' && answers[i].value) found[names[i]] = answers[i].value
   }
-  let complete = answers.every((a) => a.status === 'fulfilled')
 
   // No road or line reaches one end (e.g. a pin inside palace grounds or a park), but you can walk there:
   // ride to the closest point on the walking route that a taxi / train reaches, and walk the rest
@@ -41,13 +38,11 @@ async function lookUp(from, to) {
     const missing = ['taxi', 'transit'].filter((m) => answers[names.indexOf(m)].status === 'fulfilled' && !found[m])
     const tries = await Promise.allSettled(missing.map((m) => rideThenWalk(from, to, m, walk)))
     tries.forEach((t, i) => {
-      if (t.status === 'rejected') complete = false
-      else if (t.value) found[missing[i]] = t.value
+      if (t.status === 'fulfilled' && t.value) found[missing[i]] = t.value
     })
     delete walk.path
   }
-  if (found.walk && !found.taxi) found.triedNearby = true // (so it isn't looked up again below)
-  return { found, complete }
+  return found
 }
 
 // ---------- riding as close as you can, then walking ----------
@@ -95,24 +90,13 @@ router.get('/leg', requireAuth, async (req, res) => {
   const from = point(req.query.from)
   const to = point(req.query.to)
   if (!from || !to) return res.status(400).json({ message: 'Where from and to?' })
-  if (!geoapifyReady()) return res.json({}) // the app estimates by itself
+  if (!geoapifyReady()) return res.json({}) // no route service: no travel data
   const key = from.lat + ',' + from.lon + '>' + to.lat + ',' + to.lon
-  const saved = await legs.get(key)
-  // Saved before rides could end with a short walk (a walk but no taxi): looked up once more
-  const walkOnly = saved && saved.value.walk && !saved.value.taxi && !saved.value.triedNearby
-  // Saved with an empty route (e.g. transit 0 m, 1 min): looked up again
-  const bad = saved && ['walk', 'bike', 'taxi', 'transit'].some((m) => saved.value[m] && !saved.value[m].km)
-  if (saved && !walkOnly && !bad) return res.json(saved.value)
-  let job = running.get(key)
-  if (!job) {
-    job = lookUp(from, to).finally(() => running.delete(key))
-    running.set(key, job)
-  }
-  const { found, complete } = await job
-  // Kept only when every way got an answer (a failed request is asked again next time)
-  if (complete && Object.keys(found).length) await legs.set(key, found)
-  // A second look that didn't finish: keep what was saved, plus anything new
-  res.json(saved && !complete && !bad ? { ...saved.value, ...found } : found)
+  const got = await cacheAndFetch(legs, key, async () => {
+    const found = await lookUp(from, to)
+    return Object.keys(found).length ? found : null
+  }, { maxAgeMs: 90 * DAY })
+  res.json(got ? got.value : {}) // {} = no route known
 })
 
 export default router

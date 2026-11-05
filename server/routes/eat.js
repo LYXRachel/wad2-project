@@ -1,7 +1,7 @@
 import express from 'express'
 import { requireAuth } from './auth.js'
 import { askOverpassFast } from './places.js'
-import { sharedCache } from '../sharedCache.js'
+import { sharedCache, cacheAndFetch } from '../sharedCache.js'
 
 // GET /api/eat?lat=30.66&lon=104.06
 // -> places to eat within about 1.2 km (OpenStreetMap):
@@ -79,19 +79,17 @@ router.get('/', requireAuth, async (req, res) => {
     return res.status(400).json({ message: 'Invalid location.' })
   }
   const key = lat + ',' + lon
-  const known = await cache.get(key)
-  const saved = known ? { time: known.at, places: known.value } : null
-  if (saved && Date.now() - saved.time < DAY) return res.json(saved.places)
-  let places = []
-  try {
-    places = await fromOverpass(lat, lon)
-  } catch (err) {
-    console.error('Eat search (Overpass) failed:', err.message)
-    places = await fromPhoton(lat, lon)
-  }
-  if (!places.length && saved) return res.json(saved.places)
-  if (places.length) await cache.set(key, places)
-  res.json(places)
+  const got = await cacheAndFetch(cache, key, async () => {
+    let places
+    try {
+      places = await fromOverpass(lat, lon)
+    } catch (err) {
+      console.error('Eat search (Overpass) failed:', err.message)
+      places = await fromPhoton(lat, lon)
+    }
+    return places.length ? places : null
+  }, { maxAgeMs: 7 * DAY })
+  res.json(got ? got.value : [])
 })
 
 export default router

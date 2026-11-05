@@ -12,7 +12,7 @@ export const KYOTO_SAMPLE = {
     { id: 'k-inari', name: 'Fushimi Inari Taisha', hour: 12.5, duration: 2, outdoor: true, locked: false, lat: 34.9671, lon: 135.7727 },
     { id: 'k-kiyomizu', name: 'Kiyomizu-dera', hour: 15, duration: 1.5, outdoor: true, locked: false, lat: 34.9949, lon: 135.7850, open: 6, close: 18 },
     { id: 'k-museum', name: 'Kyoto National Museum', hour: 16.75, duration: 1.5, outdoor: false, locked: false, lat: 34.9900, lon: 135.7732, open: 9.5, close: 17 },
-    { id: 'k-dinner', name: 'Dinner reservation, Gion', hour: 19, duration: 1.5, outdoor: false, locked: true, popular: false, lat: 35.0037, lon: 135.7752 }
+    { id: 'k-dinner', name: 'Dinner reservation, Gion', hour: 19, duration: 1.5, outdoor: false, locked: true, lat: 35.0037, lon: 135.7752 }
   ]
 }
 

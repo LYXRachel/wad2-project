@@ -2,7 +2,7 @@ import express from 'express'
 import { requireAuth } from './auth.js'
 import { askOverpassFast } from './places.js'
 import { geoapifyReady, geoapifySearch } from '../geoapify.js'
-import { sharedCache } from '../sharedCache.js'
+import { sharedCache, cacheAndFetch } from '../sharedCache.js'
 
 // Safety tab helpers. These run on our server (not in the browser) so that:
 //  - busy OpenStreetMap servers are retried and results are cached (no more 504s in the browser)
@@ -12,7 +12,7 @@ const HEADERS = { 'User-Agent': 'ChuiseYourTrip/1.0 (SMU IS216 student project)'
 const DAY = 24 * 60 * 60 * 1000
 
 // (kept in the database: see sharedCache.js)
-const nearbyCache = sharedCache('safety-nearby', { keepDays: 2 }) // 'lat,lon,home' -> { until, data }
+const nearbyCache = sharedCache('safety-nearby-v2', { keepDays: 2 }) // 'lat,lon,home' -> { lat, lon, places, partial }
 const placeCache = sharedCache('located-places', { keepDays: 180 }) // 'kyoto, japan|' -> place
 
 // Round to 3 decimals (about 100 m): enough for safety info, kinder to privacy, and cache-friendly
@@ -113,59 +113,52 @@ router.get('/locate', requireAuth, async (req, res) => {
   const place = String(req.query.place || '').trim().slice(0, 200)
   const near = String(req.query.near || '').trim().slice(0, 120)
   if (!place) return res.status(400).json({ message: 'Which place?' })
-  const key = (place + '|' + near).toLowerCase()
-  const known = await placeCache.get(key)
-  if (known) return res.json(known.value)
-  try {
-    let found = null
-    if (near) {
-      // Where the city is (cached like any other lookup)
-      const cityKey = (near + '|').toLowerCase()
-      const knownCity = await placeCache.get(cityKey)
-      let city = knownCity ? knownCity.value : null
-      if (!city) {
-        const f = await locateOne(near)
-        if (f) {
-          city = toResult(f, near)
-          await placeCache.set(cityKey, city)
-        }
-      }
-      if (city) {
-        // Results ranked around the city; keep the closest one that's actually nearby
-        const data = await photon({ q: place, limit: '8', lang: 'en', lat: String(city.lat), lon: String(city.lon) })
-        let best = null
-        let bestKm = Infinity
-        for (const f of data.features || []) {
-          const r = toResult(f, place)
-          const km = kmBetween(city, r)
-          if (km < bestKm) {
-            best = r
-            bestKm = km
-          }
-        }
-        if (best && bestKm <= 80) found = best
-        // Nothing that close: try the name together with the city
-        if (!found) {
-          const f = await locateOne(place + ', ' + near)
-          if (f) {
-            const r = toResult(f, place)
-            if (kmBetween(city, r) <= 80) found = r
-          }
-        }
-        if (!found && best) found = best // closest we have
-      }
-    }
-    if (!found) {
-      const f = await locateOne(place)
-      if (!f) return res.status(404).json({ message: 'Could not find that place.' })
-      found = toResult(f, place)
-    }
-    await placeCache.set(key, found)
-    res.json(found)
-  } catch (err) {
-    res.status(502).json({ message: 'Place lookup is unavailable right now.' })
-  }
+  const got = await cacheAndFetch(placeCache, (place + '|' + near).toLowerCase(), () => findPlace(place, near), { maxAgeMs: 180 * DAY })
+  if (!got) return res.status(404).json({ message: 'Could not find that place.' })
+  res.json(got.value)
 })
+
+// The place, ranked around the city `near` when there is one: a result, or null
+async function findPlace(place, near) {
+  let found = null
+  if (near) {
+    // Where the city is (cached like any other lookup)
+    const cityGot = await cacheAndFetch(placeCache, (near + '|').toLowerCase(), async () => {
+      const f = await locateOne(near)
+      return f ? toResult(f, near) : null
+    }, { maxAgeMs: 180 * DAY })
+    const city = cityGot ? cityGot.value : null
+    if (city) {
+      // Results ranked around the city; keep the closest one that's actually nearby
+      const data = await photon({ q: place, limit: '8', lang: 'en', lat: String(city.lat), lon: String(city.lon) })
+      let best = null
+      let bestKm = Infinity
+      for (const f of data.features || []) {
+        const r = toResult(f, place)
+        const km = kmBetween(city, r)
+        if (km < bestKm) {
+          best = r
+          bestKm = km
+        }
+      }
+      if (best && bestKm <= 80) found = best
+      // Nothing that close: try the name together with the city
+      if (!found) {
+        const f = await locateOne(place + ', ' + near)
+        if (f) {
+          const r = toResult(f, place)
+          if (kmBetween(city, r) <= 80) found = r
+        }
+      }
+      if (!found && best) found = best // closest we have
+    }
+  }
+  if (!found) {
+    const f = await locateOne(place)
+    if (f) found = toResult(f, place)
+  }
+  return found
+}
 
 // GET /api/safety/stay-search?q=Hotel Gracery&near=Tokyo, Japan
 // -> [{ name, address, nameLocal, addressLocal, lat, lon }] English + local script (for taxi drivers)
@@ -279,10 +272,13 @@ router.get('/nearby', requireAuth, async (req, res) => {
     return res.status(400).json({ message: 'Invalid location.' })
   }
   const key = lat + ',' + lon + ',' + home
-  const known = await nearbyCache.get(key)
-  const saved = known ? known.value : null
-  if (saved && Date.now() < saved.until) return res.json(saved.data)
+  const got = await cacheAndFetch(nearbyCache, key, () => lookUpNearby(lat, lon, home), { maxAgeMs: DAY })
+  if (!got) return res.status(502).json({ message: 'Nearby services are unavailable right now.' })
+  res.json(got.value)
+})
 
+// Hospitals, police, shelters and the home country's embassy around a point, or null
+async function lookUpNearby(lat, lon, home) {
   const at = lat + ',' + lon
   const coreQuery = '[out:json][timeout:10];(' +
     'nwr["amenity"~"^(hospital|clinic|police|fire_station)$"](around:3000,' + at + ');' +
@@ -308,17 +304,13 @@ router.get('/nearby', requireAuth, async (req, res) => {
       places = await photonNearby(lat, lon)
     } catch (err) {
       console.error('Safety nearby (Photon backup) failed:', err.message)
-      if (saved) return res.json(saved.data) // an older answer is better than none
-      return res.status(502).json({ message: 'Nearby services are unavailable right now.' })
+      return null
     }
   }
   if (embassy.status === 'fulfilled') places = places.concat(toPlaces(embassy.value.elements))
   else complete = false
 
-  const data = { lat, lon, places, partial: !complete }
-  // A full answer is kept for a day; a partial one (backup source / no embassy) only for 10 minutes
-  await nearbyCache.set(key, { until: Date.now() + (complete ? DAY : 10 * 60 * 1000), data })
-  res.json(data)
-})
+  return { lat, lon, places, partial: !complete }
+}
 
 export default router

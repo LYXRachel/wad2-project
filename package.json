@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:lam": "vitest run tests/lam",
+    "test:gladys": "vitest run tests/gladys",
+    "test:gladys:e2e": "playwright test tests/gladys",
     "dev": "vite"
   },
   "keywords": [],
