@@ -522,8 +522,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-right: var(--sb-line);
-  border-radius: 11px 0 0 11px;
+  /* (the strip is turned 180° so its text reads upwards: its left/right sides are swapped. These give
+     a divider on the visible right and rounded outer corners that follow the card's: 14px minus the border) */
+  border-left: var(--sb-line);
+  border-radius: 0 11.5px 11.5px 0;
   background: #1d3b5c;
   color: #f3e3b8;
   font-size: 10.5px;
@@ -561,7 +563,7 @@ export default {
   box-shadow: none;
 }
 .cw-card.ghost::before {
-  border-right-style: dashed;
+  border-left-style: dashed;
   background: #e6ddcb;
   color: var(--sb-ink-soft);
 }
@@ -787,7 +789,7 @@ export default {
   cursor: pointer;
 }
 .cw-add::before {
-  border-right-style: dashed;
+  border-left-style: dashed;
   background: #e6ddcb;
   color: var(--sb-ink-soft);
 }

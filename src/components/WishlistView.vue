@@ -12,13 +12,13 @@
     <transition-group v-if="shownWishlist.length" name="card" tag="div" class="wl-grid" data-testid="wishlist">
       <article v-for="w in shownWishlist" :key="w.id" :data-wish="w.id" class="wl-card mine" :class="{ 'has-photo': photoOf(w), editing: editId === w.id }" :style="{ '--tint': tintFor(w.type) }">
         <!-- A real photo of the place when Wikipedia has one, otherwise a simple icon -->
-        <div class="wl-photo" :class="{ loading: photos[photoTitle(w)] === '' }" :style="photoOf(w) ? { backgroundImage: 'url(' + photoOf(w) + ')' } : null" aria-hidden="true">
+        <!-- The kind of place sits on the photo's bottom edge: the top row is for the buttons -->
+        <div class="wl-photo" :class="{ loading: photos[photoTitle(w)] === '' }" :style="photoOf(w) ? { backgroundImage: 'url(' + photoOf(w) + ')' } : null">
           <AppIcon v-if="!photoOf(w)" :name="iconFor(w.type)" :size="44" class="wl-ph-icon" />
+          <span class="wl-type"><AppIcon :name="iconFor(w.type)" :size="13" />
+            <span class="wl-type-text"><template v-if="w.type === 'tour'">{{ w.bookedVia ? 'Booked · ' + w.bookedVia : 'Tour' }}<template v-if="w.duration"> · {{ lengthText(w.duration) }}</template></template><template v-else>{{ placeStyle(w.type).label }}<template v-if="!w.outdoor"> · Indoor</template></template></span>
+          </span>
         </div>
-        <span class="wl-type"><AppIcon :name="iconFor(w.type)" :size="13" />
-          <template v-if="w.type === 'tour'">{{ w.bookedVia ? 'Booked · ' + w.bookedVia : 'Tour' }}<template v-if="w.duration"> · {{ lengthText(w.duration) }}</template></template>
-          <template v-else>{{ placeStyle(w.type).label }}<template v-if="!w.outdoor"> · Indoor</template></template>
-        </span>
         <div class="wl-actions">
           <a v-if="w.link" :href="w.link" target="_blank" rel="noopener" class="wl-round" :aria-label="'Open booking for ' + w.name" title="Open booking">↗</a>
           <button type="button" class="wl-round" :aria-label="'Edit ' + w.name" title="Edit" @click="startEdit(w)"><AppIcon name="pencil" :size="14" /></button>
@@ -200,10 +200,10 @@
           <article v-for="p in sec.list.slice(0, sec.shown)" :key="p.name" class="wl-card wl-tap" :class="{ saved: isAdded(p), 'has-photo': photoOf(p) }" :style="{ '--tint': tintFor(p.type) }"
             role="button" tabindex="0" :aria-pressed="isAdded(p)" :aria-label="(isAdded(p) ? 'Remove ' : 'Add ') + p.name + (isAdded(p) ? ' from' : ' to') + ' wishlist'"
             @click="togglePopular(p)" @keydown.enter.prevent="togglePopular(p)" @keydown.space.prevent="togglePopular(p)" data-testid="popular-add">
-            <div class="wl-photo" :class="{ loading: photos[photoTitle(p)] === '' }" :style="photoOf(p) ? { backgroundImage: 'url(' + photoOf(p) + ')' } : null" aria-hidden="true">
+            <div class="wl-photo" :class="{ loading: photos[photoTitle(p)] === '' }" :style="photoOf(p) ? { backgroundImage: 'url(' + photoOf(p) + ')' } : null">
               <AppIcon v-if="!photoOf(p)" :name="iconFor(p.type)" :size="44" class="wl-ph-icon" />
+              <span class="wl-type"><AppIcon :name="iconFor(p.type)" :size="13" /> <span class="wl-type-text">{{ placeStyle(p.type).label }}<template v-if="p.indoor"> · Indoor</template></span></span>
             </div>
-            <span class="wl-type"><AppIcon :name="iconFor(p.type)" :size="13" /> {{ placeStyle(p.type).label }}<template v-if="p.indoor"> · Indoor</template></span>
             <span class="wl-heart" :class="{ filled: isAdded(p) }" aria-hidden="true"><AppIcon name="heart" :size="17" :filled="isAdded(p)" /></span>
             <div class="wl-info">
               <h4 class="wl-name" :title="p.name">{{ p.name }}</h4>
@@ -1264,8 +1264,20 @@ export default {
   box-shadow: 0 2px 0 var(--sb-ink);
   transform: rotate(-3deg);
 }
+.wl-type,
 .wl-card.mine .wl-type {
-  max-width: calc(100% - 116px); /* clear of the edit and heart buttons */
+  top: auto;
+  bottom: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+}
+.wl-type-text {
+  min-width: 0;
+  white-space: normal; /* a long kind wraps to a second line instead of being cut */
+  line-height: 1.25;
+}
+.wl-ph-icon {
+  margin-bottom: 14px; /* (clear of the tag) */
 }
 .wl-info {
   position: static;
@@ -1493,7 +1505,6 @@ export default {
 @media (max-width: 576px) {
   .wl-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
   .wl-card { padding: 7px 7px 0; }
-  .wl-type { top: 12px; left: 12px; }
   .wl-actions, .wl-tap .wl-heart { top: 11px; right: 11px; }
 }
 @media (prefers-reduced-motion: reduce) {
