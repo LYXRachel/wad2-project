@@ -99,9 +99,9 @@ export default {
     // held up by the weather and preferences below
     const forecasts = Promise.all(trip.stops.map((item) => this.loadForecast(item)))
 
-    // Load simulated weather for every day of the trip
+    // The real forecast for the trip's days (only the next 5 days have one)
     try {
-      this.weather = await fetchWeatherForecast({ dates: this.dayList })
+      this.weather = await fetchWeatherForecast({ dates: this.dayList, place: this.destination })
     } catch (err) {
       this.weatherError = true
     }

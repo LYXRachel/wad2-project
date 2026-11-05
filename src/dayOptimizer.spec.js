@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { haversineKm, travelBetween, scheduleInOrder, warningsFor, rainFromBlocks, defaultDuration } from './dayOptimizer.js'
+import { haversineKm, travelBetween, legKey, DEFAULT_TRAVEL, scheduleInOrder, warningsFor, rainFromBlocks, defaultDuration } from './dayOptimizer.js'
 
 describe('TestSuite: dayOptimizer', () => {
 
@@ -25,12 +25,20 @@ describe('TestSuite: dayOptimizer', () => {
         lon: 103.8200
     }
 
-    const result = travelBetween(placeA, placeB)
+    // Real routes from the server: a 2-minute walk
+    const real = { [legKey(placeA, placeB)]: { walk: { min: 2, km: 0.1 }, transit: { min: 12, km: 0.1 } } }
+    const result = travelBetween(placeA, placeB, { ...DEFAULT_TRAVEL, real })
 
     expect(result.mode).toBe('walk')
     })
 
-    it('Test3: recommends transit for places more than 1.3 km apart', () => {
+  it('Test2b: no route data means the travel time is unknown (nothing estimated)', () => {
+    const result = travelBetween({ id: 'A', lat: 1.3521, lon: 103.8198 }, { id: 'B', lat: 1.3530, lon: 103.8200 })
+
+    expect(result).toMatchObject({ mode: 'unknown', min: 0, live: false })
+  })
+
+    it('Test3: recommends transit when walking is too long', () => {
         const placeA = {
             id: 'A',
             lat: 1.3521,
@@ -43,7 +51,9 @@ describe('TestSuite: dayOptimizer', () => {
             lon: 103.8500
         }
 
-        const result = travelBetween(placeA, placeB)
+        // Real routes from the server: walking is far over the limit, transit is reasonable
+        const real = { [legKey(placeA, placeB)]: { walk: { min: 85, km: 6.8 }, transit: { min: 30, km: 7.5 }, taxi: { min: 18, km: 7.9 } } }
+        const result = travelBetween(placeA, placeB, { ...DEFAULT_TRAVEL, real })
 
         expect(result.mode).toBe('transit')
     })

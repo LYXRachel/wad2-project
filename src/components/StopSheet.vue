@@ -35,7 +35,6 @@
                 </p>
                 <CrowdChart v-if="hasChart" :forecast="stop.forecast" :day-name="dayName"
                   :planned-hour="Math.floor(start)" :suggest-hour="quieter.length ? Math.floor(quieter[0].hour) : null" />
-                <p v-if="crowd.value != null && !hasChart" class="ss-note">Estimate for this kind of place.</p>
 
                 <template v-if="quieter.length">
                   <h4 class="ss-h">Quieter times that fit your day</h4>
