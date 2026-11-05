@@ -222,15 +222,50 @@
                 <span class="xp-avatar sm" :style="{ background: personColor(p.to) }" aria-hidden="true">{{ p.to.charAt(0).toUpperCase() }}</span>
                 <strong>{{ p.to === me ? 'you' : p.to }}</strong>
               </span>
-              <button type="button" class="btn btn-sm xp-paid" @click="markPaid(p)">Mark paid</button>
+              <!-- Only the two people in a payment can settle it -->
+              <span v-if="pendingFor(p)" class="xp-wait">Waiting for {{ p.to === me ? 'you' : p.to }} to confirm</span>
+              <button v-else-if="p.to === me" type="button" class="btn btn-sm xp-paid" @click="markPaid(p)">Mark received</button>
+              <button v-else-if="p.from === me" type="button" class="btn btn-sm xp-paid" @click="markPaid(p)">I've paid</button>
+              <span v-else class="xp-only">Only {{ p.from }} or {{ p.to }} can settle this</span>
             </li>
           </ul>
-          <details v-if="state.settlements.length" class="xp-history">
-            <summary>Payments made ({{ state.settlements.length }})</summary>
-            <ul>
-              <li v-for="s in state.settlements" :key="s.id">
-                {{ s.from === me ? 'You' : s.from }} paid {{ s.to === me ? 'you' : s.to }} <span class="xp-num">{{ money(s.amount, home) }}</span>
-                <button type="button" class="xp-link" @click="undoPayment(s.id)">Undo</button>
+
+          <!-- Payments waiting for the receiver to confirm -->
+          <div v-if="pendingSettlements.length" class="xp-pending">
+            <h5 class="xp-pending-h">Waiting to be confirmed <span class="xp-count">{{ pendingSettlements.length }}</span></h5>
+            <ul class="xp-slips">
+              <li v-for="s in pendingSettlements" :key="s.id" class="xp-slip pending">
+                <span class="xp-avatar sm" :style="{ background: personColor(s.from) }" aria-hidden="true">{{ s.from.charAt(0).toUpperCase() }}</span>
+                <span class="xp-slip-text">
+                  <template v-if="s.to === me"><strong>{{ s.from }}</strong> says they paid <strong>you</strong></template>
+                  <template v-else><strong>{{ s.from === me ? 'You' : s.from }}</strong> paid <strong>{{ s.to }}</strong>, waiting for {{ s.to }} to confirm</template>
+                  <small v-if="s.date">{{ shortDate(s.date) }}</small>
+                </span>
+                <span class="xp-slip-amount xp-num">{{ money(s.amount, home) }}</span>
+                <template v-if="s.to === me">
+                  <button type="button" class="xp-slip-ok" @click="confirmPayment(s.id)">Got it</button>
+                  <button type="button" class="xp-slip-undo" @click="undoPayment(s.id)">Not received</button>
+                </template>
+                <button v-else-if="s.from === me || s.addedBy === me" type="button" class="xp-slip-undo" @click="undoPayment(s.id)">Cancel</button>
+              </li>
+            </ul>
+          </div>
+          <!-- Payments already made: little "PAID" slips -->
+          <details v-if="confirmedSettlements.length" class="xp-history">
+            <summary>
+              <span class="xp-history-chev" aria-hidden="true"></span>
+              Payments made <span class="xp-count">{{ confirmedSettlements.length }}</span>
+            </summary>
+            <ul class="xp-slips">
+              <li v-for="s in confirmedSettlements" :key="s.id" class="xp-slip">
+                <span class="xp-avatar sm" :style="{ background: personColor(s.from) }" aria-hidden="true">{{ s.from.charAt(0).toUpperCase() }}</span>
+                <span class="xp-slip-text">
+                  <strong>{{ s.from === me ? 'You' : s.from }}</strong> paid <strong>{{ s.to === me ? 'you' : s.to }}</strong>
+                  <small v-if="s.date">{{ shortDate(s.date) }}</small>
+                </span>
+                <span class="xp-slip-amount xp-num">{{ money(s.amount, home) }}</span>
+                <span class="xp-slip-stamp" aria-hidden="true">Paid</span>
+                <button v-if="canChange(s)" type="button" class="xp-slip-undo" :aria-label="'Undo: ' + (s.from === me ? 'you' : s.from) + ' paid ' + (s.to === me ? 'you' : s.to)" @click="undoPayment(s.id)">Undo</button>
               </li>
             </ul>
           </details>
@@ -302,7 +337,7 @@
     <!-- What others just changed (shown for a few seconds) -->
     <Teleport to="body">
       <transition-group name="xp-toast" tag="div" class="xp-toasts" aria-live="polite">
-        <div v-for="t in toasts" :key="t.id" class="xp-toast">
+        <div v-for="t in toasts" :key="t.id" class="xp-toast" title="Tap to close" @click="closeToast(t.id)">
           <span class="xp-avatar sm" aria-hidden="true">{{ t.who.charAt(0).toUpperCase() }}</span>
           <span>{{ t.text }}</span>
         </div>
@@ -450,6 +485,14 @@ export default {
 
     payments() {
       return settleUp(this.balanceMap)
+    },
+    // Payments the receiver has confirmed (older ones without a status count as confirmed)
+    confirmedSettlements() {
+      return this.state.settlements.filter((s) => s.status !== 'pending')
+    },
+    // "I've paid" from the payer, waiting for the receiver's "Got it"
+    pendingSettlements() {
+      return this.state.settlements.filter((s) => s.status === 'pending')
     },
 
     // Category totals, biggest first
@@ -616,8 +659,15 @@ export default {
         }
         const knownPay = this.state.settlements.map((x) => x.id)
         for (const p of data.settlements || []) {
+          const amount = money(p.amount, data.homeCurrency || this.home)
           if (!knownPay.includes(p.id) && p.addedBy && p.addedBy !== this.me) {
-            this.toast(p.addedBy, p.from + ' paid ' + p.to + ' ' + money(p.amount, data.homeCurrency || this.home))
+            if (p.status === 'pending' && p.to === this.me) this.toast(p.from, p.from + ' says they paid you ' + amount + '. Confirm it under Settle up')
+            else this.toast(p.addedBy, p.from + ' paid ' + p.to + ' ' + amount)
+          }
+          // My "I've paid" was just confirmed
+          const before = this.state.settlements.find((x) => x.id === p.id)
+          if (before && before.status === 'pending' && p.status !== 'pending' && p.from === this.me) {
+            this.toast(p.to, p.to + ' confirmed your payment of ' + amount)
           }
         }
       }
@@ -652,9 +702,13 @@ export default {
     },
 
     toast(who, text) {
-      const t = { id: Math.random(), who, text }
-      this.toasts.push(t)
-      setTimeout(() => { this.toasts = this.toasts.filter((x) => x !== t) }, 5000)
+      const id = Math.random()
+      this.toasts.push({ id, who, text })
+      // (matched by id: the list holds Vue's reactive copy, so comparing the objects never matched and it stayed up)
+      setTimeout(() => this.closeToast(id), 5000)
+    },
+    closeToast(id) {
+      this.toasts = this.toasts.filter((x) => x.id !== id)
     },
 
     async saveExpense(expense) {
@@ -676,14 +730,40 @@ export default {
       this.showForm = false
     },
 
+    // The receiver marking it received settles it; the payer saying they've paid waits for the receiver
     markPaid(p) {
-      if (this.demo) this.state.settlements.push({ id: 's' + Date.now(), from: p.from, to: p.to, amount: p.amount, date: new Date().toISOString().slice(0, 10) })
-      else this.send('post', '/settlements', { from: p.from, to: p.to, amount: p.amount })
+      if (this.demo) {
+        const status = p.to === this.me ? 'confirmed' : 'pending'
+        this.state.settlements.push({ id: 's' + Date.now(), from: p.from, to: p.to, amount: p.amount, date: new Date().toISOString().slice(0, 10), addedBy: this.me, status })
+      } else {
+        this.send('post', '/settlements', { from: p.from, to: p.to, amount: p.amount })
+      }
     },
 
+    // The receiver: "Got it"
+    confirmPayment(id) {
+      if (this.demo) {
+        const list = []
+        for (const s of this.state.settlements) list.push(s.id === id ? { ...s, status: 'confirmed' } : s)
+        this.state.settlements = list
+      } else {
+        this.send('post', '/settlements/' + id + '/confirm')
+      }
+    },
+
+    // Undo / cancel / "Not received"
     undoPayment(id) {
       if (this.demo) this.state.settlements = this.state.settlements.filter((s) => s.id !== id)
       else this.send('delete', '/settlements/' + id)
+    },
+
+    // The pending "I've paid" for this payer -> receiver, if there is one
+    pendingFor(p) {
+      return this.pendingSettlements.find((s) => s.from === p.from && s.to === p.to) || null
+    },
+    // Only the payer, the receiver or whoever recorded a payment can undo it
+    canChange(s) {
+      return s.from === this.me || s.to === this.me || s.addedBy === this.me
     },
 
     // The group's own exchange rate (saved for everyone on the trip)
@@ -875,6 +955,107 @@ export default {
   border-style: solid;
   border-color: var(--sb-ink);
   background: var(--paper-card);
+}
+/* The rates panel in the journal look: cream card, navy outline, hard shadow */
+/* "+ Add a currency" (pick another currency to set its rate): a dashed cream pill, so its words show */
+.xp-toolbar :deep(.er-add .dd-trigger) {
+  border: 2px dashed var(--sb-ink);
+  border-radius: 999px;
+  background: #fffaf0;
+  box-shadow: none;
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.xp-toolbar :deep(.er-add .dd-trigger:hover) {
+  border-style: solid;
+  background: #fff1cf;
+}
+.xp-toolbar :deep(.er-add .dd-value),
+.xp-toolbar :deep(.er-add .dd-value.placeholder),
+.xp-toolbar :deep(.er-add .dd-chevron) {
+  color: var(--sb-ink);
+  opacity: 1;
+  background: none;
+}
+.xp-toolbar :deep(.er-panel) {
+  border: 2.5px solid var(--sb-ink);
+  border-radius: 16px;
+  background: #fffaf0;
+  box-shadow: 0 6px 0 var(--sb-ink);
+  color: var(--sb-ink);
+}
+.xp-toolbar :deep(.er-title) {
+  font-family: var(--sb-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.xp-toolbar :deep(.er-sub),
+.xp-toolbar :deep(.er-empty),
+.xp-toolbar :deep(.er-meta),
+.xp-toolbar :deep(.er-dim) {
+  color: var(--sb-ink-soft);
+  font-weight: 600;
+}
+.xp-toolbar :deep(.er-x) {
+  border: 2px solid var(--sb-ink);
+  background: #fff;
+  color: var(--sb-ink);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.xp-toolbar :deep(.er-row) {
+  border: 2px solid rgba(18, 50, 74, 0.25);
+  border-radius: 12px;
+  background: #fff;
+}
+.xp-toolbar :deep(.er-row.editing) {
+  border-color: var(--sb-ink);
+}
+.xp-toolbar :deep(.er-code) {
+  font-family: var(--sb-display);
+  letter-spacing: 0.04em;
+}
+.xp-toolbar :deep(.er-badge) {
+  border: 1.5px solid var(--sb-ink);
+  border-radius: 999px;
+  font-weight: 800;
+}
+.xp-toolbar :deep(.er-badge.live) {
+  background: #d6f0f3;
+  color: var(--sb-ink);
+}
+.xp-toolbar :deep(.er-badge.group) {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.xp-toolbar :deep(.er-btn) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--sb-ink);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+.xp-toolbar :deep(.er-btn.primary) {
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+}
+.xp-toolbar :deep(.er-btn.ghost) {
+  border-style: dashed;
+  box-shadow: none;
+}
+.xp-toolbar :deep(.er-field input) {
+  border: 2px solid var(--sb-ink);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--sb-ink);
+}
+.xp-toolbar :deep(.er-link) {
+  color: var(--sb-ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-color: var(--sb-amber);
+  text-decoration-thickness: 3px;
 }
 .xp-add {
   margin-left: auto;
@@ -1770,19 +1951,167 @@ export default {
   transform: rotate(-6deg);
 }
 .xp-history {
-  margin-top: 14px;
-  font-size: 13px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 2px dashed rgba(18, 50, 74, 0.25);
 }
 .xp-history summary {
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  font-family: var(--sb-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  color: var(--sb-ink);
   cursor: pointer;
 }
-.xp-history ul {
-  margin: 8px 0 0;
-  padding-left: 18px;
+.xp-history summary::-webkit-details-marker {
+  display: none;
 }
-.xp-history li {
-  margin-bottom: 4px;
+.xp-history-chev { /* a little arrow that turns when open */
+  width: 9px;
+  height: 9px;
+  border-right: 2.5px solid var(--sb-ink);
+  border-bottom: 2.5px solid var(--sb-ink);
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+}
+.xp-history[open] .xp-history-chev {
+  transform: rotate(45deg);
+}
+.xp-slips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* Each payment: a cream slip with a dashed edge and a green PAID stamp */
+.xp-slip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 2px dashed rgba(18, 50, 74, 0.45);
+  border-radius: 12px;
+  background: #fffaf0;
+}
+.xp-slip-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sb-ink-soft);
+}
+.xp-slip-text strong {
+  color: var(--sb-ink);
+  font-weight: 800;
+}
+.xp-slip-text small {
+  display: block;
+  font-size: 12px;
+  color: rgba(18, 50, 74, 0.6);
+}
+.xp-slip-amount {
+  font-weight: 800;
+  color: var(--sb-ink);
+  white-space: nowrap;
+}
+.xp-slip-stamp {
+  padding: 1px 8px;
+  border: 2px solid var(--pos);
+  border-radius: 6px;
+  color: var(--pos);
+  font-family: var(--sb-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+}
+.xp-slip.pending {
+  border-color: rgba(207, 120, 26, 0.6);
+  background: #fff6df;
+}
+.xp-slip-ok {
+  flex: none;
+  padding: 4px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: var(--sb-amber);
+  color: var(--sb-ink);
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.xp-slip-ok:hover {
+  transform: translateY(-1px);
+}
+.xp-slip-ok:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+.xp-wait,
+.xp-only {
+  flex: none;
+  max-width: 190px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: right;
+}
+.xp-wait {
+  padding: 4px 10px;
+  border: 2px dashed rgba(207, 120, 26, 0.7);
+  border-radius: 999px;
+  color: #8a4b0e;
+}
+.xp-only {
+  color: rgba(18, 50, 74, 0.6);
+}
+.xp-pending {
+  margin-top: 14px;
+}
+.xp-pending-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--sb-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--sb-ink);
+}
+.xp-slip-undo {
+  flex: none;
+  padding: 4px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--sb-ink);
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--sb-ink);
+  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+}
+.xp-slip-undo:hover {
+  background: #fff1cf;
+  transform: translateY(-1px);
+}
+.xp-slip-undo:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 var(--sb-ink);
+}
+@media (max-width: 480px) {
+  .xp-slip {
+    flex-wrap: wrap;
+  }
+  .xp-slip-stamp {
+    display: none;
+  }
 }
 
 /* Where it went: a row per category with a bar in its colour */
@@ -1969,6 +2298,9 @@ export default {
   font-weight: 600;
   box-shadow: 0 4px 0 var(--sb-ink);
 }
+.xp-toast {
+  cursor: pointer;
+}
 .xp-toast-enter-active,
 .xp-toast-leave-active {
   transition: opacity 0.25s, transform 0.25s;
@@ -2139,7 +2471,7 @@ export default {
 .xp-add:hover,
 .xp-select:hover,
 .xp-live:hover,
-.xp-toolbar :deep(.er:hover),
+.xp-toolbar :deep(.er-trigger:hover), /* (only the button: wiggling .er shook the open rates panel too) */
 .xp-wallet:hover,
 .xp-window:hover,
 .xp-slot:hover .xp-slot-card,

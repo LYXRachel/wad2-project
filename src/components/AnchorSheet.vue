@@ -44,7 +44,7 @@
               </div>
               <div class="an-field">
                 <label for="an-time" class="an-label">{{ anchor.kind === 'arrive' ? 'Lands at' : 'Takes off at' }}</label>
-                <input id="an-time" v-model="time" type="time" class="an-input plain" required>
+                <input id="an-time" v-model="time" type="time" class="an-input plain" required @click="openTimePicker">
               </div>
             </div>
 
@@ -142,17 +142,26 @@ function search() {
   timer = setTimeout(async () => {
     const mine = ++asked
     searching.value = true
-    const text = props.anchor.kind !== 'stay' && !/airport/i.test(q) ? q + ' airport' : q
+    // Arriving / flying home: the server returns real airports only (by name, code, or near the place typed)
+    const kind = props.anchor.kind !== 'stay' ? 'airport' : undefined
     try {
-      const res = await axios.get('/api/safety/stay-search', { params: { q: text, near: props.anchor.city || undefined } })
+      const res = await axios.get('/api/safety/stay-search', { params: { q, near: props.anchor.city || undefined, kind } })
       if (mine !== asked) return // a newer search is on its way
       results.value = res.data
-      if (!res.data.length) searchError.value = 'Nothing found. Try the name with the area, e.g. "Hotel Gracery Namba".'
+      if (!res.data.length) searchError.value = kind ? 'No airport found. Try the airport\'s name or code, e.g. "Kansai" or "KIX".' : 'Nothing found. Try the name with the area, e.g. "Hotel Gracery Namba".'
     } catch (err) {
       if (mine === asked) searchError.value = 'Search is busy right now. Try again in a moment.'
     }
     if (mine === asked) searching.value = false
   }, 350)
+}
+// Clicking anywhere in the time box opens the time picker (not just the little clock icon)
+function openTimePicker(e) {
+  try {
+    if (e.target.showPicker) e.target.showPicker()
+  } catch (err) {
+    // older browsers: clicking just puts the cursor in the box
+  }
 }
 function pick(r) {
   place.value = { name: r.name, address: r.address || '', lat: r.lat, lon: r.lon }
@@ -252,6 +261,9 @@ function save() {
   left: 12px;
   color: #c98a1e;
   pointer-events: none;
+}
+.an-input[type="time"] {
+  cursor: pointer;
 }
 .an-input {
   width: 100%;

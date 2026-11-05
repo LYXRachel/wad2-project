@@ -30,6 +30,10 @@
               <span class="er-badge" :class="r.group ? 'group' : r.live ? 'live' : 'none'">
                 {{ r.group ? 'Group rate' : r.live ? 'Live rate' : 'No rate' }}
               </span>
+              <!-- Added by hand and not used by any expense: can be taken off the list -->
+              <button v-if="r.removable" type="button" class="er-remove" :aria-label="'Remove ' + r.code" :title="'Remove ' + r.code" @click="removeCurrency(r)">
+                <AppIcon name="x" :size="14" />
+              </button>
             </div>
 
             <!-- Showing -->
@@ -126,7 +130,9 @@ const rows = computed(() => {
   return codes.map((code) => {
     const group = groupFor(code)
     const live = props.live[code] || null
-    return { code, name: NAMES[code] || '', live, group, used: group ? group.rate : live }
+    // (a currency an expense uses always stays, so its amounts keep being converted)
+    const removable = !props.totals[code]
+    return { code, name: NAMES[code] || '', live, group, used: group ? group.rate : live, removable }
   })
 })
 const otherCurrencies = computed(() => currencyOptions().filter((o) => o.value !== props.home && !rows.value.some((r) => r.code === o.value)))
@@ -136,6 +142,13 @@ function addCurrency(code) {
   added.value.push(code)
   const row = rows.value.find((r) => r.code === code)
   if (row) startEdit(row)
+}
+
+// Take a currency off the list (only ones no expense uses). Its group rate goes too, for everyone.
+function removeCurrency(r) {
+  added.value = added.value.filter((c) => c !== r.code)
+  if (draftFor.value === r.code) draftFor.value = null
+  if (r.group) emit('reset', r.code)
 }
 
 // ----- editing one rate -----
@@ -339,6 +352,29 @@ function shortDate(d) {
   border-radius: 999px;
   background: #efe9df;
   color: var(--muted);
+}
+.er-remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-left: 6px;
+  padding: 0;
+  border: 2px solid #12324a;
+  border-radius: 50%;
+  background: #fff;
+  color: #12324a;
+  box-shadow: 0 2px 0 #12324a;
+  transition: transform 0.12s, background 0.12s;
+}
+.er-remove:hover {
+  background: #fde0dc;
+  transform: translateY(-1px);
+}
+.er-remove:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #12324a;
 }
 .er-badge.group {
   background: var(--primary);

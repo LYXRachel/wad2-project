@@ -76,6 +76,7 @@ export function balances(travellers, expenses, settlements, rates, home) {
     }
   }
   for (const s of settlements) {
+    if (s.status === 'pending') continue // the payer says they paid, but the receiver hasn't confirmed yet
     if (result[s.from] !== undefined) result[s.from] += s.amount
     if (result[s.to] !== undefined) result[s.to] -= s.amount
   }

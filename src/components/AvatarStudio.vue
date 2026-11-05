@@ -77,6 +77,10 @@
                 </svg>
                 {{ wide ? 'Back to wardrobe' : 'Full view' }}
               </button>
+              <!-- Back to the starting character (kept once you press Save) -->
+              <button type="button" class="as-default" :disabled="isDefault" title="Dress your twin in the starting look again" @click="resetToDefault">
+                <AppIcon name="refresh" :size="14" /> Default look
+              </button>
               <div class="as-views" role="group" aria-label="Camera">
                 <button v-for="v in VIEW_BUTTONS" :key="v.key" type="button" class="as-view" :class="{ on: focus === v.key }"
                   :aria-pressed="focus === v.key" @click="focus = v.key">{{ v.label }}</button>
@@ -229,7 +233,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import axios from 'axios'
 import {
   avatar, CATALOG, TABS, SLOTS, TIERS, XP, itemOf, isUnlocked, lockText, isNew, newUnlocks, cleanLook, lockedIn,
-  saveAvatar, saveOutfits, saveTripLook, removeTripLook, markSeen, loadAvatar, loadProgress
+  saveAvatar, saveOutfits, saveTripLook, removeTripLook, markSeen, loadAvatar, loadProgress, DEFAULT_LOOK
 } from '../avatarStore.js'
 import AvatarStage from './AvatarStage.vue'
 import AvatarTour from './AvatarTour.vue'
@@ -373,8 +377,17 @@ function surprise() {
   focus.value = 'full'
   lockNote.value = null
 }
+// Already wearing the starting look?
+const isDefault = computed(() => JSON.stringify(cleanLook(draft.value)) === JSON.stringify(cleanLook({ ...DEFAULT_LOOK, gear: [] })))
 function undo() {
   draft.value = cleanLook(avatar.look)
+  lockNote.value = null
+}
+// "Default look": dress the twin in the starting outfit again. Like any change, it's only kept after Save
+// (Undo changes / Hold to compare still work), so it never wipes saved outfits or trip outfits.
+function resetToDefault() {
+  draft.value = cleanLook({ ...DEFAULT_LOOK, gear: [] })
+  focus.value = 'full'
   lockNote.value = null
 }
 
@@ -2075,6 +2088,34 @@ function thumb(slot, it) {
   }
 }
 /* Full view: the twin gets the whole window, the wardrobe tucks away */
+.as-default {
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 70px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--sb-ink);
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--sb-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--sb-ink);
+  cursor: pointer;
+  transition: transform 0.15s var(--sb-spring);
+}
+.as-default:hover:not(:disabled) {
+  background: var(--sb-amber);
+  transform: translateY(-1px);
+}
+.as-default:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 .as-expand {
   position: absolute;
   z-index: 3;
@@ -2122,7 +2163,8 @@ function thumb(slot, it) {
   .as.wide .as-body {
     grid-template-rows: minmax(0, 1fr);
   }
-  .as-expand {
+  .as-expand,
+  .as-default {
     bottom: 58px;
   }
 }

@@ -95,7 +95,13 @@ router.delete('/items/:itemId', requireAuth, async (req, res) => {
   res.json(await current(trip._id))
 })
 
-// POST /settlements  { from, to, amount }  -> "Amy paid John back"
+// ---------- Paying people back ----------
+// Only the two people in a payment can record it:
+//   - the RECEIVER says "I got it"  -> settled straight away (they're the one who'd lose out)
+//   - the PAYER says "I've paid"    -> "pending" until the receiver confirms it ("Got it")
+// A pending payment doesn't count in the balances yet. Old payments (no status) count as confirmed.
+
+// POST /settlements  { from, to, amount }
 router.post('/settlements', requireAuth, async (req, res) => {
   const trip = await loadTrip(req, res)
   if (!trip) return
@@ -104,16 +110,41 @@ router.post('/settlements', requireAuth, async (req, res) => {
   if (!trip.travellers.includes(from) || !trip.travellers.includes(to) || from === to || !amountOk(amount)) {
     return res.status(400).json({ message: 'Invalid payment.' })
   }
-  const s = { id: String(new mongoose.Types.ObjectId()), from, to, amount, date: new Date().toISOString().slice(0, 10), addedBy: memberName(trip, req.userId) }
+  const me = memberName(trip, req.userId)
+  if (me !== from && me !== to) return res.status(403).json({ message: 'Only ' + from + ' or ' + to + ' can settle this.' })
+  const settlements = (trip.expenses && trip.expenses.settlements) || []
+  if (settlements.some((x) => x.status === 'pending' && x.from === from && x.to === to)) {
+    return res.status(400).json({ message: 'This payment is already waiting for ' + to + ' to confirm.' })
+  }
+  const s = {
+    id: String(new mongoose.Types.ObjectId()), from, to, amount, date: new Date().toISOString().slice(0, 10), addedBy: me,
+    status: me === to ? 'confirmed' : 'pending'
+  }
   await Trip.updateOne({ _id: trip._id }, { $push: { 'expenses.settlements': s } })
   res.status(201).json(await current(trip._id))
 })
 
-// DELETE /settlements/:id  -> undo a payment
+// POST /settlements/:id/confirm  -> the receiver says "Got it"
+router.post('/settlements/:settlementId/confirm', requireAuth, async (req, res) => {
+  const trip = await loadTrip(req, res)
+  if (!trip) return
+  const s = ((trip.expenses && trip.expenses.settlements) || []).find((x) => x.id === req.params.settlementId)
+  if (!s) return res.status(404).json({ message: 'That payment is no longer there.' })
+  if (memberName(trip, req.userId) !== s.to) return res.status(403).json({ message: 'Only ' + s.to + ' can confirm this payment.' })
+  await Trip.updateOne({ _id: trip._id, 'expenses.settlements.id': s.id }, { $set: { 'expenses.settlements.$.status': 'confirmed' } })
+  res.json(await current(trip._id))
+})
+
+// DELETE /settlements/:id  -> undo a payment, cancel one ("I haven't paid yet") or turn one down ("Not received")
+// (only the payer, the receiver or whoever recorded it)
 router.delete('/settlements/:settlementId', requireAuth, async (req, res) => {
   const trip = await loadTrip(req, res)
   if (!trip) return
-  await Trip.updateOne({ _id: trip._id }, { $pull: { 'expenses.settlements': { id: req.params.settlementId } } })
+  const s = ((trip.expenses && trip.expenses.settlements) || []).find((x) => x.id === req.params.settlementId)
+  if (!s) return res.json(await current(trip._id))
+  const me = memberName(trip, req.userId)
+  if (me !== s.from && me !== s.to && me !== s.addedBy) return res.status(403).json({ message: 'Only ' + s.from + ' or ' + s.to + ' can change this payment.' })
+  await Trip.updateOne({ _id: trip._id }, { $pull: { 'expenses.settlements': { id: s.id } } })
   res.json(await current(trip._id))
 })
 

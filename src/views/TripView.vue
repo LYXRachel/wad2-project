@@ -187,10 +187,10 @@
           :my-id="authUserId" :flights="tripFlights" @invite="showShare = true" @go="goFromCrew" @changed="reloadTrip" />
       </div>
       <!-- Recap (after the trip): the trip in numbers with its route on a map -->
-      <div v-if="!isDemo && tripPhase === 'after'" v-show="activeTab === 'recap'" id="pane-recap" role="tabpanel">
+      <div v-if="showRecap" v-show="activeTab === 'recap'" id="pane-recap" role="tabpanel">
         <TripRecap :key="'recap-' + id" :trip-id="id" :name="trip.name"
           :destinations="itineraryInfo.destinations" :start-date="itineraryInfo.startDate" :end-date="itineraryInfo.endDate"
-          :travellers="itineraryInfo.travellers" :stop-count="stopCount" :phase="tripPhase" />
+          :travellers="itineraryInfo.travellers" :stop-count="stopCount" phase="after" />
       </div>
       <!--
         v-show (not v-if) keeps SafetyLayer mounted when you switch tabs. It only starts checking once
@@ -240,6 +240,10 @@ import LoadingSkeleton from '../components/LoadingSkeleton.vue'
 import TripRecap from '../components/TripRecap.vue'
 import TripEditModal from '../components/TripEditModal.vue'
 import { notify } from '../notify.js'
+import { DEMO_FINISHED_TRIPS } from '../demoSettings.js'
+
+// The trip's tabs that can be opened from the address (?tab=...)
+const TAB_KEYS = ['itinerary', 'places', 'packing', 'expenses', 'photos', 'safety', 'crew', 'recap', 'travelOptions']
 
 export default {
   components: { LoadingSkeleton, TripRecap, TripEditModal, AppIcon, ItineraryView, WishlistView, PlacesVoting, GroupVoting, PackingView, PhotosView, ExpensesView, SafetyLayer, FlightDelayWidget, OtherJourneys, TripShare, CrewView, TripTabs, TabIcon },
@@ -247,7 +251,8 @@ export default {
   data() {
     return {
       prefs, // Settings → Transport (shared, loaded by the itinerary)
-      activeTab: 'itinerary',
+      // ?tab=crew opens that tab; ?recap=1 (show the recap early, for presenting) opens the Recap
+      activeTab: TAB_KEYS.includes(this.$route.query.tab) ? this.$route.query.tab : this.$route.query.recap === '1' ? 'recap' : 'itinerary',
       placesTab: 'wishlist', // inside Places: 'wishlist' | 'vote'
       returnTo: null, // { date, day } when Places was opened from the itinerary's "Add stop"
       savedAtStart: 0, // wishlist size at that moment, to count the new saves
@@ -285,12 +290,18 @@ export default {
       const t = this.trip
       return { destination: t.destination, destinations: t.destinations && t.destinations.length ? t.destinations : [t.destination], travellers: t.travellers || [], startDate: t.startDate, endDate: t.endDate, stops: t.stops || [], wishlist: t.wishlist || [] }
     },
-    // The Recap tab only appears once the trip is over
+    // The Recap tab appears once the trip is over (or early with ?recap=1 in the address, for presenting)
+    showRecap() {
+      if (this.isDemo) return false
+      return this.tripPhase === 'after' || this.$route.query.recap === '1' || DEMO_FINISHED_TRIPS.includes(this.id)
+    },
+    // (when it shows, the Recap comes right after the Itinerary, so it isn't tucked away in "More")
     shownTabs() {
       const list = []
       for (const t of this.tabs) {
-        if (t.key === 'recap' && (this.isDemo || this.tripPhase !== 'after')) continue
+        if (t.key === 'recap') continue
         list.push(t)
+        if (t.key === 'itinerary' && this.showRecap) list.push(this.tabs.find((x) => x.key === 'recap'))
       }
       return list
     },
@@ -400,6 +411,12 @@ export default {
   watch: {
     // Left Places some other way: the "Back to Day 2" bar isn't needed any more
     activeTab(tab) {
+      // Keep the open tab in the address (/trip/abc?tab=crew), so going back from Settings
+      // (or reloading) returns to the same tab instead of the Itinerary
+      const query = { ...this.$route.query }
+      if (tab === 'itinerary') delete query.tab
+      else query.tab = tab
+      if (query.tab !== this.$route.query.tab) this.$router.replace({ query })
       if (tab !== 'places') this.returnTo = null
     }
   },

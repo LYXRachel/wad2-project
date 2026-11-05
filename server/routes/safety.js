@@ -3,6 +3,7 @@ import { requireAuth } from './auth.js'
 import { askOverpassFast } from './places.js'
 import { geoapifyReady, geoapifySearch } from '../geoapify.js'
 import { diskMap } from '../diskCache.js'
+import { AIRPORTS } from '../../shared/airports.js'
 
 // Safety tab helpers. These run on our server (not in the browser) so that:
 //  - busy OpenStreetMap servers are retried and results are cached (no more 504s in the browser)
@@ -170,12 +171,84 @@ router.get('/locate', requireAuth, async (req, res) => {
   }
 })
 
+// ---------- Airport search (for "Which airport do you land at?") ----------
+// A plain place search for "kyoto airport" finds things like "Kyoto Sushi, Airport North, Orlando",
+// so this only ever returns airports. It's fast because the main airports are built in (shared/airports.js):
+//   1. typed an airport, code, city or country we know ("kansai", "KIX", "osaka"): answered at once
+//   2. typed another place ("kyoto", which has no airport): find where it is, then the closest airports
+//   3. nothing near in our list: ask OpenStreetMap, but never wait more than a few seconds
+const airportCache = new Map()
+
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))])
+}
+function airportRow(a, away, from) {
+  // a = [IATA, name, city, country, lat, lon]
+  let address = a[0] + ' · ' + a[2] + ', ' + a[3]
+  if (away !== null) address = a[0] + ' · ' + away + ' km from ' + from
+  return { name: a[1], address, nameLocal: '', addressLocal: '', lat: a[4], lon: a[5] }
+}
+
+async function airportSearch(q, near) {
+  const text = q.replace(/\bairport\b/i, '').trim().toLowerCase() || q.toLowerCase()
+  const cacheKey = text + '|' + near.toLowerCase()
+  if (airportCache.has(cacheKey)) return airportCache.get(cacheKey)
+
+  // 1. Airports we know by code, name, city or country
+  const exact = []
+  const matches = []
+  for (const a of AIRPORTS) {
+    if (a[0].toLowerCase() === text) exact.push(a)
+    else if (a[1].toLowerCase().includes(text) || a[2].toLowerCase().includes(text) || a[3].toLowerCase() === text) matches.push(a)
+  }
+  let result = []
+  for (const a of exact.concat(matches).slice(0, 6)) result.push(airportRow(a, null, ''))
+
+  // 2. Another place: where is it? (the typed place, else the trip city)
+  if (!result.length) {
+    let centre = null
+    for (const place of [text, near]) {
+      if (centre || !place) continue
+      const f = await withTimeout(locateOne(place).catch(() => null), 4000)
+      if (f) centre = { lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], label: (f.properties && f.properties.name) || place }
+    }
+    if (centre) {
+      const close = []
+      for (const a of AIRPORTS) {
+        const d = km(centre.lat, centre.lon, a[4], a[5])
+        if (d <= 250) close.push({ a, d })
+      }
+      close.sort((x, y) => x.d - y.d)
+      for (const c of close.slice(0, 6)) result.push(airportRow(c.a, Math.round(c.d), centre.label))
+
+      // 3. Nothing near in our list: ask OpenStreetMap for airports with a code (at most 6 seconds)
+      if (!result.length) {
+        const query = '[out:json][timeout:8];nwr["aeroway"="aerodrome"]["iata"](around:150000,' + centre.lat + ',' + centre.lon + ');out tags center 10;'
+        const data = await withTimeout(askOverpassFast(query, 8).catch(() => null), 6000)
+        const list = []
+        for (const el of (data && data.elements) || []) {
+          const t = el.tags || {}
+          const lat = el.lat !== undefined ? el.lat : el.center && el.center.lat
+          const lon = el.lon !== undefined ? el.lon : el.center && el.center.lon
+          if (lat === undefined || !t.iata) continue
+          list.push({ a: [t.iata, t['name:en'] || t.name || t.iata, '', '', lat, lon], d: km(centre.lat, centre.lon, lat, lon) })
+        }
+        list.sort((x, y) => x.d - y.d)
+        for (const c of list.slice(0, 6)) result.push(airportRow(c.a, Math.round(c.d), centre.label))
+      }
+    }
+  }
+  if (result.length) airportCache.set(cacheKey, result) // only remember answers, so a miss is tried again
+  return result
+}
+
 // GET /api/safety/stay-search?q=Hotel Gracery&near=Tokyo, Japan
 // -> [{ name, address, nameLocal, addressLocal, lat, lon }] English + local script (for taxi drivers)
 router.get('/stay-search', requireAuth, async (req, res) => {
   const q = String(req.query.q || '').trim().slice(0, 120)
   const near = String(req.query.near || '').trim().slice(0, 80)
   if (q.length < 3) return res.json([])
+  if (req.query.kind === 'airport') return res.json(await airportSearch(q, near))
   try {
     const params = { q: near ? q + ', ' + near : q, limit: '5' }
     const [en, local] = await Promise.all([photon({ ...params, lang: 'en' }, { geoapify: false }), photon({ ...params, lang: 'default' }, { geoapify: false })])

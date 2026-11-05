@@ -16,6 +16,10 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  // Vitest (unit + component tests): skip e2e/, those are Playwright tests
+  test: {
+    exclude: ['node_modules/**', 'e2e/**']
+  },
   server: {
     host: true, // listen on all addresses, IPv4 and IPv6
     proxy: {

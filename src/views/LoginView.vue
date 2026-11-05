@@ -14,8 +14,10 @@
 
       <label for="password" class="as-label">Password</label>
       <div class="as-field"><span class="as-field-icon"><AuthIcon name="key" /></span>
-        <input id="password" type="password" class="as-input" v-model="password"
+        <input id="password" :type="showPw ? 'text' : 'password'" class="as-input" v-model="password"
           placeholder="Password" autocomplete="current-password" data-testid="login-password" required>
+        <button type="button" class="as-eye" :aria-pressed="showPw" :aria-label="showPw ? 'Hide password' : 'Show password'" aria-controls="password"
+          :title="showPw ? 'Hide password' : 'Show password'" @click="showPw = !showPw"><AppIcon :name="showPw ? 'eye-off' : 'eye'" :size="20" /></button>
       </div>
       <router-link :to="{ path: '/forgot-password', query: username.includes('@') ? { email: username.trim() } : {} }" class="lv-forgot">Forgot password?</router-link>
 
@@ -37,13 +39,15 @@
 import axios from 'axios'
 import AuthShell from '../components/AuthShell.vue'
 import AuthIcon from '../components/AuthIcon.vue'
+import AppIcon from '../components/AppIcon.vue'
 import DoodleIcon from '../components/DoodleIcon.vue'
 import { saveLogin } from '../auth.js'
 
 export default {
-  components: { AuthShell, AuthIcon, DoodleIcon },
+  components: { AuthShell, AuthIcon, DoodleIcon, AppIcon },
   data() {
     return {
+      showPw: false, // the eye button: show the password as plain text
       username: this.$route.query.username || '',
       password: '',
       errorMessage: '',

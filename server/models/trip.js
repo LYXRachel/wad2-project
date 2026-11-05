@@ -30,6 +30,9 @@ const tripSchema = new mongoose.Schema({
   extras: [String],
   // Packing progress: { checked: { itemId: true }, qty: { itemId: 3 }, removed: [itemId], custom: [{ id, category, name, qty }] }
   packing: { type: mongoose.Schema.Types.Mixed, default: null },
+  // Each person's own packing list: { userId: { checked, qty, removed, custom } }
+  // ("packing" above is the older shared list: someone without their own list starts from a copy of it)
+  packingByUser: { type: mongoose.Schema.Types.Mixed, default: {} },
   // Expenses & Split: { homeCurrency, budget, items: [...], settlements: [...] } (see src/expenses.js)
   expenses: { type: mongoose.Schema.Types.Mixed, default: null },
   // Optional: the family group this trip is shared with (null = not shared with a group).
@@ -53,6 +56,9 @@ const tripSchema = new mongoose.Schema({
   stays: { type: [mongoose.Schema.Types.Mixed], default: [] },
   // "Other journeys" (Transport tab): { id, from, to, mode, min, date, by }
   journeys: { type: [mongoose.Schema.Types.Mixed], default: [] },
+  // Smart Schedule settings for single days (days without an entry use each person's defaults):
+  // { '2026-12-20': { dayStart: 11, dayEnd: 23, crowdSensitivity: 'medium', travelBuffer: 0 } }
+  daySettings: { type: mongoose.Schema.Types.Mixed, default: {} },
 
   // Notes the crew leave on a stop ("book ahead, it sells out"). Kept apart from the stops,
   // so saving the itinerary never touches them. Removed when their stop is removed.

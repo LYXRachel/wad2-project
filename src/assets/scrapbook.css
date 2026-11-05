@@ -134,6 +134,62 @@ body.sb-page .dd-menu.dd-menu .dd-check {
   color: var(--sb-ink);
   filter: none;
 }
+/* ...with the journal's chunky details: hard shadow, pill search, roomier rows with dashed
+   dividers, and the picked option as an amber sticker */
+body.sb-page .dd-menu.dd-menu {
+  border-width: 2.5px;
+  padding: 6px;
+  box-shadow: 0 5px 0 var(--sb-ink), 0 18px 34px -14px rgba(18, 50, 74, 0.4);
+}
+body.sb-page .dd-menu.dd-menu .dd-header {
+  padding: 8px 10px 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+body.sb-page .dd-menu.dd-menu .dd-search {
+  margin: 0 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+}
+body.sb-page .dd-menu.dd-menu .dd-list li {
+  margin: 2px 0;
+  padding: 9px 12px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font-weight: 700;
+}
+body.sb-page .dd-menu.dd-menu .dd-list li + li:not(.selected):not(.active)::before {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: -3px;
+  border-top: 1.5px dashed rgba(18, 50, 74, 0.18);
+}
+body.sb-page .dd-menu.dd-menu .dd-list li {
+  position: relative;
+}
+body.sb-page .dd-menu.dd-menu .dd-list li.active {
+  background: #fff1cf;
+}
+body.sb-page .dd-menu.dd-menu .dd-list li.selected,
+body.sb-page .dd-menu.dd-menu .dd-list li.selected.active {
+  border-color: var(--sb-ink);
+  background: var(--sb-amber);
+  box-shadow: 0 2px 0 var(--sb-ink);
+}
+body.sb-page .dd-menu.dd-menu .dd-label {
+  font-size: 15px;
+}
+body.sb-page .dd-menu.dd-menu .dd-list li.selected .dd-label {
+  font-weight: 800;
+}
+body.sb-page .dd-menu.dd-menu .dd-desc {
+  font-weight: 600;
+}
+body.sb-page .dd-menu.dd-menu .dd-list li.selected .dd-desc {
+  color: var(--sb-ink-soft);
+}
 
 /* ===== Notebook form =====
    The fields and buttons of the "Plan a new trip" notebook, for any form shown in a <NotebookModal>

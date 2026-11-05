@@ -1895,6 +1895,9 @@ async function deleteAccount() {
   border-radius: 12px;
   background: #fffaf0;
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+/* (not on the food needs box: its menu opens below it, and hiding overflow cut the menu off) */
+.st-page .st :deep(.pi) {
   overflow: hidden;
 }
 .st-page .st :deep(.dt.focus),
