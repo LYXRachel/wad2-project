@@ -159,7 +159,8 @@
         <h3 class="wl-heading mb-0">{{ sec.flag }} Popular in {{ sec.city }}</h3>
         <span v-if="sec.list.length" class="small text-muted">
           {{ sec.list.length }} {{ sec.list.length === 1 ? 'place' : 'places' }} ·
-          <template v-if="sec.partial">top picks</template>
+          <template v-if="sec.google">from Google Maps</template>
+          <template v-else-if="sec.partial">top picks</template>
           <!-- Geoapify's terms: a "Powered by Geoapify" link next to what it found -->
           <template v-else-if="sec.geoapify"><a href="https://www.geoapify.com/" target="_blank" rel="noopener" class="wl-credit">Powered by Geoapify</a> · © OpenStreetMap</template>
           <template v-else>from OpenStreetMap</template>
@@ -399,6 +400,7 @@ export default {
           error: st.error,
           shown: st.shown,
           partial: !!st.partial,
+          google: (this.popularByDest[d] || []).some((p) => p.src === 'google'),
           geoapify: (this.popularByDest[d] || []).some((p) => p.src === 'geoapify')
         })
       }

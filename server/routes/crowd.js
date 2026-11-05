@@ -64,43 +64,8 @@ function typicalDays(category) {
   return days
 }
 
-// ---------- Find nearby landmarks (free OpenStreetMap services, no key) ----------
-// Used when BestTime has no data, e.g. Namsan Park -> N Seoul Tower.
-const OSM_HEADERS = { 'User-Agent': 'ChuiseYourTrip/1.0 (SMU IS216 student project)' }
-
-async function findNearby(name, lat, lon) {
-  try {
-    // 1. Named attractions within 1 km
-    const query = '[out:json][timeout:10];(' +
-      'nwr(around:1000,' + lat + ',' + lon + ')["tourism"~"attraction|viewpoint|museum|zoo|theme_park"]["name"];' +
-      ');out tags 30;'
-    const resp = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { ...OSM_HEADERS, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'data=' + encodeURIComponent(query),
-      signal: AbortSignal.timeout(12000)
-    })
-    const osm = await resp.json()
-
-    // 2. Keep up to 3 names, preferring English names, skipping the place itself
-    const names = []
-    for (const el of osm.elements || []) {
-      const tags = el.tags || {}
-      const n = tags['name:en'] || tags.name
-      if (!n || names.includes(n) || n.toLowerCase() === name.toLowerCase()) continue
-      names.push(n)
-      if (names.length === 3) break
-    }
-    return names
-  } catch (err) {
-    console.error('Nearby lookup failed:', err.message)
-    return [] // not important enough to break the page
-  }
-}
-
 // Everything we save for a place BestTime can't forecast
-// point = the place's own map point (what the user picked)
-async function buildFallback(name, point) {
+async function buildFallback(name) {
   const defaults = guessDefaults(name, [])
   return {
     found: false,
@@ -108,7 +73,7 @@ async function buildFallback(name, point) {
     message: 'Not enough visitor data for this place, so this is a typical ' + defaults.category + ' pattern.',
     ...defaults,
     days: typicalDays(defaults.category),
-    nearby: await findNearby(name, point.lat, point.lon)
+    nearby: []
   }
 }
 
@@ -240,7 +205,7 @@ router.get('/', requireAuth, async (req, res) => {
   if (cached && ageDays < CACHE_DAYS) {
     // Older "no data" entries were saved before estimates existed - add them now (free)
     if (!cached.found && !cached.estimated) {
-      const fallback = await buildFallback(name, point)
+      const fallback = await buildFallback(name)
       Object.assign(cached, fallback)
       await cached.save()
     }
@@ -280,7 +245,7 @@ router.get('/', requireAuth, async (req, res) => {
       console.error('BestTime error:', msg)
       return res.status(502).json({ message: 'Crowd data service error. Try again later.' })
     }
-    result = await buildFallback(name, point)
+    result = await buildFallback(name)
   }
 
   // 3. Save it (note: BestTime echoes our private key back - we never store the raw response)
@@ -295,4 +260,4 @@ router.get('/', requireAuth, async (req, res) => {
 export default router
 
 // Exported so it can be unit-tested without calling BestTime
-export { simplify, guessDefaults, typicalDays, findNearby, buildFallback }
+export { simplify, guessDefaults, typicalDays, buildFallback }

@@ -1,22 +1,9 @@
 import express from 'express'
 import { wikiFetch, overpassInTurn, serverIsResting, restServer } from '../politeFetch.js'
-import { geoapifyReady, geoapifySearch, geoapifyAttractions } from '../geoapify.js'
 import { sharedCache } from '../sharedCache.js'
 import { requireAuth } from './auth.js'
 import Attraction from '../models/Attraction.js'
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-// Hand-picked top sights per country (the same list Discover shows), put first in "Popular in ..."
-let TOP_SIGHTS = {}
-try {
-  const file = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'data', 'countryAttractions.json')
-  TOP_SIGHTS = JSON.parse(fs.readFileSync(file, 'utf8')).countries || {}
-} catch (err) {
-  console.warn('Could not read the top sights list:', err.message)
-}
-
+import { searchPopularPlaces } from '../googlePlaces.js'
 const router = express.Router()
 
 // Remember searches so typing the same letters again is instant and free (kept in the database)
@@ -80,22 +67,45 @@ router.get('/', requireAuth, async (req, res) => {
 
 // ---------------------------------------------------------------------
 // GET /api/places/attractions?destination=Kyoto, Japan
-// -> up to 100 popular attractions there: [{ name, type, indoor, address }]
-//
-// 1. Photon finds the destination (city or country).
-// 2. Overpass (OpenStreetMap) lists named tourist places inside it.
-// 3. "Popular" = places important enough to have a Wikipedia/Wikidata page.
-// Results are saved in MongoDB, so each destination is only looked up once.
+// -> up to 20 popular places there: [{ name, type, indoor, address, lat, lon }]
+// One Google Places text search ("popular places to visit in Kyoto, Japan"): Google decides what is
+// popular and in what order, like typing it into Google Maps. Saved in MongoDB for 30 days.
 // ---------------------------------------------------------------------
-const HEADERS = { 'User-Agent': 'ChuiseYourTrip/1.0 (SMU IS216 student project)' }
-const TYPES = 'attraction|museum|gallery|viewpoint|zoo|theme_park|aquarium'
-const INDOOR_TYPES = ['museum', 'gallery', 'aquarium']
 const CACHE_DAYS = 30
 // Raise this when the way the list is built changes, so saved lists are looked up again
-// (2: whole-word matching of hand-picked sights, 3: every place has a map point)
-const LIST_VERSION = 3
-// Two public Overpass servers: if the first is busy or slow, try the second
-// Public Overpass servers: if one is busy, down or rate-limiting us, the next one is tried
+// (4: Google Places text search replaces the OpenStreetMap + Wikidata lookup)
+const LIST_VERSION = 4
+const lookups = new Map() // destination key -> the lookup that is running (one per destination)
+
+router.get('/attractions', requireAuth, async (req, res) => {
+  const destination = (req.query.destination || '').trim()
+  if (!destination || destination.length > 80) return res.json([])
+
+  const key = destination.toLowerCase()
+  const saved = await Attraction.findOne({ key })
+  const fresh = saved && saved.items.length && saved.version === LIST_VERSION &&
+    (Date.now() - saved.fetchedAt.getTime()) / 86400000 < CACHE_DAYS
+  if (fresh) return res.json(saved.items)
+
+  let job = lookups.get(key)
+  if (!job) {
+    job = searchPopularPlaces(destination).finally(() => lookups.delete(key))
+    lookups.set(key, job)
+  }
+  try {
+    const items = await job
+    // Only a real answer is saved; a failure is tried again next time
+    if (items.length) await Attraction.findOneAndUpdate({ key }, { key, items, version: LIST_VERSION, fetchedAt: new Date() }, { upsert: true })
+    res.json(items)
+  } catch (err) {
+    console.error('Popular places lookup failed for "' + destination + '":', err.message)
+    res.status(err.status === 503 ? 503 : 502).json({
+      message: err.status === 503 ? 'Popular places are not set up yet (GOOGLE_PLACES_API_KEY missing).' : 'Could not load popular places right now. Try again in a minute.'
+    })
+  }
+})
+
+const HEADERS = { 'User-Agent': 'ChuiseYourTrip/1.0 (SMU IS216 student project)' }
 const OVERPASS_SERVERS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']
 
 export async function askOverpass(query, waitSeconds) {
@@ -162,321 +172,6 @@ async function askAllOverpass(query, waitSeconds) {
   }
 }
 
-// Backup source: Wikipedia articles within 10 km that look like places to visit
-// (titles are checked for words like museum, park, mosque, so streets and schools are left out)
-const WIKI_KINDS = [
-  { words: ['museum'], type: 'museum', indoor: true },
-  { words: ['gallery'], type: 'gallery', indoor: true },
-  { words: ['zoo'], type: 'zoo', indoor: false },
-  { words: ['aquarium'], type: 'aquarium', indoor: true },
-  { words: ['theatre', 'theater', 'opera', 'philharmonic', 'circus'], type: 'attraction', indoor: true },
-  { words: ['bazaar', 'market', 'mall'], type: 'shop', indoor: true },
-  { words: ['mosque', 'church', 'cathedral', 'temple', 'shrine', 'monastery', 'synagogue'], type: 'heritage', indoor: true },
-  { words: ['park', 'garden', 'lake', 'gorge', 'waterfall', 'canyon', 'national park', 'reserve'], type: 'park', indoor: false },
-  { words: ['monument', 'memorial', 'square', 'palace', 'tower', 'fortress', 'castle', 'statue', 'gate'], type: 'attraction', indoor: false }
-]
-
-async function wikiNearby(lat, lon, destination) {
-  const url = 'https://en.wikipedia.org/w/api.php?' + new URLSearchParams({
-    action: 'query', list: 'geosearch', gscoord: lat + '|' + lon, gsradius: '10000', gslimit: '100', format: 'json'
-  })
-  const response = await wikiFetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) })
-  if (!response.ok) throw new Error('Wikipedia ' + response.status)
-  const data = await response.json()
-  const out = []
-  for (const g of (data.query && data.query.geosearch) || []) {
-    const title = g.title.toLowerCase()
-    let kind = null
-    for (const k of WIKI_KINDS) {
-      for (const w of k.words) {
-        if (!kind && title.includes(w)) kind = k
-      }
-    }
-    if (kind) out.push({ name: g.title, type: kind.type, indoor: kind.indoor, address: g.title + ', ' + destination, wiki: 'en:' + g.title, rank: 0, lat: g.lat, lon: g.lon })
-  }
-  return out
-}
-
-// Fame of each place = how many Wikipedia languages have an article on it (Wikidata "sitelinks")
-async function addFame(list) {
-  const ids = []
-  for (const item of list) if (/^Q\d+$/.test(item.wikidata || '') && !ids.includes(item.wikidata)) ids.push(item.wikidata)
-  const fame = {}
-  // Up to 300 places, 50 per request, all requests at once (a slow or failed one is just skipped)
-  const batches = []
-  for (let i = 0; i < ids.length && i < 300; i += 50) batches.push(ids.slice(i, i + 50))
-  await Promise.all(batches.map(async (batch) => {
-    try {
-      const url = 'https://www.wikidata.org/w/api.php?' + new URLSearchParams({
-        action: 'wbgetentities', ids: batch.join('|'), props: 'sitelinks', format: 'json'
-      })
-      const response = await wikiFetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) })
-      if (!response.ok) throw new Error('Wikidata ' + response.status)
-      const data = await response.json()
-      for (const id in data.entities || {}) {
-        const links = data.entities[id].sitelinks || {}
-        let n = 0
-        for (const site in links) if (site.endsWith('wiki') && site !== 'commonswiki') n++
-        fame[id] = n
-      }
-    } catch (err) {
-      console.error('Wikidata fame lookup failed:', err.message)
-    }
-  }))
-  for (const item of list) item.rank = fame[item.wikidata] || 0
-}
-
-// "Singapore" or "Kyoto, Japan" -> the hand-picked sights (for a city, only those near it)
-function topSightsFor(destination, isCountry) {
-  const parts = destination.split(', ')
-  const country = parts[parts.length - 1]
-  const city = parts.length > 1 ? parts[0] : ''
-  const picks = TOP_SIGHTS[country] || TOP_SIGHTS[destination] || []
-  if (isCountry || !city) return picks
-  return picks.filter((p) => !p.city || plain(p.city) === plain(city))
-}
-function guessType(name) {
-  const n = name.toLowerCase()
-  for (const k of WIKI_KINDS) {
-    for (const w of k.words) if (n.includes(w)) return k.type
-  }
-  if (/studios|disney|world|land\b/.test(n)) return 'theme_park'
-  return 'attraction'
-}
-
-router.get('/attractions', requireAuth, async (req, res) => {
-  const destination = (req.query.destination || '').trim()
-  if (!destination || destination.length > 80) return res.json([])
-
-  const key = destination.toLowerCase()
-  const saved = await Attraction.findOne({ key })
-  // Use the saved list if it is recent and not empty (an empty list means an earlier lookup went wrong)
-  // (lists saved by an older version of the lookup are looked up again: see LIST_VERSION)
-  const ranked = saved && saved.items.length && saved.version === LIST_VERSION
-  if (ranked && (Date.now() - saved.fetchedAt.getTime()) / 86400000 < CACHE_DAYS) return res.json(saved.items)
-
-  // One lookup per place, however many people ask at the same time
-  let job = lookups.get(key)
-  if (!job) {
-    job = lookupAttractions(destination, key).finally(() => lookups.delete(key))
-    job.catch(() => {}) // errors are handled below (or by whoever is waiting)
-    lookups.set(key, job)
-  }
-
-  // Wait up to 10 seconds. A slower lookup (a whole country, or busy map servers) carries on in the
-  // background and is saved when it's done; meanwhile the page gets the hand-picked top sights,
-  // marked as partial, and asks again a minute later (by then the full list is saved).
-  const slow = new Promise((resolve) => setTimeout(() => resolve('slow'), 10000))
-  let result = null
-  let failed = null
-  try {
-    result = await Promise.race([job, slow])
-  } catch (err) {
-    failed = err
-  }
-  if (result && result !== 'slow') {
-    if (result.partial) res.set('X-Places-Partial', '1')
-    return res.json(result.items)
-  }
-  const picks = pickedSights(destination)
-  if (picks.length) {
-    res.set('X-Places-Partial', '1')
-    return res.json(picks)
-  }
-  // No hand-picked sights for this place: wait for the lookup after all
-  if (result === 'slow') {
-    try {
-      result = await job
-      if (result.partial) res.set('X-Places-Partial', '1')
-      return res.json(result.items)
-    } catch (err) {
-      failed = err
-    }
-  }
-  console.error('Attractions lookup failed for "' + destination + '":', failed && failed.message)
-  res.status(502).json({ message: 'Could not load popular places right now. Try again in a minute.' })
-})
-
-const lookups = new Map() // destination key -> the lookup that is running
-
-// The hand-picked top sights for a place, as cards (used while the full list is still loading)
-function pickedSights(destination) {
-  const list = []
-  for (const pick of topSightsFor(destination, !destination.includes(', '))) {
-    if (pick.lat == null) continue // only places we know the map point of
-    list.push({ name: pick.name, type: guessType(pick.name), indoor: false, address: pick.name + ', ' + (pick.city || destination),
-      wiki: 'en:' + pick.name, wikidata: null, rank: 999, lat: pick.lat, lon: pick.lon })
-  }
-  return list
-}
-
-// The full lookup: OpenStreetMap places ranked by fame, hand-picked sights first, Wikipedia as a backup.
-// Returns { items, partial }; partial = OpenStreetMap didn't answer (so nothing is saved, it's tried again next time)
-async function lookupAttractions(destination, key) {
-  // 1. Where is it? (Geoapify if there's a key, else Photon, or Nominatim if Photon is busy)
-  const where = await locatePlace(destination)
-  if (!where) return { items: [], partial: false }
-  const { lat, lon, isCountry } = where
-  const props = { osm_type: where.relationId ? 'R' : '', osm_id: where.relationId }
-
-  // 2. Geoapify first (about a second, with our own allowance). If there's no key or it fails,
-  //    ask OpenStreetMap (Overpass). Each try can fail (busy servers), so we fall back step by step:
-  //    a) inside the boundary, famous places only   b) 15 km around the centre, any named tourist place
-  //    c) if Overpass is down completely: Wikipedia articles near the centre (see wikiNearby)
-  let osm = { elements: [] }
-  let source = 'osm'
-  if (geoapifyReady()) {
-    try {
-      osm = await geoapifyAttractions({ placeId: where.placeId, lat, lon, radius: 15000, tourismTypes: TYPES.split('|') })
-      if (osm.elements.length) source = 'geoapify'
-    } catch (err) {
-      console.error('Geoapify places failed for "' + destination + '":', err.message, '(trying Overpass)')
-    }
-  }
-  const famous = isCountry ? '["wikipedia"]' : '["wikidata"]'
-  // Time budget: all Overpass servers are asked at once and the first answer wins
-  const waitSeconds = isCountry ? 40 : 20
-  if (!osm.elements.length) try {
-    const prefix = props.osm_type === 'R' ? 'area(' + (3600000000 + Number(props.osm_id)) + ')->.a;' : ''
-    const sel = props.osm_type === 'R' ? 'nwr(area.a)' : 'nwr(around:15000,' + lat + ',' + lon + ')'
-    // Tourist sights with a Wikipedia/Wikidata entry. For a city, also famous parks/gardens and historic places
-    // (a whole country has too many of those to ask about in time).
-    let parts = sel + '["tourism"~"^(' + TYPES + ')$"]["name"]' + famous + ';'
-    if (!isCountry) {
-      parts += sel + '["leisure"~"^(park|garden|nature_reserve|water_park)$"]["name"]["wikidata"];' +
-        sel + '["historic"~"^(castle|monument|memorial|fort|palace|ruins|archaeological_site)$"]["name"]["wikidata"];'
-    }
-    const query = '[out:json][timeout:' + waitSeconds + '];' + prefix + '(' + parts + ');out tags center 500;'
-    osm = await askOverpassFast(query, waitSeconds + 5)
-  } catch (err) {
-    console.error('Overpass step a failed for "' + destination + '":', err.message)
-  }
-  if (!(osm.elements || []).length && !isCountry) {
-    try {
-      const nearby = '[out:json][timeout:25];(nwr(around:15000,' + lat + ',' + lon + ')' +
-        '["tourism"~"^(' + TYPES + ')$"]["name"];);out tags center 300;'
-      osm = await askOverpassFast(nearby, 20)
-    } catch (err) {
-      console.error('Overpass step b failed for "' + destination + '":', err.message)
-    }
-  }
-
-  // 3. Collect the places (one per name)
-  const list = []
-  const seen = []
-  for (const el of osm.elements || []) {
-    const t = el.tags || {}
-    const name = t['name:en'] || t.name
-    if (!name || seen.includes(plain(name))) continue
-    seen.push(plain(name))
-    // What kind of place: tourism type first, then parks and historic places
-    let type = t.tourism
-    if (!type && t.leisure) type = 'park'
-    if (!type && t.historic) type = 'heritage'
-
-    // Build an address the crowd tracker can use later
-    const street = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ')
-    const address = street ? street + ', ' + (t['addr:city'] || destination) : name + ', ' + destination
-    // Where it is: a node has lat/lon, a building or area has its centre
-    const lat = el.lat ?? (el.center && el.center.lat)
-    const lon = el.lon ?? (el.center && el.center.lon)
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue
-
-    list.push({
-      name,
-      type,
-      indoor: INDOOR_TYPES.includes(type),
-      address,
-      // Where its photo can be found (used by /photos): "en:Arch of Triumph (Pyongyang)", "Q1234"
-      wiki: t.wikipedia || null,
-      wikidata: t.wikidata || null,
-      rank: 0,
-      lat,
-      lon
-    })
-  }
-
-  // 4. How famous is each place? The number of Wikipedia languages that have an article about it
-  //    (Universal Studios Singapore: ~40, a small neighbourhood park: 1-2). Wikidata answers 50 at a time.
-  try {
-    await addFame(list)
-  } catch (err) {
-    console.error('Could not rank places by fame:', err.message)
-  }
-  const typeBonus = { theme_park: 6, zoo: 5, aquarium: 5, museum: 3, attraction: 3, viewpoint: 2, gallery: 2, heritage: 2, park: 0 }
-  for (const item of list) item.score = item.rank + (typeBonus[item.type] || 0) + (item.wiki ? 2 : 0)
-  list.sort((a, b) => b.score - a.score)
-
-  // 5. Hand-picked top sights for this country (and city) go first
-  const top = []
-  for (const pick of topSightsFor(destination, isCountry)) {
-    const same = list.find((x) => sameName(x.name, pick.name))
-    if (same) {
-      same.rank = 999 // keep its real map details, just move it to the top
-      top.push(same)
-    } else if (pick.lat != null) {
-      top.push({ name: pick.name, type: guessType(pick.name), indoor: false, address: pick.name + ', ' + (pick.city || destination),
-        wiki: 'en:' + pick.name, wikidata: null, rank: 999, lat: pick.lat, lon: pick.lon })
-    }
-  }
-  for (const item of list) {
-    if (top.length >= 100) break
-    if (!top.includes(item)) top.push(item)
-  }
-  for (let i = 0; i < top.length; i++) {
-    const it = top[i]
-    top[i] = { name: it.name, type: it.type, indoor: it.indoor, address: it.address, wiki: it.wiki, wikidata: it.wikidata, rank: it.rank, src: source, lat: it.lat, lon: it.lon }
-  }
-  // c) OpenStreetMap didn't answer: add famous places from Wikipedia near the centre
-  //    (after the hand-picked sights, without repeating them)
-  const osmAnswered = (osm.elements || []).length > 0
-  if (!osmAnswered) {
-    try {
-      for (const item of await wikiNearby(lat, lon, destination)) {
-        if (top.length >= 100) break
-        if (!top.some((x) => plain(x.name) === plain(item.name))) top.push(item)
-      }
-    } catch (err) {
-      console.error('Wikipedia fallback failed for "' + destination + '":', err.message)
-    }
-  }
-  if (!top.length) throw new Error('no source answered')
-
-  // Saved only when OpenStreetMap answered. Otherwise the page is told it's a shorter list for now,
-  // and the full lookup is tried again next time.
-  if (osmAnswered) await Attraction.findOneAndUpdate({ key }, { key, items: top, version: LIST_VERSION, fetchedAt: new Date() }, { upsert: true })
-  return { items: top, partial: !osmAnswered }
-}
-
-// Where a city or country is: { lat, lon, isCountry, relationId } (relationId = its OpenStreetMap boundary, if any).
-// Photon first; when it's busy or down (it limits how often one server may ask), Nominatim.
-async function locatePlace(destination) {
-  if (geoapifyReady()) {
-    try {
-      const data = await geoapifySearch({ q: destination, limit: 1 })
-      const f = data.features[0]
-      if (f) {
-        const p = f.properties
-        return { lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], isCountry: p.osm_value === 'country', relationId: null, placeId: p.place_id || null }
-      }
-    } catch (err) {
-      console.warn('Geoapify could not find', destination + ':', err.message, '(trying Photon)')
-    }
-  }
-  try {
-    const data = await getMapJson('https://photon.komoot.io/api/?' + new URLSearchParams({ q: destination, limit: '1', lang: 'en', osm_tag: 'place' }))
-    const f = data.features && data.features[0]
-    if (!f) return null
-    const p = f.properties || {}
-    return { lon: f.geometry.coordinates[0], lat: f.geometry.coordinates[1], isCountry: p.osm_value === 'country', relationId: p.osm_type === 'R' ? p.osm_id : null }
-  } catch (err) {
-    console.warn('Photon could not find', destination + ':', err.message, '(trying Nominatim)')
-  }
-  const list = await getMapJson('https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ q: destination, format: 'jsonv2', limit: '1', 'accept-language': 'en' }))
-  const r = list[0]
-  if (!r) return null
-  return { lon: Number(r.lon), lat: Number(r.lat), isCountry: r.addresstype === 'country', relationId: r.osm_type === 'relation' ? r.osm_id : null }
-}
 
 // ---------------------------------------------------------------------
 // GET /api/places/photos?city=Pyongyang, North Korea&names=Juche Tower|Arch of Triumph
@@ -596,32 +291,6 @@ router.get('/photos', async (req, res) => {
   await Promise.all(workers)
   res.json(out)
 })
-
-// ---------------------------------------------------------------------
-// Helpers shared by the lookups above
-// ---------------------------------------------------------------------
-// Ask a free map service for JSON. Fails clearly on a busy/blocked answer (HTML or 429), and tries once more.
-async function getMapJson(url) {
-  let lastError = null
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const response = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) })
-      if (!response.ok) throw new Error('HTTP ' + response.status)
-      return await response.json()
-    } catch (err) {
-      lastError = err
-    }
-  }
-  throw lastError
-}
-
-// Is one name the other, or the other plus whole words? ("Sentosa" = "Sentosa Island", but "Lion" ≠ "Merlion")
-function sameName(a, b) {
-  const words = (t) => ' ' + plain(t).split(/[^a-z0-9]+/).filter(Boolean).join(' ') + ' '
-  const x = words(a)
-  const y = words(b)
-  return x.trim() !== '' && y.trim() !== '' && (x.includes(y) || y.includes(x))
-}
 
 // "Café Mozart" -> "cafe mozart" (no accents or capitals, so "cafe" finds "Café")
 function plain(text) {

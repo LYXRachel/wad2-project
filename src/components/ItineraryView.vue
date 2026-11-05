@@ -95,6 +95,10 @@ export default {
     const firstStopDay = trip.stops.map((s) => s.date).sort()[0]
     this.selectedDate = firstStopDay || this.dayList[0] || ''
 
+    // Each stop's crowd forecast from our server (in parallel), started first so it isn't
+    // held up by the weather and preferences below
+    const forecasts = Promise.all(trip.stops.map((item) => this.loadForecast(item)))
+
     // Load simulated weather for every day of the trip
     try {
       this.weather = await fetchWeatherForecast({ dates: this.dayList })
@@ -111,8 +115,7 @@ export default {
 
     this.loadClimate() // in the background: typical weather for days with no forecast
 
-    // Load each tracked stop's forecast from our server (in parallel)
-    await Promise.all(trip.stops.map((item) => this.loadForecast(item)))
+    await forecasts
 
     this.reportItinerary()
 

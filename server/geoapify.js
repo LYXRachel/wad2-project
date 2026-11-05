@@ -51,51 +51,6 @@ export async function geoapifySearch({ q, limit = 5, lat, lon, type }) {
   return { features }
 }
 
-// Tourist places inside a city/country boundary (placeId) or a circle around a point.
-// Answers like Overpass ({ elements: [{ tags }] }), so the existing attraction code can use it as it is.
-const CATEGORIES = [
-  'tourism.attraction', 'tourism.sights', 'entertainment.museum', 'entertainment.zoo', 'entertainment.aquarium',
-  'entertainment.theme_park', 'national_park', 'heritage', 'leisure.park'
-].join(',')
-
-export async function geoapifyAttractions({ placeId, lat, lon, radius, tourismTypes }) {
-  const filter = placeId ? 'place:' + placeId : 'circle:' + lon + ',' + lat + ',' + radius
-  const data = await getJson('/v2/places', {
-    categories: CATEGORIES, filter, bias: 'proximity:' + lon + ',' + lat, limit: '500', lang: 'en'
-  }, 15000)
-  const elements = []
-  for (const f of data.features || []) {
-    const p = f.properties || {}
-    const raw = (p.datasource && p.datasource.raw) || {} // the OpenStreetMap tags, when Geoapify includes them
-    const cats = p.categories || []
-    const has = (prefix) => cats.some((c) => c === prefix || c.startsWith(prefix + '.'))
-    const tags = { ...raw }
-    tags.name = raw.name || p.name
-    if (!tags.name) continue
-    // An ordinary park with no Wikipedia/Wikidata entry is usually just a local green space: skip it
-    const onlyPark = has('leisure.park') && !has('tourism') && !has('entertainment') && !has('heritage') && !has('national_park')
-    if (onlyPark && !raw.wikidata && !raw.wikipedia) continue
-    // The kind of place, from its OpenStreetMap tag if it's one we know, otherwise from Geoapify's categories
-    if (!tourismTypes.includes(tags.tourism)) delete tags.tourism
-    if (!tags.tourism && !tags.leisure && !tags.historic) {
-      if (has('entertainment.museum')) tags.tourism = 'museum'
-      else if (has('entertainment.zoo')) tags.tourism = 'zoo'
-      else if (has('entertainment.aquarium')) tags.tourism = 'aquarium'
-      else if (has('entertainment.theme_park')) tags.tourism = 'theme_park'
-      else if (has('tourism.attraction.viewpoint')) tags.tourism = 'viewpoint'
-      else if (has('national_park') || has('leisure.park')) tags.leisure = 'park'
-      else if (has('heritage') || has('tourism.sights')) tags.historic = 'yes'
-      else tags.tourism = 'attraction'
-    }
-    if (!tags['addr:street'] && p.street) tags['addr:street'] = p.street
-    if (!tags['addr:housenumber'] && p.housenumber) tags['addr:housenumber'] = p.housenumber
-    if (!tags['addr:city'] && p.city) tags['addr:city'] = p.city
-    const c = f.geometry && f.geometry.coordinates
-    elements.push({ tags, lat: c ? c[1] : p.lat, lon: c ? c[0] : p.lon })
-  }
-  return { elements }
-}
-
 // How long a route takes: { min, km } or null. from/to = { lat, lon }.
 // mode: 'walk' | 'bicycle' | 'drive' | 'approximated_transit' (public transport worked out from
 // OpenStreetMap's bus/train lines; no timetables, so it's an estimate).
